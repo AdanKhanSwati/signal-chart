@@ -24,20 +24,20 @@ begin
   or p_closed_at<now()-interval '30 minutes'
   or split_part(p_signal_key,':',3)<>(extract(epoch from p_closed_at)*1000)::bigint::text
  then return jsonb_build_object('published',false,'reason','stale_market_data');end if;
- if jsonb_typeof(p_analysis)<>'object'
-  or jsonb_typeof(p_analysis->'entry')<>'number'
-  or jsonb_typeof(p_analysis->'stopLoss')<>'number'
-  or jsonb_typeof(p_analysis->'takeProfit')<>'number'
-  or jsonb_typeof(p_analysis->'indicators')<>'object'
-  or jsonb_typeof(p_analysis->'riskPercent')<>'number'
-  or jsonb_typeof(p_analysis->'indicators'->'signalScore')<>'number'
-  or jsonb_typeof(p_analysis->'indicators'->'atrPercent')<>'number'
+ if jsonb_typeof(p_analysis),'null')<>'object'
+  or coalesce(jsonb_typeof(p_analysis->'entry'),'null')<>'number'
+  or coalesce(jsonb_typeof(p_analysis->'stopLoss'),'null')<>'number'
+  or coalesce(jsonb_typeof(p_analysis->'takeProfit'),'null')<>'number'
+  or coalesce(jsonb_typeof(p_analysis->'indicators'),'null')<>'object'
+  or coalesce(jsonb_typeof(p_analysis->'riskPercent'),'null')<>'number'
+  or coalesce(jsonb_typeof(p_analysis->'indicators'->'signalScore'),'null')<>'number'
+  or coalesce(jsonb_typeof(p_analysis->'indicators'->'atrPercent'),'null')<>'number'
  then raise exception 'Complete numeric research required' using errcode='22023';end if;
- if p_analysis->>'strategy'<>'sc-hourly-ema-breakout-v1'
-  or p_analysis->>'timeframe'<>'1h'
-  or p_analysis->>'auditStatus'<>'UNVERIFIED_LIVE_PERFORMANCE'
-  or p_analysis->>'newsCoverage'<>'FULL_WEEK'
-  or p_analysis->>'newsDecision'<>'CLEAR'
+ if coalesce(p_analysis->>'strategy','')<>'sc-hourly-ema-breakout-v1'
+  or coalesce(p_analysis->>'timeframe','')<>'1h'
+  or coalesce(p_analysis->>'auditStatus','')<>'UNVERIFIED_LIVE_PERFORMANCE'
+  or coalesce(p_analysis->>'newsCoverage','')<>'FULL_WEEK'
+  or coalesce(p_analysis->>'newsDecision','')<>'CLEAR'
   or length(coalesce(p_analysis->>'research',''))<100
   or p_analysis->>'evidenceUrl' not like 'https://%'
   or (p_analysis->>'riskPercent')::numeric>0.5
@@ -47,11 +47,11 @@ begin
   or (p_analysis->'indicators'->>'atrPercent')::numeric<=0
  then raise exception 'Unqualified technical strategy' using errcode='22023';end if;
  if p_market='crypto' and not (
-   (p_source='Binance USD-M Futures'
-    and p_analysis->>'executionBasis'='EXCHANGE_FUTURES_REFERENCE'
+   (coalesce(p_source,'')='Binance USD-M Futures'
+    and coalesce(p_analysis->>'executionBasis','')='EXCHANGE_FUTURES_REFERENCE'
     and right(p_asset,4)='USDT')
-   or (p_source in ('Kraken USD spot','Coinbase USD spot')
-    and p_analysis->>'executionBasis'='EXCHANGE_SPOT_USD_REFERENCE'
+   or (coalesce(p_source,'') in ('Kraken USD spot','Coinbase USD spot')
+    and coalesce(p_analysis->>'executionBasis','')='EXCHANGE_SPOT_USD_REFERENCE'
     and right(p_asset,3)='USD' and right(p_asset,4)<>'USDT')
  ) then raise exception 'Exchange source or quote basis mismatch' using errcode='22023';end if;
  -- Yahoo Finance FX candles are INDICATIVE research, not broker executable.
