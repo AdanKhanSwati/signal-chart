@@ -45,6 +45,16 @@ function createHandler(core,gate){
     });
     return res.status(200).json(result);
    }
+   if(action==='revoke'){
+    if(!body||typeof body!=='object'||Array.isArray(body)||
+      typeof body.signalKey!=='string'||body.signalKey.length<3||
+      typeof body.reason!=='string'||body.reason.trim().length<8)
+      throw issue(400,'Signal and revocation reason required');
+    const result=await gate.rpc('sc_revoke_premium_signal',{
+     p_actor:user.uid,p_signal_key:body.signalKey,p_reason:body.reason
+    });
+    return res.status(200).json(result);
+   }
    throw issue(404,'Unknown publishing operation');
   }catch(e){return core.handleError(res,e)}
  };
