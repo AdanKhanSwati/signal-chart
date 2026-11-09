@@ -55,13 +55,13 @@ async function unlock(signalKey){
 }
 function paintStatus(){
  if(!trial)return;
- const active=trial.trialStatus==='active',count=Math.max(0,Math.min(3,Number(trial.signalsUsed)||0));
+ const active=trial.trialStatus==='active',termOpen=active||trial.trialStatus==='exhausted',count=Math.max(0,Math.min(3,Number(trial.signalsUsed)||0));
  const remaining=Math.max(0,Math.min(3,Number(trial.signalsRemaining)||0));
  const label=$('#sc-trial-state'),clock=$('#sc-trial-clock'),counter=$('#sc-trial-credits'),bar=$('#sc-trial-progress');
  if(label)label.textContent=paidOverride?'Active paid / complimentary access':trial.trialStatus==='not_activated'?'Phone verification required':
-   active?'Free trial active':trial.trialStatus==='exhausted'?'3 signals used · Upgrade':
+   active?'Free trial active':trial.trialStatus==='exhausted'?'3/3 unlocked · Reopen until expiry':
    trial.trialStatus==='expired'?'Free trial expired':trial.trialStatus==='revoked'?'Trial unavailable':'Trial pending';
- if(clock)clock.textContent=paidOverride?paidOverride.accessUntil?safeTime(paidOverride.accessUntil):'Authorized':active?expString():trial.expiresAt?safeTime(trial.expiresAt):'Not started';
+ if(clock)clock.textContent=paidOverride?paidOverride.accessUntil?safeTime(paidOverride.accessUntil):'Authorized':termOpen?expString():trial.expiresAt?safeTime(trial.expiresAt):'Not started';
  if(counter)counter.textContent=paidOverride?'Membership access':remaining+' of 3 remaining';
  if(bar){bar.max=3;bar.value=count}
  const phone=$('#sc-phone-verification');
@@ -168,8 +168,8 @@ function drawSignals(){
    try{
     const data=await unlock(signal.signalKey);
     result.replaceChildren();renderSignalData(result,data.signal);
-    button.textContent=data.signalsRemaining===0?'Trial allowance consumed':'Unlocked';
-    notify(data.trialExhausted?'You used all 3 premium trial unlocks. Upgrade to continue.':'Signal unlocked.');
+    button.textContent=data.trialExhausted?'Unlocked · 3/3 used':'Unlocked';
+    notify(data.trialExhausted?'All 3 trial slots used. You can reopen these three signals until expiry.':'Signal unlocked.');
     await refresh();
    }catch(e){result.textContent=e.message;notify(e.message,true)}
    finally{button.disabled=false}
