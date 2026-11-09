@@ -1,7 +1,16 @@
 # Supabase migration and launch readiness — SignalChart
 
-## Migration status (2026-11-09)
-The four additive SQL migrations are **committed but NOT applied** to your connected Supabase project. The connected Supabase database admin tool/service-role credential is unavailable in this conversation. Do not report the live RLS, table contents, SMS, or trial as configured.
+## Migration status (2026-11-09; verified with connected Supabase)
+The four additive SQL migrations have now been **applied successfully** to the existing Supabase project `nnailvcgaupjtdaxvjsx` (named candriva), via the connected Supabase migration interface. The Supabase migration history now records:
+
+- `20261109140249` — `signalchart_trial_foundation_20261109`
+- `20261109140253` — `signalchart_trial_functions_20261109`
+- `20261109140257` — `signalchart_trial_admin_20261109`
+- `20261109140300` — `signalchart_trial_legacy_guard_20261109`
+
+**Post-application read-only checks:** 10 new public application tables / 10 enabled RLS; 13 privileged `sc_*` functions with zero `anon` or `authenticated` EXECUTE privileges; zero publicly selectable SignalChart trial tables. Existing auth users: 1, phone-verified: 0. One existing user created before the rollout was conservatively inserted into `sc_legacy_trial_holds` with `source=legacy_manual_review`, preserving their account without granting a repeat trial. New trial records, unlocks, paid access records and SignalChart premium signals: all **0**.
+
+The trial cutoff `SC_TRIAL_ROLLOUT_AT=2026-11-09T14:03:00.000Z` has been configured for the **Vercel staging preview branch only**. It is not a production environment change. The database itself is now configured; **live Auth OTP, the server-side privileged credential, the HMAC secret, premium signal ingestion and real-user application requests are not configured or tested yet**.
 
 The migrations were applied successfully to disposable PGlite/PostgreSQL-compatible test databases. This validates SQL syntax and simulated rules, not production Supabase Auth and Row Level Security under live traffic.
 
@@ -51,7 +60,7 @@ In a disposable test clone, run:
 This installs a testing dependency locally only. It does not mutate production or commit secrets.
 
 ## External blockers
-1. Supabase project schema inspection and migration execution require authorized Supabase connection (the Supabase plugin is not installed).
+1. Supabase inspection and migration execution are complete. Still required: Vercel preview-only server-side database secret and protected HMAC key, plus live API endpoint verification.
 2. SMS provider must be configured, billed and tested with real international numbers before OTP can be claimed operational.
 3. Real user/admin JWT, row-security and concurrent Postgres requests need staging end-to-end tests.
 4. Android project source and Play Integrity credentials are not available.
@@ -88,3 +97,19 @@ This installs a testing dependency locally only. It does not mutate production o
 - Connected Vercel project currently has `SUPABASE_URL` and public key configured, but **does not** have `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`, and **does not** have `SC_TRIAL_HMAC_SECRET`. No database migration or SMS integration was applied to the real Supabase account.
 - Do not activate SMS billing, accept crypto payments or deploy production from this branch. Current tests exercise fake accounts and a disposable test database; actual phone verification and account migration must be tested against the real Supabase project after authorized connection.
 - **Next:** inspect live schema, RLS and historical accounts, provision server-side secret key and stable HMAC secret through Vercel's protected environment, select an approved SMS provider, then run verified-phone/duplicate-phone and concurrent premium-unlock tests with real test identities in a preview deployment.
+
+## Post-migration Supabase advisories
+
+The connected Supabase Security Advisor returned a warning that **leaked password protection is disabled**. Enable it before public signup: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+
+It also reported 10 informational `rls_enabled_no_policy` notices. For these particular private-only trial tables, **having RLS enabled with no user policies is deliberate**: all direct permissions for `anon` and `authenticated` are revoked, and only server-only service-role RPCs may access them. Do not add permissive policies just to silence the notices.
+
+See [Supabase securing your API](https://supabase.com/docs/guides/api/securing-your-api). **Never expose server secret keys or HMAC secrets to public clients or GitHub.**
+
+## Updated next-step verification contract
+
+1. Configure the server-only Supabase secret key and a securely backed-up HMAC secret for the staging preview environment. These are intentionally NOT in Git or chat.
+2. Check Supabase Auth SMS configuration and obtain explicit approval before spending on a paid SMS provider. Verify both successful OTP and abuse rate limiting with real devices.
+3. Map verified SignalChart premium signals into `sc_premium_signals`; without this, no unlockable premium content exists.
+4. Run actual customer + Super Admin JWT requests against the staging backend, verify historical-user holds and approved payment entitlements, and rerun security advisors.
+5. Keep the staging Git auto-deploy disabled. Production alias and live payment settings remain untouched.
