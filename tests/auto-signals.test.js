@@ -2,6 +2,8 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {evaluate,createAutoEngine,validateBars,STRATEGY}=require('../lib/sc-auto-engine');
 const {createHandler,authorized}=require('../api/auto-signals');
+const {createHmac}=require('node:crypto');
+function sign(secret,now){const timestamp=String(Math.floor(now/1000));return {method:'POST',headers:{'x-sc-timestamp':timestamp,'x-sc-signature':createHmac('sha256',secret).update(timestamp+'.{}').digest('hex')}};}
 const H=3600000;
 function fixture(now,n=330,market='crypto'){
  const aligned=Math.floor((now-8*60000)/H)*H;
@@ -57,13 +59,14 @@ test('missing provider candles create no signal and cannot trigger publication',
  assert.equal(result.scanned,2);assert.equal(result.published,0);
  assert.equal(result.counts.DATA_UNAVAILABLE,2);assert.equal(publishes,0);
 });
-test('automation route rejects unauthenticated requests and all manual non-cron calls',async()=>{
- const pass='a'.repeat(40);
- const req={method:'POST',headers:{authorization:'Bearer '+pass}};
- assert.equal(authorized(req,pass),true);
- assert.equal(authorized(req,'b'.repeat(40)),false);
- assert.equal(authorized({headers:{authorization:'Bearer '+pass+'X'}},pass),false);
- const h=createHandler({env:{SC_AUTO_CRON_SECRET:pass,SC_AUTO_PUBLISH_ENABLED:'false'}});
+test('automation route accepts only recent HMAC-signed scheduler calls',async()=>{
+ const pass='a'.repeat(40),now=Date.UTC(2026,10,9,19,8);
+ const req=sign(pass,now);
+ assert.equal(authorized(req,pass,now),true);
+ assert.equal(authorized(req,'b'.repeat(40),now),false);
+ assert.equal(authorized(req,pass,now+190000),false,'expired signed calls are rejected');
+ assert.equal(authorized({headers:{...req.headers,'x-sc-signature':'0'.repeat(64)}},pass,now),false);
+ const h=createHandler({env:{SC_AUTO_CRON_SECRET:pass,SC_AUTO_PUBLISH_ENABLED:'false'},now:()=>now});
  let r=response();await h({method:'GET',headers:req.headers},r);assert.equal(r.code,405);
  r=response();await h({method:'POST',headers:{}},r);assert.equal(r.code,401);
  r=response();await h(req,r);assert.equal(r.code,503);
@@ -86,7 +89,7 @@ test('authenticated enabled automation executes and records an auditable run',as
  const h=createHandler({env:{SC_AUTO_CRON_SECRET:pass,SC_AUTO_PUBLISH_ENABLED:'true'},
   makeGateway:()=>gate,engineFactory,now:()=>Date.UTC(2026,10,9,19,8)});
  const r=response();
- await h({method:'POST',headers:{authorization:'Bearer '+pass}},r);
+ await h(sign(pass,Date.UTC(2026,10,9,19,8)),r);
  assert.equal(r.code,200);assert.equal(r.data.published,1);
  assert.deepEqual(calls.map(x=>x.name),['sc_publish_automatic_signal','sc_record_auto_scan']);
  assert.equal(r.headers['Cache-Control'],'no-store, private');
