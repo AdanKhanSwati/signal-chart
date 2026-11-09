@@ -7,8 +7,8 @@ function fixture(now,n=330,market='crypto'){
  const aligned=Math.floor((now-8*60000)/H)*H;
  const first=aligned-(n-1)*H;
  return Array.from({length:n},(_,i)=>{
-  const close=100+0.1*i+Math.sin(i*1.25)*.38;
-  const open=i?100+0.1*(i-1)+Math.sin((i-1)*1.25)*.38:close-.12;
+  const close=100+0.06*i+Math.sin(i*1.25)*.38;
+  const open=i?100+0.06*(i-1)+Math.sin((i-1)*1.25)*.38:close-.12;
   const high=Math.max(open,close)+.16,low=Math.min(open,close)-.16;
   return{time:first+i*H,closeTime:first+(i+1)*H-1,open,high,low,close,
    volume:100+5*Math.sin(i)};
@@ -21,13 +21,17 @@ function response(){
 test('hourly signal scan fails closed without enough verified closed candles',()=>{
  const now=Date.UTC(2026,10,9,19,8);
  assert.throws(()=>validateBars([],now),/Not enough/);
- assert.throws(()=>validateBars(fixture(now,330).map(b=>({...b,closeTime:b.closeTime-4*H})),now),/Stale/);
+ assert.throws(()=>validateBars(fixture(now,330).map(b=>({...b,time:b.time-4*H,closeTime:b.closeTime-4*H})),now),/Stale/);
 });
 test('strategy cannot publish a signal merely because its price is trending',()=>{
  const now=Date.UTC(2026,10,9,19,8);
  const bars=fixture(now);
  const x=evaluate('BTCUSDT','crypto',bars,now);
- assert.ok(['NO_SETUP','CANDIDATE'].includes(x.status));
+ assert.equal(x.status,'CANDIDATE');
+ assert.equal(x.direction,'LONG');
+ assert.ok(x.entry>x.stopLoss);
+ assert.ok(x.takeProfit>x.entry);
+ assert.equal(x.evidence.signalScore,8.5);
  assert.equal(STRATEGY,'sc-hourly-ema-breakout-v1');
 });
 test('unknown macro calendar coverage blocks the whole automatic run',async()=>{
