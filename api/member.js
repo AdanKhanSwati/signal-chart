@@ -35,7 +35,7 @@ function createHandler(core,service){
        decision:p.decision==='pending'?null:{decision:p.decision}}))});
     }
     const list=await records('cv2/members/',2000),byId=new Map();
-    for(const r of list)if(r&&r.uid&&r.trialStartedAt&&r.trialEndsAt&&!byId.has(r.uid))
+    for(const r of list)if(r&&r.uid&&!byId.has(r.uid))
       byId.set(r.uid,r);
     const users=[];
     for(const r of byId.values()){

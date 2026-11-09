@@ -17,7 +17,7 @@ function createHandler(core){
     const q=String(req.query?.q||'').trim().toLowerCase().slice(0,100);
     const found=await records('cv2/members/',2000);const unique=new Map();
     for(const v of found){
-     if(!v||!UID.test(String(v.uid||''))||!v.trialStartedAt||!v.trialEndsAt)continue;
+     if(!v||!UID.test(String(v.uid||'')))continue;
      const uid=v.uid.toLowerCase();
      if(q&&!uid.includes(q)&&!String(v.email||'').toLowerCase().includes(q))continue;
      if(!unique.has(uid))unique.set(uid,{uid,email:v.email||'—',name:v.name||'',createdAt:v.createdAt||v.trialStartedAt});
@@ -32,7 +32,7 @@ function createHandler(core){
    if(req.method==='POST'&&['grant','revoke'].includes(action)){
     const body=req.body&&typeof req.body==='object'&&!Array.isArray(req.body)?req.body:{};
     const memberId=safeUid(body.memberId);
-    const existing=(await records('cv2/members/',2000)).some(r=>String(r.uid||'').toLowerCase()===memberId&&r.trialStartedAt&&r.trialEndsAt);
+    const existing=(await records('cv2/members/',2000)).some(r=>String(r.uid||'').toLowerCase()===memberId);
     if(!existing)throw issue(404,'Member not found. The customer must first complete sign-in.');
     let event;
     if(action==='grant'){
