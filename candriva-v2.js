@@ -28,8 +28,8 @@ async function fetchMember(){const data=await memberAPI('me');membership=data.ac
 function showPopup(kind,a){
  const modal=$('#v2-modal');if(!modal)return;
  const trial=kind==='trial';put('#modal-tag',trial?'WELCOME TO SIGNALCHART':'PREMIUM ACCESS LOCKED');
- put('#modal-title',trial?'Your 24-hour free trial is active!':'Your 24-hour free trial has ended');
- put('#modal-copy',trial?'You have 24 hours to explore live forex research signals, with no payment required.':'Premium forex signals are now locked. Send your cryptocurrency payment and wait for the super-admin approval to unlock 30 days.');
+ put('#modal-title',trial?'Your 72-hour free trial is active!':'Your 72-hour free trial has ended');
+ put('#modal-copy',trial?'You have 72 hours to explore live forex research signals, with no payment required.':'Premium forex signals are now locked. Send your cryptocurrency payment and wait for the super-admin approval to unlock 30 days.');
  put('#modal-info',trial?'Trial ends: '+clock(a.trialEndsAt):'Trial expired: '+clock(a.trialEndsAt));
  put('#modal-action',trial?'Explore forex signals →':'Review membership & payment');
  modal.hidden=false;
@@ -45,14 +45,14 @@ function setupMemberChrome(){
 function startAccount(data){
  const a=data.account,p=data.payment;
  show('#auth-area',false);show('#auth-off',false);show('#member-area',true);
- put('#membership-status',a.status==='trial'?'24-hour free trial':a.status==='active'?'Subscription active':a.status==='granted'?'Complimentary access':a.status==='locked'?'LOCKED':'Administrator');
+ put('#membership-status',a.status==='trial'?'72-hour free trial':a.status==='active'?'Subscription active':a.status==='granted'?'Complimentary access':a.status==='locked'?'LOCKED':'Administrator');
  put('#membership-caption',a.access?'Access permitted':'Signals locked until approved payment');
  put('#trial-deadline','Ends: '+clock(a.trialEndsAt));put('#paid-deadline',clock(a.accessUntil||a.paidUntil));
  put('#member-email',a.email);put('#member-state',a.status.toUpperCase());put('#trial-expires',clock(a.trialEndsAt));
- put('#membership-copy',a.status==='trial'?'Your 24-hour free access is running. After exactly 24 hours, the server will lock premium signals automatically.':a.status==='active'?'Access renewed for 30 days following independently verified payment approval.':a.status==='granted'?'Complimentary access granted until '+clock(a.manualEndsAt)+'.':a.status==='locked'?'Your trial has ended. Your account remains accessible, but premium signals stay locked until payment approval.':'Admin access is independent of trials.');
+ put('#membership-copy',a.status==='trial'?'Your 72-hour free access is running. After exactly 72 hours, the server will lock premium signals automatically.':a.status==='active'?'Access renewed for 30 days following independently verified payment approval.':a.status==='granted'?'Complimentary access granted until '+clock(a.manualEndsAt)+'.':a.status==='locked'?'Your trial has ended. Your account remains accessible, but premium signals stay locked until payment approval.':'Admin access is independent of trials.');
  updateClock(a);
  setInterval(async()=>{try{const latest=await fetchMember();startAccountNoInterval(latest);if(a.status==='trial'&&latest.account.status==='locked')showPopup('locked',latest.account)}catch(e){msg(e.message,true)}},30000);
- if(!a.isAdmin&&a.status==='trial'){
+ if(false&&!a.isAdmin&&a.status==='trial'){
   const key='candriva_trial_welcome_'+a.uid;
   if(!localStorage.getItem(key)){localStorage.setItem(key,'1');showPopup('trial',a)}
  }else if(a.status==='locked'){
@@ -63,7 +63,7 @@ function startAccount(data){
 }
 function updateClock(a){const deadline=a.accessUntil||(a.paidUntil&&Date.parse(a.paidUntil)>Date.now()?a.paidUntil:a.trialEndsAt),ms=Math.max(0,Date.parse(deadline)-Date.now());
  put('#trial-clock',a.status==='trial'?Math.floor(ms/3600000)+'h '+Math.floor(ms%3600000/60000)+'m':a.status==='active'?'Completed':a.status==='granted'?'GRANTED':a.status==='locked'?'EXPIRED':'—')}
-function startAccountNoInterval(data){membership=data.account;const a=data.account;put('#membership-status',a.status==='locked'?'LOCKED':a.status==='trial'?'24-hour free trial':a.status==='active'?'Subscription active':'Administrator');put('#member-state',a.status.toUpperCase());put('#paid-deadline',clock(a.paidUntil));updateClock(a);setupCheckout(data)}
+function startAccountNoInterval(data){membership=data.account;const a=data.account;put('#membership-status',a.status==='locked'?'LOCKED':a.status==='trial'?'72-hour free trial':a.status==='active'?'Subscription active':a.status==='granted'?'Complimentary access':'Administrator');put('#member-state',a.status.toUpperCase());put('#paid-deadline',clock(a.accessUntil||a.paidUntil));updateClock(a);setupCheckout(data)}
 function setupCheckout(data){
  const p=data.payment,a=data.account;
  const enabled=false; // Legacy USDT checkout retired; use verified BTC billing workflow
@@ -72,7 +72,7 @@ function setupCheckout(data){
  else{
   const h=$('#checkout-closed h3'),copy=$('#checkout-closed p');
   if(h)h.textContent=a.status==='trial'?'Your trial is active':a.status==='active'?'Your subscription is active':'Bitcoin monthly membership';
-  if(copy)copy.textContent=a.status==='trial'?'You do not need to pay during the 24-hour trial. Renewals may be submitted through Membership billing.':a.status==='active'?'Your currently approved subscription remains valid.': 'Manage your Bitcoin monthly invoice and submit transaction evidence through Membership & Billing. Approval requires blockchain confirmation.';
+  if(copy)copy.textContent=a.status==='trial'?'You do not need to pay during the 72-hour trial. Renewals may be submitted through Membership billing.':a.status==='active'?'Your currently approved subscription remains valid.': 'Manage your Bitcoin monthly invoice and submit transaction evidence through Membership & Billing. Approval requires blockchain confirmation.';
  }
  const list=$('#pay-history');if(list){list.replaceChildren();const requests=data.requests||[];if(!requests.length)list.textContent='No payment requests yet.';for(const row of requests){const div=document.createElement('div');div.className='v2-info';const l=document.createElement('span'),r=document.createElement('strong');l.textContent=clock(row.at)+' · '+row.network;r.textContent=row.decision;div.append(l,r);list.append(div)}}
 }
@@ -87,14 +87,14 @@ function switchAuth(mode){
  $$('.v2-tabs button').forEach(btn=>btn.classList.toggle('active',btn.id===(mode==='signup'?'tab-signup':'tab-signin')));
  const form=document.createElement('form');form.className='v2-supabase-form';
  form.innerHTML='<label>Email address<input id="sb-email" type="email" required autocomplete="email" placeholder="name@example.com"></label><label>Password<input id="sb-password" type="password" required minlength="12" autocomplete="'+(mode==='signup'?'new-password':'current-password')+'" placeholder="Minimum 12 characters"></label><button class="v2-primary" type="submit">'+(mode==='signup'?'Create free account':'Sign in securely')+'</button>';
- const note=document.createElement('p');note.className='v2-note';note.textContent=mode==='signup'?'Verify your email to start the one-time 24-hour trial.':'Use your verified Supabase email and password.';form.append(note);
+ const note=document.createElement('p');note.className='v2-note';note.textContent=mode==='signup'?'Verify your email to start the one-time 72-hour trial.':'Use your verified Supabase email and password.';form.append(note);
  form.addEventListener('submit',async ev=>{
   ev.preventDefault();const email=form.querySelector('#sb-email').value.trim(),password=form.querySelector('#sb-password').value,submit=form.querySelector('button[type=submit]');submit.disabled=true;msg('');
   try{
    if(mode==='signup'){
      const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+'/account.html'}});
      if(error)throw error;
-     if(data?.session){const m=await fetchMember();startAccount(m);setupMemberChrome()}else msg('Check your inbox to verify your email, then sign in to start your 24-hour free trial.');
+     if(data?.session){const m=await fetchMember();startAccount(m);setupMemberChrome()}else msg('Check your inbox to verify your email, then sign in to start your 72-hour free trial.');
    }else{
      const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;
      const m=await fetchMember();startAccount(m);setupMemberChrome();if(m.account.isAdmin)show('#admin-link',true);
@@ -126,7 +126,7 @@ async function initForex(){
   $('#reload-forex-history')?.addEventListener('click',loadForexHistory);
  await initSupabase();if(!await signedIn()){show('#signals-locked',true);return}
  const data=await fetchMember();membership=data.account;setupMemberChrome();
- if(!data.account.access){show('#signals-area',false);show('#signals-locked',true);$('#signals-locked h2').textContent='Your premium forex access is locked';$('#signals-locked p').textContent='Your 24-hour trial has expired. Only payment plus super-admin approval can reactivate access.';$('#signals-locked a').textContent='Review membership and renewal →';showPopup('locked',data.account);return}
+ if(!data.account.access){show('#signals-area',false);show('#signals-locked',true);$('#signals-locked h2').textContent='Your premium forex access is locked';$('#signals-locked p').textContent='Your 72-hour trial has expired. Only payment plus super-admin approval can reactivate access.';$('#signals-locked a').textContent='Review membership and renewal →';showPopup('locked',data.account);return}
  show('#signals-locked',false);show('#signals-area',true);await scanForex();
  $('#scan-again').onclick=scanForex;
  setInterval(async()=>{try{const latest=await fetchMember();if(!latest.account.access){show('#signals-area',false);show('#signals-locked',true);showPopup('locked',latest.account);return}await scanForex()}catch(e){msg(e.message,true)}},60000);
