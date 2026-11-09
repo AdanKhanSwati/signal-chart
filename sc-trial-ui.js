@@ -6,7 +6,7 @@ const $=s=>document.querySelector(s),create=(tag,cls,text)=>{
 const accountRoot=$('#sc-trial-account'),signalsRoot=$('#sc-trial-signals');
 if(!accountRoot&&!signalsRoot)return;
 let auth=null,session=null,trial=null,serverOffset=0,selectedMarket='all',allSignals=[];
-let resendUntil=0;
+let resendUntil=0,paidOverride=null;
 const notify=(text,bad=false)=>{
  const node=$('#sc-trial-feedback');if(!node)return;
  node.textContent=String(text||'');node.dataset.error=bad?'true':'false'};
@@ -57,19 +57,27 @@ function paintStatus(){
  const active=trial.trialStatus==='active',count=Math.max(0,Math.min(3,Number(trial.signalsUsed)||0));
  const remaining=Math.max(0,Math.min(3,Number(trial.signalsRemaining)||0));
  const label=$('#sc-trial-state'),clock=$('#sc-trial-clock'),counter=$('#sc-trial-credits'),bar=$('#sc-trial-progress');
- if(label)label.textContent=trial.trialStatus==='not_activated'?'Phone verification required':
+ if(label)label.textContent=paidOverride?'Active paid / complimentary access':trial.trialStatus==='not_activated'?'Phone verification required':
    active?'Free trial active':trial.trialStatus==='exhausted'?'3 signals used · Upgrade':
    trial.trialStatus==='expired'?'Free trial expired':trial.trialStatus==='revoked'?'Trial unavailable':'Trial pending';
- if(clock)clock.textContent=active?expString():trial.expiresAt?safeTime(trial.expiresAt):'Not started';
- if(counter)counter.textContent=remaining+' of 3 remaining';
+ if(clock)clock.textContent=paidOverride?paidOverride.accessUntil?safeTime(paidOverride.accessUntil):'Authorized':active?expString():trial.expiresAt?safeTime(trial.expiresAt):'Not started';
+ if(counter)counter.textContent=paidOverride?'Membership access':remaining+' of 3 remaining';
  if(bar){bar.max=3;bar.value=count}
  const phone=$('#sc-phone-verification');
- if(phone)phone.hidden=trial.trialStatus!=='not_activated';
- const upgrade=$('#sc-trial-upgrade');if(upgrade)upgrade.hidden=active;
+ if(phone)phone.hidden=!!paidOverride||trial.trialStatus!=='not_activated';
+ const upgrade=$('#sc-trial-upgrade');if(upgrade)upgrade.hidden=active||!!paidOverride;
 }
 async function refresh(){
  const value=await api('state',undefined,'GET');
  trial=value;serverOffset=Date.parse(trial.serverNow)-Date.now();
+ try{
+  const t=await token();
+  const r=await fetch('/api/member?action=me',{headers:{Authorization:'Bearer '+t},cache:'no-store'});
+  if(r.ok){
+   const account=(await r.json()).account;
+   paidOverride=['active','granted','administrator'].includes(account?.status)?account:null;
+  }else paidOverride=null;
+ }catch{paidOverride=null}
  paintStatus();return value;
 }
 function riskHint(){
