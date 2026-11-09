@@ -111,3 +111,46 @@ test('paid customer can perform attributed historical diagnostic simulations',as
  assert.equal(res.code,200);assert.equal(res.body.auditStatus,'NOT_EXTERNALLY_VERIFIED');
  assert.equal(x.calls(),1);
 });
+
+test('Binance block uses independent Kraken spot data, clearly labeled and never futures',async()=>{
+ const h=quotes({fetchFn:async url=>{
+  if(url.includes('binance'))return {ok:false,status:451};
+  if(url.includes('kraken'))return {ok:true,json:async()=>({error:[],result:{
+   XXBTZUSD:{c:['74900'],a:['74901'],b:['74899'],h:['75200','75400'],
+     l:['74500','74200'],v:['100','300']}
+  }})};
+  throw Error('Unexpected provider')},clock:()=>Date.parse('2026-11-09T00:00:00Z')});
+ const out=await request(h,{market:'crypto'});
+ assert.equal(out.code,200);assert.equal(out.body.indicative,true);
+ assert.equal(out.body.quotes.BTCUSDT.price,74900);
+ assert.equal(out.body.quotes.BTCUSDT.quoteCurrency,'USD');
+ assert.equal(out.body.quotes.BTCUSDT.aliasOnly,true);
+ assert.match(out.body.quotes.BTCUSDT.source,/NOT USDT futures/);
+ assert.equal(out.body.quotes.BTCUSDT.changePercent,null);
+ assert.doesNotMatch(out.body.notice,/guaranteed executable order fills/);
+});
+test('Coinbase historical spot candle fallback supports analytics without pretending futures',async()=>{
+ const base=Date.parse('2026-11-09T00:00:00Z')/1000;
+ const rows=Array.from({length:35},(_,i)=>[base-i*86400,100+i,105+i,101+i,103+i,1300+i]);
+ const h=detail({
+  candles:async(_req,res)=>res.status(502).json({error:'Binance geo-blocked'}),
+  fetchFn:async u=>{
+   assert.match(u,/api\.exchange\.coinbase\.com\/products\/BTC-USD\/candles/);
+   return {ok:true,json:async()=>rows};
+  }
+ });
+ const r=await request(h,{market:'crypto',symbol:'BTCUSDT',interval:'1d'});
+ assert.equal(r.code,200);
+ assert.equal(r.body.candles.length,35);
+ assert.equal(r.body.quoteCurrency,'USD');
+ assert.equal(r.body.aliasOnly,true);
+ assert.match(r.body.quoteBasis,/not executable USDT futures/);
+ assert.match(r.body.source,/Coinbase Exchange USD spot/);
+ assert.equal(JSON.stringify(r.body).includes('"entry"'),false);
+});
+test('invalid or unsupported Coinbase fallback cannot fabricate crypto OHLC',async()=>{
+ const h=detail({candles:async(_req,res)=>res.status(502).json({error:'Both feeds unavailable'}),
+  fetchFn:async()=>{throw Error('Coinbase unavailable')}});
+ const x=await request(h,{market:'crypto',symbol:'BTCUSDT',interval:'1d'});
+ assert.equal(x.code,502);assert.equal(x.body.candles,undefined);
+});
