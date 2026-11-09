@@ -42,7 +42,7 @@ test('automatic publication is disabled by default, protects all customer roles 
  const c=candidate(key,closed);
  async function call(obj=c){
   const result=(await db.query('select public.sc_publish_automatic_signal($1,$2,$3,$4,$5,$6::jsonb) x',
-   [obj.key,'crypto','BTCUSDT','Binance USD-M Futures',obj.at,JSON.stringify(obj.analysis)])).rows[0].x;
+   [obj.key,'crypto',obj.key.split(':')[1],'Binance USD-M Futures',obj.at,JSON.stringify(obj.analysis)])).rows[0].x;
   return result;
  }
  const denied=await call();
