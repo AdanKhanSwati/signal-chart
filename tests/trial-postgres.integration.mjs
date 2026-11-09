@@ -7,7 +7,8 @@ import {PGlite} from '@electric-sql/pglite';
 const base=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const migrations=['20261109180000_sc_trial_foundation.sql','20261109180100_sc_trial_functions.sql',
 '20261109180200_sc_trial_admin.sql','20261109180300_sc_legacy_guard.sql',
-'20261109190000_sc_trial_reopen.sql'];
+'20261109190000_sc_trial_reopen.sql',
+'20261109191000_sc_signal_publication_review.sql'];
 const customer1='11111111-1111-4111-8111-111111111111';
 const customer2='22222222-2222-4222-8222-222222222222';
 const admin='33333333-3333-4333-8333-333333333333';
@@ -84,4 +85,47 @@ test('SignalChart trial migrations and security rules execute on real PostgreSQL
  customer2,'legacy_blob_trial','Recorded previously used legacy trial']);
  const held=(await db.query('select public.sc_activate_trial($1,$2,now()) x',[customer2,'b'.repeat(64)])).rows[0].x;
  assert.equal(held.result,'legacy_review_required');
+
+ // Drafts cannot be mistaken for live, public trade signals.
+ const research={
+   direction:'LONG',entry:120,stopLoss:117,takeProfit:127,
+   research:'A qualifying technical research note based on a closed source candle; the proposed direction, stop and target must be checked by an administrator prior to publication.',
+   evidenceUrl:'https://www.binance.com/en/futures/BTCUSDT'
+ };
+ const candleClosedAt=new Date(Date.now()-10*60000).toISOString();
+ const proposed=(await db.query(
+  'select public.sc_propose_premium_signal($1,$2,$3,$4,$5,$6,$7::jsonb) x',
+  [admin,'crypto:btc:review-1','crypto','BTCUSDT',candleClosedAt,'Binance USD-M Futures',JSON.stringify(research)]
+ )).rows[0].x;
+ assert.equal(proposed.status,'pending');
+ assert.equal(proposed.published,false);
+ const beforeReview=(await db.query("select visible from public.sc_premium_signals where signal_key='crypto:btc:review-1'")).rows;
+ assert.equal(beforeReview.length,0,'pending signals cannot appear in public feed');
+ const proposalRow=(await db.query('select status from public.sc_signal_proposals where id=$1',[proposed.proposalId])).rows[0];
+ assert.equal(proposalRow.status,'pending');
+
+ await db.exec('set role authenticated;');
+ try{
+  await assert.rejects(db.query('select * from public.sc_signal_proposals'),/permission denied/);
+  await assert.rejects(db.query('select public.sc_review_premium_signal($1,$2,$3,$4)',[
+   admin,proposed.proposalId,'approve','approved independent review']),/permission denied/);
+ }finally{await db.exec('reset role;')}
+ const reviewed=(await db.query('select public.sc_review_premium_signal($1,$2,$3,$4) x',[
+   admin,proposed.proposalId,'approve','Reviewed candle, trade levels and source documentation'
+ ])).rows[0].x;
+ assert.equal(reviewed.status,'approved');
+ assert.equal(reviewed.published,true);
+ const published=(await db.query("select premium_data,public_meta from public.sc_premium_signals where signal_key='crypto:btc:review-1'")).rows[0];
+ assert.equal(published.premium_data.direction,'LONG');
+ assert.equal(published.public_meta.review,'manual');
+ const publicList=(await db.query('select public.sc_signal_public_list($1,$2) x',['crypto',100])).rows[0].x;
+ const publicItem=publicList.find(x=>x.signalKey==='crypto:btc:review-1');
+ assert.ok(publicItem);
+ assert.equal(Object.hasOwn(publicItem,'entry'),false,'premium entry must remain private');
+ await assert.rejects(db.query('select public.sc_review_premium_signal($1,$2,$3,$4)',[
+   admin,proposed.proposalId,'approve','repeat approval not allowed']),/already reviewed/);
+ await assert.rejects(db.query('select public.sc_propose_premium_signal($1,$2,$3,$4,$5,$6,$7::jsonb)',[
+   admin,'crypto:btc:invalid-short','crypto','BTCUSDT',candleClosedAt,'Binance USD-M Futures',
+   JSON.stringify({...research,direction:'SHORT'})
+ ]),/Stop and target must match trade direction/);
 });
