@@ -13,6 +13,30 @@
   },
   "rewrites": [
     {
+      "source": "/api/checkout",
+      "destination": "/api/compat?sc_route=checkout"
+    },
+    {
+      "source": "/api/cv-ops",
+      "destination": "/api/compat?sc_route=cv-ops"
+    },
+    {
+      "source": "/api/crypto",
+      "destination": "/api/compat?sc_route=crypto"
+    },
+    {
+      "source": "/api/forex",
+      "destination": "/api/compat?sc_route=forex"
+    },
+    {
+      "source": "/api/signals",
+      "destination": "/api/compat?sc_route=signals"
+    },
+    {
+      "source": "/api/candriva",
+      "destination": "/api/compat?sc_route=candriva"
+    },
+    {
       "source": "/api/markets",
       "destination": "/api/candles?action=markets"
     }
