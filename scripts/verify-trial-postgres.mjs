@@ -76,6 +76,27 @@ try{
  check(except.v.result==='exception_created','admin exception is auditable');
  const second=await query('select public.sc_activate_trial($1,$2,now()) as v',[U2,HASH]);
  check(second.v.result==='activated','reassigned phone exception allows new trial');
+ // Parallel requests against one disposable engine check per-user transactional
+ // accounting. Host-level race testing with separate PostgreSQL connections
+ // remains required before production.
+ const tries=await Promise.all([
+  'crypto:btc:first','forex:eur:second','crypto:eth:third','forex:gbp:fourth'
+ ].map(key=>query('select public.sc_unlock_trial($1,$2) as v',[U2,key])));
+ check(tries.filter(r=>r.v.allowed===true).length===3&&tries.filter(r=>!r.v.allowed).length===1,
+  'simultaneous requests cannot grant more than 3 trial signals in disposable database');
+ const concurrentCount=await query('select count(*)::int n from public.sc_trial_signal_unlocks where user_id=$1',[U2]);
+ check(concurrentCount.n===3,'parallel attempts persist at most 3 unlocks');
+ // Change timestamps only in this throwaway database to simulate the 72h clock.
+ await query("update public.sc_trials set activated_at=now()-interval '73 hours',expires_at=now()-interval '1 hour' where user_id=$1",[U2]);
+ const expired=await query('select public.sc_unlock_trial($1,$2) as v',[U2,'crypto:btc:first']);
+ check(expired.v.allowed===false&&expired.v.reason==='trial_expired',
+  'trial expiry removes access to previously unlocked premium details');
+ await query("update public.sc_paid_access set starts_at=now()-interval '31 days',expires_at=now()-interval '1 day' where user_id=$1",[U1]);
+ const noReactivation=await query('select public.sc_paid_signal($1,$2) as v',[U1,'crypto:btc:first']);
+ check(noReactivation.v.allowed===false,'paid membership expiry does not reactivate exhausted trial');
+ const sharedNetwork='c'.repeat(64),sharedPhone='d'.repeat(64);
+ const shared=await query("select public.sc_otp_rate_check($1,$2,$3,null,'request') as v",[U2,sharedPhone,sharedNetwork]);
+ check(shared.v.allowed===true,'shared IP alone is not a blanket trial ban');
  const analytics=await query('select public.sc_admin_trial_analytics() as v');
  check(analytics.v.trialActivations===2&&analytics.v.paidConversions===1,'analytics use actual database rows');
  const network='b'.repeat(64);
