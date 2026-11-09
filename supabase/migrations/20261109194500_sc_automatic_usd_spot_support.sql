@@ -24,7 +24,7 @@ begin
   or p_closed_at<now()-interval '30 minutes'
   or split_part(p_signal_key,':',3)<>(extract(epoch from p_closed_at)*1000)::bigint::text
  then return jsonb_build_object('published',false,'reason','stale_market_data');end if;
- if jsonb_typeof(p_analysis),'null')<>'object'
+ if coalesce(jsonb_typeof(p_analysis),'null')<>'object'
   or coalesce(jsonb_typeof(p_analysis->'entry'),'null')<>'number'
   or coalesce(jsonb_typeof(p_analysis->'stopLoss'),'null')<>'number'
   or coalesce(jsonb_typeof(p_analysis->'takeProfit'),'null')<>'number'
