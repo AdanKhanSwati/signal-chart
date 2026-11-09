@@ -77,6 +77,9 @@ begin
   or jsonb_typeof(p_analysis->'stopLoss')<>'number'
   or jsonb_typeof(p_analysis->'takeProfit')<>'number'
   or jsonb_typeof(p_analysis->'indicators')<>'object'
+  or jsonb_typeof(p_analysis->'riskPercent')<>'number'
+  or jsonb_typeof(p_analysis->'indicators'->'signalScore')<>'number'
+  or jsonb_typeof(p_analysis->'indicators'->'atrPercent')<>'number'
  then raise exception 'Complete numeric research required' using errcode='22023';end if;
  if p_analysis->>'strategy'<>'sc-hourly-ema-breakout-v1'
   or p_analysis->>'timeframe'<>'1h'
