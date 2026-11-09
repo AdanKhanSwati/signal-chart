@@ -1,0 +1,9 @@
+# The six legacy URLs are rewritten to /api/compat.
+# Their original source remains in GitHub for audits and test imports.
+# Shared runtime implementations live in lib/api-compat.
+api/checkout.js
+api/cv-ops.js
+api/crypto.js
+api/forex.js
+api/signals.js
+api/candriva.js
