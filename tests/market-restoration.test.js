@@ -70,7 +70,7 @@ test('market-detail returns OHLC and nonactionable indicators only',async()=>{
  assert.equal(JSON.stringify(x.body).includes('"target"'),false);
 });
 test('invalid candle provider responses do not expose underlying details',async()=>{
- const h=detail({candles:async(_req,res)=>res.status(502).json({error:'Unavailable',detail:'private upstream host'})});
+ const h=detail({candles:async(_req,res)=>res.status(502).json({error:'Unavailable',detail:'private upstream host'}),fetchFn:async()=>{throw Error('No alternative market provider')} });
  const x=await request(h,{symbol:'BTCUSDT'});
  assert.equal(x.code,502);assert.equal(x.body.detail,undefined);
 });
