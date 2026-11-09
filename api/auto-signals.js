@@ -3,13 +3,16 @@
  * Trigger using Supabase Cron with a dedicated secret; not Vercel Hobby Cron.
  * A separate database kill switch prevents accidental publication.
  */
-const {timingSafeEqual}=require('node:crypto');
+const {createHmac,timingSafeEqual}=require('node:crypto');
 const {createAutoEngine}=require('../lib/sc-auto-engine');
-function authorized(req,secret){
- const supplied=String(req.headers?.authorization||'');
- const expected='Bearer '+String(secret||'');
- if(!secret||String(secret).length<32||supplied.length!==expected.length)return false;
- return timingSafeEqual(Buffer.from(supplied),Buffer.from(expected));
+function authorized(req,secret,clock=Date.now()){
+ const timestamp=String(req.headers?.['x-sc-timestamp']||'');
+ const signature=String(req.headers?.['x-sc-signature']||'');
+ if(!secret||String(secret).length<32||
+  !/^\d{10}$/.test(timestamp)||!/^[0-9a-f]{64}$/.test(signature))return false;
+ if(Math.abs(clock-Number(timestamp)*1000)>180000)return false;
+ const expected=createHmac('sha256',String(secret)).update(timestamp+'.{}').digest('hex');
+ return timingSafeEqual(Buffer.from(signature,'hex'),Buffer.from(expected,'hex'));
 }
 function createHandler({engineFactory=createAutoEngine,makeGateway=null,
  env=process.env,now=()=>Date.now()}={}){
@@ -17,7 +20,7 @@ function createHandler({engineFactory=createAutoEngine,makeGateway=null,
   res.setHeader('Cache-Control','no-store, private');
   res.setHeader('X-Content-Type-Options','nosniff');
   if(req.method!=='POST')return res.status(405).json({error:'POST only'});
-  if(!authorized(req,env.SC_AUTO_CRON_SECRET))
+  if(!authorized(req,env.SC_AUTO_CRON_SECRET,now()))
    return res.status(401).json({error:'Unauthorized'});
   if(env.SC_AUTO_PUBLISH_ENABLED!=='true')
    return res.status(503).json({error:'Automatic publication is not activated'});
