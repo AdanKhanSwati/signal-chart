@@ -58,6 +58,7 @@ test('missing provider candles create no signal and cannot trigger publication',
  const result=await engine.run({publish:true});
  assert.equal(result.scanned,2);assert.equal(result.published,0);
  assert.equal(result.counts.DATA_UNAVAILABLE,2);assert.equal(publishes,0);
+ assert.equal(result.status,'PARTIAL_FAILURE');assert.equal(result.errors,2);
 });
 test('automation route accepts only recent HMAC-signed scheduler calls',async()=>{
  const pass='a'.repeat(40),now=Date.UTC(2026,10,9,19,8);
