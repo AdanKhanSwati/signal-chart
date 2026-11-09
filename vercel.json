@@ -6,6 +6,9 @@
     },
     "api/research.js": {
       "maxDuration": 60
+    },
+    "api/auto-signals.js": {
+      "maxDuration": 60
     }
   },
   "rewrites": [
