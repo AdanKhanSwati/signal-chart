@@ -3,8 +3,8 @@
   "vercelProject": "candriva-signals-beta",
   "teamId": "team_MOINx1C4FlKs1BqlFzBvQQeJ",
   "sourceFileCount": 104,
-  "sha1VerifiedRecovered": 91,
-  "notRecovered": 13,
+  "sha1VerifiedRecovered": 93,
+  "notRecovered": 11,
   "recoveredFiles": [
     {
       "path": "account-link.js",
@@ -201,6 +201,14 @@
     {
       "path": "membership.js",
       "sha1": "68d9df9f3b89b453c8b27984f5e32067d6765fc3"
+    },
+    {
+      "path": "ops-icon-192.png",
+      "sha1": "2c525623fde56c5993d088374f829d222bf2286c"
+    },
+    {
+      "path": "ops-icon-512.png",
+      "sha1": "38a882561225b694f1cab0a801a0de42a3fdccec"
     },
     {
       "path": "ops-icon.svg",
@@ -411,14 +419,6 @@
     {
       "path": "lib/candriva-core.js",
       "sha1": "f2262c2af71277d648109da55e1b7cfc65e36ee9"
-    },
-    {
-      "path": "ops-icon-192.png",
-      "sha1": "2c525623fde56c5993d088374f829d222bf2286c"
-    },
-    {
-      "path": "ops-icon-512.png",
-      "sha1": "38a882561225b694f1cab0a801a0de42a3fdccec"
     },
     {
       "path": "tests/subscription.test.js",
