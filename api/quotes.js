@@ -2,6 +2,29 @@
 /** Public market PRICE snapshots only; no premium signal information. */
 const PAIRS='EURUSD GBPUSD USDJPY USDCHF USDCAD AUDUSD NZDUSD EURGBP EURJPY EURCHF EURAUD EURCAD EURNZD GBPJPY GBPCHF GBPAUD GBPCAD GBPNZD AUDJPY AUDCAD AUDNZD AUDCHF NZDJPY NZDCAD NZDCHF CADJPY CADCHF CHFJPY USDSGD USDHKD USDNOK USDSEK USDCNH USDMXN USDZAR USDTRY USDINR USDPKR'.split(' ');
 const TOP=new Set(['BTCUSDT','ETHUSDT','SOLUSDT','XRPUSDT','DOGEUSDT','BNBUSDT','ADAUSDT','AVAXUSDT','LINKUSDT','LTCUSDT']);
+const KRAKEN=['BTC','ETH','SOL','XRP','DOGE','BNB','ADA','AVAX','LINK','LTC','TRX','UNI'];
+const KRAKEN_RESULT={XXBTZUSD:'BTC',XETHZUSD:'ETH',XXRPZUSD:'XRP',XDGUSD:'DOGE',XLTCZUSD:'LTC'};
+/** Verified USD spot quotes, never silently treated as USDT futures. */
+async function krakenFallback(fetchFn,all,asof){
+ const raw=await json(fetchFn,'https://api.kraken.com/0/public/Ticker?pair='+KRAKEN.map(x=>x==='BTC'?'XBTUSD':x+'USD').join(','));
+ if(!raw||!Array.isArray(raw.error)||raw.error.length||!raw.result||typeof raw.result!=='object')
+  throw Error('Kraken quote provider unavailable');
+ const quotes={};
+ for(const [key,row] of Object.entries(raw.result)){
+  const base=KRAKEN_RESULT[key]||key.replace(/USD$/,'');
+  const alias=base+'USDT';
+  if(!KRAKEN.includes(base)||!all&&!TOP.has(alias))continue;
+  const price=finite(row?.c?.[0]);
+  if(price===null||price<=0)continue;
+  quotes[alias]={price,bid:finite(row.b?.[0]),ask:finite(row.a?.[0]),
+   changePercent:null,high:finite(row.h?.[1]),low:finite(row.l?.[1]),
+   volume:finite(row.v?.[1]),volumeBasis:'base asset units',
+   asof,received_at:asof,source:'Kraken USD spot reference (NOT USDT futures)',
+   quoteCurrency:'USD',aliasOnly:true,indicative:true,stale:false};
+ }
+ if(!Object.keys(quotes).length)throw Error('Kraken returned no supported market snapshots');
+ return quotes;
+}
 
 async function json(fetchFn,url){
  const r=await fetchFn(url,{headers:{Accept:'application/json','User-Agent':'SignalChartMarketData/1.0'},
@@ -24,8 +47,16 @@ function createHandler({fetchFn=globalThis.fetch,catalog=require('../lib/sc-mark
   try{
    let quotes={},source='',asof=new Date(clock()).toISOString(),indicative=false;
    if(market==='crypto'){
-    const rows=await json(fetchFn,'https://fapi.binance.com/fapi/v1/ticker/24hr');
-    if(!Array.isArray(rows))throw Error('Invalid exchange response');
+    let rows;
+    try{
+     rows=await json(fetchFn,'https://fapi.binance.com/fapi/v1/ticker/24hr');
+     if(!Array.isArray(rows)||!rows.length)throw Error('No exchange futures');
+    }catch{
+     // Coinbase/Kraken USD spot is a fallback source, NOT a substitute futures order price.
+     quotes=await krakenFallback(fetchFn,String(req.query?.all||'')==='1',asof);
+     indicative=true;source='Kraken USD spot (NOT USDT futures)';
+    }
+    if(rows){
     for(const row of rows){
      const s=String(row.symbol||'');
      if(!/^[A-Z0-9]{2,20}USDT$/.test(s))continue;
@@ -38,6 +69,7 @@ function createHandler({fetchFn=globalThis.fetch,catalog=require('../lib/sc-mark
       asof,received_at:asof,source:'Binance USD-M Futures',indicative:false,stale:false};
     }
     source='Binance USD-M Futures';
+    }
    }else{
     const result=await json(fetchFn,'https://open.er-api.com/v6/latest/USD');
     if(result?.result!=='success'||result.base_code!=='USD'||!result.rates||typeof result.rates!=='object')
@@ -60,7 +92,8 @@ function createHandler({fetchFn=globalThis.fetch,catalog=require('../lib/sc-mark
    const data={market,quotes,source,asof,indicative,stale:Object.values(quotes).some(q=>q.stale),
     count:Object.keys(quotes).length,notice:market==='forex'
       ?'Indicative reference rates are not live broker quotes or executable bid/ask prices.'
-      :'Exchange snapshots are not guaranteed executable order fills.'};
+      :indicative?'Kraken USD spot reference quotes are labeled with USDT-compatible UI aliases ONLY; prices are USD spot, NOT USDT or futures executable quotes.'
+       :'Exchange snapshots are not guaranteed executable order fills.'};
    cache.set(key,{at:clock(),data});
    return res.status(200).json(data);
   }catch(e){
