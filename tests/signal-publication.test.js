@@ -14,7 +14,7 @@ function setup(isAdmin=true){
   securePost:req=>req.body,
   handleError:(res,e)=>res.status(e.status||500).json({error:e.message})
  };
- const gate={rpc:async(name,params)=>{calls.push({name,params});return name==='sc_propose_premium_signal'
+ const gate={rpc:async(name,params)=>{calls.push({name,params});if(name==='sc_signal_proposal_queue')return [{proposalId:'11111111-1111-4111-8111-111111111111',market:'crypto',asset:'BTCUSDT'}];return name==='sc_propose_premium_signal'
   ?{proposalId:'11111111-1111-4111-8111-111111111111',published:false,status:'pending'}
   :{published:true,status:'approved'}}};
  async function run(action,body,method='POST',authorized=true){
@@ -60,4 +60,16 @@ test('manual decision requires an audited reason and review identifier',async()=
  assert.equal(review.code,200);assert.equal(review.data.published,true);
  assert.equal(x.calls[0].name,'sc_review_premium_signal');
  assert.equal(x.calls[0].params.p_actor,ADMIN);
+});
+
+test('pending review queue requires signed-in administrator',async()=>{
+ const admin=setup(),ordinary=setup(false);
+ const denied=await ordinary.run('queue',{},'GET');
+ assert.equal(denied.code,403);
+ const anon=await admin.run('queue',{},'GET',false);
+ assert.equal(anon.code,401);
+ const allowed=await admin.run('queue',{},'GET');
+ assert.equal(allowed.code,200);
+ assert.equal(allowed.data.proposals.length,1);
+ assert.equal(admin.calls[0].name,'sc_signal_proposal_queue');
 });
