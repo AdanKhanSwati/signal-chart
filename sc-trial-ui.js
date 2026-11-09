@@ -6,7 +6,7 @@ const $=s=>document.querySelector(s),create=(tag,cls,text)=>{
 const accountRoot=$('#sc-trial-account'),signalsRoot=$('#sc-trial-signals');
 if(!accountRoot&&!signalsRoot)return;
 let auth=null,session=null,trial=null,serverOffset=0,selectedMarket='all',allSignals=[];
-let resendUntil=0,paidOverride=null;
+let resendUntil=0,paidOverride=null,phoneDeliveryEnabled=false;
 const notify=(text,bad=false)=>{
  const node=$('#sc-trial-feedback');if(!node)return;
  node.textContent=String(text||'');node.dataset.error=bad?'true':'false'};
@@ -20,6 +20,7 @@ const expString=()=>{
 async function initializeClient(){
  const c=await fetch('/api/config',{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject(Error('Authentication unavailable')));
  if(!c.authReady||!c.supabaseUrl||!c.supabaseAnonKey)throw Error('Sign-in service unavailable');
+ phoneDeliveryEnabled=c.phoneVerificationEnabled===true&&c.phoneVerificationChannel==='whatsapp';
  if(!window.supabase?.createClient)await new Promise((resolve,reject)=>{
   const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
   script.onload=resolve;script.onerror=()=>reject(Error('Unable to load sign-in library'));document.head.append(script)});
@@ -92,6 +93,7 @@ function riskHint(){
 }
 async function startOTP(e){
  e.preventDefault();const phone=$('#sc-phone')?.value.trim()||'';
+ if(!phoneDeliveryEnabled){notify('WhatsApp verification is not configured yet. No message has been sent.',true);return}
  if(Date.now()<resendUntil)return;
  const btn=$('#sc-send-otp');btn.disabled=true;
  try{
@@ -102,10 +104,10 @@ async function startOTP(e){
    headers:{Authorization:'Bearer '+t,'Content-Type':'application/json','X-SC-Device-Hint':riskHint()},
    body:JSON.stringify({phone})});
   const payload=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(payload.error||'SMS request failed');
+  if(!response.ok)throw Error(payload.error||'WhatsApp verification request failed');
   resendUntil=Date.now()+60000;
   const otp=$('#sc-otp-form');otp.hidden=false;
-  notify('Verification code requested. Enter the SMS code to activate your trial.');
+  notify('WhatsApp verification requested. Enter the code from WhatsApp to activate your trial.');
  }catch(err){notify(err.message,true)}finally{
   btn.disabled=false;updateResend();
  }
@@ -114,7 +116,7 @@ function updateResend(){
  const btn=$('#sc-send-otp');if(!btn)return;
  const s=Math.ceil((resendUntil-Date.now())/1000);
  if(s>0){btn.disabled=true;btn.textContent='Resend in '+s+'s'}
- else{btn.disabled=false;btn.textContent='Send verification code'}
+ else{btn.disabled=!phoneDeliveryEnabled;btn.textContent=phoneDeliveryEnabled?'Send WhatsApp code':'WhatsApp verification unavailable'}
 }
 async function verifyOTP(e){
  e.preventDefault();const btn=$('#sc-confirm-otp');btn.disabled=true;
@@ -197,6 +199,10 @@ async function boot(){
   const t=await token();
   if(accountRoot){
    $('#sc-phone-form')?.addEventListener('submit',startOTP);
+   if(!phoneDeliveryEnabled){
+    const send=$('#sc-send-otp');if(send){send.disabled=true;send.textContent='WhatsApp verification unavailable'}
+    const status=$('#sc-otp-delivery-note');if(status)status.textContent='WhatsApp verification will be enabled after provider setup. No message is sent during development.';
+   }
    $('#sc-otp-form')?.addEventListener('submit',verifyOTP);
    $('#sc-existing-phone')?.addEventListener('click',activateExisting);
   }

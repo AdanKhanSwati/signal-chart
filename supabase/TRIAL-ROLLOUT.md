@@ -113,3 +113,13 @@ See [Supabase securing your API](https://supabase.com/docs/guides/api/securing-y
 3. Map verified SignalChart premium signals into `sc_premium_signals`; without this, no unlockable premium content exists.
 4. Run actual customer + Super Admin JWT requests against the staging backend, verify historical-user holds and approved payment entitlements, and rerun security advisors.
 5. Keep the staging Git auto-deploy disabled. Production alias and live payment settings remain untouched.
+
+## WhatsApp-first verification (configuration prepared; no billable delivery)
+
+- SignalChart uses the **existing verified Supabase email/Google account** and sends a `phone_change` verification code with `PUT /auth/v1/user` payload `{phone,channel:'whatsapp'}`. On verification, Supabase confirms ownership; only then can the immutable phone HMAC and 72-hour/3-signal claim be activated.
+- **`SC_TRIAL_PHONE_DELIVERY_ENABLED` defaults to false**. The backend refuses all OTP delivery while disabled and does not fall back to SMS. Customer UI also disables the send control. This is deliberately disabled until the owner approves a configured provider.
+- WhatsApp phone change is supported in the current Supabase GoTrue API with **Twilio or Twilio Verify** as the configured provider. WhatsApp is **not automatically free**; billable deliveries need explicit owner authorization. Configure a WhatsApp sender and provider in Supabase Auth before enabling OTP delivery.
+- **Free hosted test numbers** use predefined OTP codes, but Supabase requires the Phone provider and a configured SMS/WhatsApp provider even though a matching test number skips message delivery. Thus no real hosted test-number OTP has been sent yet. Use mocked route tests and the disposable database suite until the provider is configured. Remove all test OTPs before public launch.
+- Database HMAC and RLS protections, phone-claim uniqueness, existing user legacy hold, and three shared signal credits are unchanged. OTP code and raw phone numbers must not appear in GitHub or application logs.
+
+Sources: https://supabase.com/docs/guides/auth/phone-login ; https://supabase.com/docs/guides/auth/testing-auth-flows ; https://github.com/supabase/auth/blob/master/openapi.yaml

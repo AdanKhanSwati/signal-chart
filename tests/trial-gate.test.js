@@ -26,7 +26,7 @@ function fixture({allow=true,verified=false,legacy=false,exception=false}={}){
   throw Error('Unexpected fake fetch: '+url);
  };
  const core={authConfig:()=>({ready:true,url:'https://demo.supabase.co',key:'sb_publishable_test_1234567890'})};
- const gate=createTrialGateway(core,{fetchFn,env:{SUPABASE_SERVICE_ROLE_KEY:KEY,SC_TRIAL_HMAC_SECRET:HMAC,SC_TRIAL_ROLLOUT_AT:'2026-11-01T00:00:00Z'},
+ const gate=createTrialGateway(core,{fetchFn,env:{SUPABASE_SERVICE_ROLE_KEY:KEY,SC_TRIAL_HMAC_SECRET:HMAC,SC_TRIAL_ROLLOUT_AT:'2026-11-01T00:00:00Z',SC_TRIAL_PHONE_DELIVERY_ENABLED:'true'},
    clock:()=>Date.parse('2026-11-09T01:00:00Z')});
  const req={headers:{authorization:'Bearer '+TOKEN,'x-vercel-forwarded-for':'203.0.113.42','x-sc-device-hint':'device_hint_1234567890'}};
  return {gate,calls,req};
@@ -49,12 +49,16 @@ test('accepted OTP attempt sends Supabase phone change without creating a trial'
  const x=fixture();const r=await x.gate.otpStart(x.req,PHONE);
  assert.equal(r.status,'otp_sent');
  assert.equal(x.calls.some(z=>z.method==='PUT'),true);
+ const phoneChange=x.calls.find(z=>z.method==='PUT');
+ assert.equal(phoneChange.body.channel,'whatsapp','phone change must use WhatsApp, never implicit SMS');
+ assert.equal(phoneChange.body.phone,PHONE);
+ assert.equal(r.channel,'whatsapp');
  assert.equal(x.calls.some(z=>z.url.endsWith('/rpc/sc_activate_trial')),false);
  const risk=x.calls.find(z=>z.url.endsWith('/rpc/sc_otp_rate_check'));
  assert.match(risk.body.p_phone_hash,/^[a-f0-9]{64}$/);
  assert.equal(JSON.stringify(risk.body).includes(PHONE),false);
 });
-test('SMS OTP verification checks Supabase user ID and confirmed phone before activating',async()=>{
+test('WhatsApp OTP verification checks Supabase user ID and confirmed phone before activating',async()=>{
  const x=fixture();const r=await x.gate.otpVerify(x.req,PHONE,'123456');
  assert.equal(r.status,'activated');
  const act=x.calls.find(z=>z.url.endsWith('/rpc/sc_activate_trial'));
@@ -62,7 +66,7 @@ test('SMS OTP verification checks Supabase user ID and confirmed phone before ac
  assert.match(act.body.p_phone_hash,/^[a-f0-9]{64}$/);
  assert.equal(JSON.stringify(act.body).includes(PHONE),false);
 });
-test('an already verified phone may be activated without repeat SMS',async()=>{
+test('an already verified phone may be activated without repeat WhatsApp message',async()=>{
  const x=fixture({verified:true});const r=await x.gate.activateExistingVerifiedPhone(x.req);
  assert.equal(r.status,'activated');
  assert.equal(x.calls.some(z=>z.method==='PUT'),false);
