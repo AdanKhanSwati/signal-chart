@@ -46,7 +46,7 @@ const hero=main?.querySelector('.v2-hero');
 if(hero){
 const market=switcher();hero.after(market);
 if(is('/account.html')){
-const p=hero.querySelector('p');if(p)p.textContent='Manage your profile, 72-hour trial and access to crypto and forex research in one place.';
+const p=hero.querySelector('p');if(p)p.textContent='Manage your profile, 24-hour trial and access to crypto and forex research in one place.';
 }
 if(is('/forex.html')){
 const p=hero.querySelector('p');if(p)p.textContent='Experimental EUR/USD, GBP/USD and USD/JPY research from completed 15-minute candles. Open Crypto to explore digital-asset markets.';
