@@ -12,7 +12,16 @@ function createHandler(core,gate){
    if(req.method==='GET'&&action==='list'){
     const market=req.query?.market||null;
     if(market!==null&&market!=='crypto'&&market!=='forex')throw issue(400,'Invalid market');
-    return res.status(200).json({signals:await gate.listSignals(market)});
+    // Defense in depth: even a regressed SQL view cannot leak action-ready
+    // premium fields. Only these four fields may cross the public HTTP boundary.
+    const raw=await gate.listSignals(market);
+    const signals=(Array.isArray(raw)?raw:[])
+      .filter(s=>s&&typeof s.signalKey==='string'&&
+        (s.market==='crypto'||s.market==='forex')&&typeof s.asset==='string')
+      .slice(0,100)
+      .map(s=>({signalKey:s.signalKey,market:s.market,asset:s.asset,
+        publishedAt:s.publishedAt||null}));
+    return res.status(200).json({signals});
    }
    if(req.method==='POST'&&action==='unlock'){
     const request=core.securePost(req,5000);
