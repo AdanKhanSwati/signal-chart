@@ -30,7 +30,7 @@ Do **not** import historical free-trial timestamps as fresh promotional trials.
 - Configure a long randomly generated \`SC_TRIAL_HMAC_SECRET\` (at least 32 characters). Securely back up this key; changing it without a planned hash migration can permit repeated claims.
 - Set \`SC_TRIAL_ROLLOUT_AT\` to the actual UTC cutover timestamp **after** completing the historical-user migration. Older accounts require admin review/exception even if prior Blob data is incomplete.
 - Keep \`SUPABASE_URL\`, \`SUPABASE_PUBLISHABLE_KEY\`, verified JWT authentication and \`CANDRIVA_ADMIN_EMAIL\`.
-- Configure Supabase Auth phone provider with an SMS service (Twilio, MessageBird, Vonage, etc.), SMS and per-IP quotas, CAPTCHA, resend and region restrictions. This costs money per message; obtain owner approval before enabling.
+- Configure Supabase Auth phone provider with Twilio/Twilio Verify and an approved WhatsApp sender, phone/IP quotas, CAPTCHA, resend and region restrictions. WhatsApp verification may cost money; obtain owner approval before enabling. No SMS fallback is implemented.
 - Populate \`sc_legacy_trial_holds\` for known prior trial users, and review phone reassignment exceptions before granting more trial access.
 - Populate \`sc_premium_signals\` with server-only premium signal details after validating sources; never use an unverified browser-side object as premium signal source.
 - Enable the actual Vercel preview environment with payment collection OFF and without promoting its preview to production.
@@ -61,7 +61,7 @@ This installs a testing dependency locally only. It does not mutate production o
 
 ## External blockers
 1. Supabase inspection and migration execution are complete. Still required: Vercel preview-only server-side database secret and protected HMAC key, plus live API endpoint verification.
-2. SMS provider must be configured, billed and tested with real international numbers before OTP can be claimed operational.
+2. WhatsApp-capable provider must be configured and tested with real international numbers before WhatsApp OTP can be claimed operational. No paid verification provider is configured currently.
 3. Real user/admin JWT, row-security and concurrent Postgres requests need staging end-to-end tests.
 4. Android project source and Play Integrity credentials are not available.
 5. Signal/news/research and forex engine source recovery remain incomplete; do not promote the staging branch into production.
@@ -79,14 +79,14 @@ This installs a testing dependency locally only. It does not mutate production o
 ## Cutover blockers — strict
 
 1. Read and compare **actual** Supabase auth/user/payment schema, live RLS and previous accounts before applying any additive migration. Do **not** execute unreviewed SQL solely because isolated tests pass.
-2. Verify the correct Supabase project ID, enable an **approved and funded** SMS provider only after owner authorization, and run real OTP sends and failed-attempt tests.
+2. Verify the correct Supabase project ID, enable an **approved and funded** WhatsApp OTP provider only after owner authorization, and run real OTP sends and failed-attempt tests.
 3. Back up and preserve `SC_TRIAL_HMAC_SECRET` securely. A different key would yield different trial identity hashes and could permit repeat claims.
 4. Set `SC_TRIAL_ROLLOUT_AT` only after importing documented legacy trial holders; never silently give prior trial users new promotional access.
 5. End-to-end tests must use verified customer/admin sessions and include a second email with the same verified phone, simultaneous unlocks from independent DB connections, trial expiration and an approved manual-payment conversion.
 6. No Android source/Play Integrity integration is present in this repository; Android app release status remains **not implemented/unverified**.
 7. The original project source recovery and non-trial SignalChart market feeds remain incomplete. Keep the staging Git branch configured not to auto-deploy and preserve the current production alias.
 
-**Cost control:** Supabase SMS providers bill per delivery. The current code prepares for OTP but does not provision a provider, send real texts, create paid resources, or change the free hosting plan.
+**Cost control:** WhatsApp/Twilio verification providers may bill per delivery. The current code prepares for OTP but does not provision a provider, send real texts, create paid resources, or change the free hosting plan.
 
 
 ## Current audited staging snapshot (9 November 2026)
@@ -95,8 +95,8 @@ This installs a testing dependency locally only. It does not mutate production o
 - Forex and Crypto website navigation now lead to the shared protected `/signals.html` vault; no unrelated branding, fonts, or layouts were changed.
 - The release gate has been updated for the 72-hour/three-signal contract and expected source changes. It still rejects deployment due to **19 unverified originals** (some backend files were rewritten, but the original source hashes remain unavailable). There are no additional unexpected-source errors in the current gate report.
 - Connected Vercel project currently has `SUPABASE_URL` and public key configured, but **does not** have `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`, and **does not** have `SC_TRIAL_HMAC_SECRET`. No database migration or SMS integration was applied to the real Supabase account.
-- Do not activate SMS billing, accept crypto payments or deploy production from this branch. Current tests exercise fake accounts and a disposable test database; actual phone verification and account migration must be tested against the real Supabase project after authorized connection.
-- **Next:** inspect live schema, RLS and historical accounts, provision server-side secret key and stable HMAC secret through Vercel's protected environment, select an approved SMS provider, then run verified-phone/duplicate-phone and concurrent premium-unlock tests with real test identities in a preview deployment.
+- Do not activate paid WhatsApp messaging, accept crypto payments or deploy production from this branch. Current tests exercise fake accounts and a disposable test database; actual phone verification and account migration must be tested against the real Supabase project after authorized connection.
+- **Next:** inspect live schema, RLS and historical accounts, provision server-side secret key and stable HMAC secret through Vercel's protected environment, select an approved WhatsApp provider, then run verified-phone/duplicate-phone and concurrent premium-unlock tests with real test identities in a preview deployment.
 
 ## Post-migration Supabase advisories
 
@@ -109,7 +109,7 @@ See [Supabase securing your API](https://supabase.com/docs/guides/api/securing-y
 ## Updated next-step verification contract
 
 1. Configure the server-only Supabase secret key and a securely backed-up HMAC secret for the staging preview environment. These are intentionally NOT in Git or chat.
-2. Check Supabase Auth SMS configuration and obtain explicit approval before spending on a paid SMS provider. Verify both successful OTP and abuse rate limiting with real devices.
+2. Check Supabase Auth WhatsApp/Twilio configuration and obtain explicit approval before any paid WhatsApp delivery. Verify both successful OTP and abuse rate limiting with real devices.
 3. Map verified SignalChart premium signals into `sc_premium_signals`; without this, no unlockable premium content exists.
 4. Run actual customer + Super Admin JWT requests against the staging backend, verify historical-user holds and approved payment entitlements, and rerun security advisors.
 5. Keep the staging Git auto-deploy disabled. Production alias and live payment settings remain untouched.
@@ -123,3 +123,10 @@ See [Supabase securing your API](https://supabase.com/docs/guides/api/securing-y
 - Database HMAC and RLS protections, phone-claim uniqueness, existing user legacy hold, and three shared signal credits are unchanged. OTP code and raw phone numbers must not appear in GitHub or application logs.
 
 Sources: https://supabase.com/docs/guides/auth/phone-login ; https://supabase.com/docs/guides/auth/testing-auth-flows ; https://github.com/supabase/auth/blob/master/openapi.yaml
+
+## Latest WhatsApp-only staging result
+
+- Source commit `d2993c89138ca7c99e5a7a8f47515ebdcc6d18e6` enabled the WhatsApp phone-change channel in the existing account and added a default-off delivery gate. The Vercel **preview branch** has `SC_TRIAL_PHONE_DELIVERY_ENABLED=false` explicitly set; production was not changed.
+- **83/83** Node.js regression/security tests passed. Two new tests verify disabled mode never contacts Supabase and an invalid delivery value cannot activate an SMS fallback. These are mock tests, not real WhatsApp delivery tests.
+- Supabase's hosted test-phone system requires a phone provider to be configured even when it skips message delivery. No test number or provider configuration was installed and no OTP was sent. When a provider is approved, test phone numbers and OTPs must be time-limited and removed before release.
+- Continue to treat 72 hours and 3 unique combined premium signals as the authoritative trial terms. The connected Supabase database schema remains as applied; this WhatsApp switch required no new SQL migration.

@@ -91,7 +91,7 @@ test('older accounts are denied repeat OTP trial activation before any SMS is se
  await assert.rejects(()=>x.gate.otpStart(x.req,PHONE),e=>e.status===409);
  assert.equal(x.calls.some(z=>z.method==='PUT'),false);
 });
-test('an audited recycled-number exception allows verified legacy applicant to request SMS',async()=>{
+test('an audited recycled-number exception allows verified legacy applicant to request WhatsApp code',async()=>{
  const x=fixture({legacy:true,exception:true});const r=await x.gate.otpStart(x.req,PHONE);
  assert.equal(r.status,'otp_sent');
  assert.equal(x.calls.some(z=>z.method==='PUT'),true);
