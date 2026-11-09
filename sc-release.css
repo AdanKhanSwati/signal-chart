@@ -1,0 +1,96 @@
+/* SignalChart compact, high-resolution release system. Loaded after previous themes. */
+:root{--sc-small-gap:12px;--sc-panel-pad:14px;--sc-text:#f2edf0;--sc-muted:#bbb0bd}
+html{max-width:100%;overflow-x:clip}
+body{max-width:100%;overflow-x:clip;-webkit-text-size-adjust:100%;text-rendering:optimizeLegibility}
+body.sc-body,body.sp-body,body.sc-legacy-page{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif!important;font-optical-sizing:auto}
+body :is(.sc-grid-content,.sp-main,.cand-page,.v2-container){min-width:0;max-width:100%}
+body :is(.sc-panel,.sp-panel,.cand-card,.v2-panel){min-width:0;max-width:100%;overflow-wrap:break-word}
+body :is(.sc-metric,.sp-kpi,.cand-kpi){min-width:0;max-width:100%;align-items:stretch}
+body :is(.sc-panel-head,.sp-panel-heading,.cand-panel-title){min-width:0;flex-wrap:wrap;gap:6px 10px}
+body.sc-body .sc-hero-title h1,body.sp-body .sp-top-intro h1{font-size:clamp(23px,2.5vw,33px)!important;line-height:1.1!important;letter-spacing:-.035em!important}
+body.sp-body .sp-feature{padding:16px!important;min-height:185px!important}
+body.sp-body .sp-feature h2{font-size:clamp(15px,1.5vw,19px)!important}
+body.sc-body .sc-hero-metrics>.sc-metric{min-height:102px!important}
+body.sc-body .sc-bottom-grid>.sc-panel{min-height:176px!important;height:auto!important}
+body.sc-body .sc-bottom-grid :is(.sc-heatmap,.sc-bars){min-width:0;max-width:100%}
+body.sc-body :is(.sc-chart-panel,#sc-candles),body.mc-body :is(.mc-chart-area,#mc-chart){min-width:0;max-width:100%;image-rendering:auto}
+#sc-candles,#mc-chart canvas{display:block;touch-action:none;image-rendering:auto!important;filter:none!important;transform:none!important}
+#sc-candles:focus-visible{outline:1px solid rgba(255,147,77,.65);outline-offset:0}
+body.sp-body .sp-table-scroll,body.sc-legacy-page :is(.cand-table-wrap,.v2-table-wrap){max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+body.sp-body :is(.sp-analytics-kpis,.sp-two,.sp-main-duo)>*,body.sc-body :is(.sc-main-grid,.sc-bottom-grid)>*{min-width:0!important}
+body.sc-legacy-page .cand-page{width:min(100%,1280px);margin:0 auto;padding:clamp(12px,1.5vw,24px)}
+body.sc-legacy-page .cand-page-header{gap:12px!important;align-items:center!important}
+body.sc-legacy-page .cand-page-header h1{font-size:clamp(23px,2.3vw,31px)!important;letter-spacing:-.04em}
+body.sc-legacy-page .cand-glass.cand-card{padding:clamp(12px,1.45vw,19px)!important}
+body.sc-legacy-page :is(.cand-columns,.cand-op-grid){gap:var(--sc-small-gap)!important;align-items:stretch!important}
+body.sc-legacy-page :is(.cand-columns,.cand-op-grid)>*{min-width:0;max-width:100%}
+body.sc-legacy-page .cand-info-row{min-width:0;gap:7px;align-items:flex-start}
+body.sc-legacy-page .cand-info-row strong{max-width:70%;overflow-wrap:anywhere;text-align:right;font-variant-numeric:tabular-nums}
+body.sc-legacy-page .cand-code{font-size:clamp(9px,1.25vw,12px);overflow-wrap:anywhere;word-break:break-all}
+body.sc-legacy-page .cand-listitem{width:100%;max-width:100%;text-align:left;min-width:0}
+body.sc-legacy-page .cand-messages{min-width:0;max-height:420px;overflow-y:auto}
+body.sc-legacy-page .cand-bubble{max-width:min(85%,540px);overflow-wrap:anywhere}
+body.sc-legacy-page .cand-ops-action{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+body.sc-legacy-page .cand-btn,body.sc-legacy-page .cand-btn-secondary{max-width:100%;white-space:normal}
+body.sc-legacy-page #ops-tab-payments,body.sc-legacy-page #ops-tab-messages,body.sc-legacy-page #ops-tab-settings{min-width:0}
+body.sc-legacy-page .cand-tabset{max-width:100%;overflow-x:auto;scrollbar-width:thin;display:flex}
+body.sc-legacy-page .cand-tabset>button{flex:0 0 auto}
+body.sc-legacy-page .cand-qr-area{max-width:100%;overflow:hidden}
+body.sc-legacy-page .cand-qr-area canvas{width:225px!important;max-width:min(100%,225px)!important;height:auto!important;image-rendering:pixelated;filter:none}
+body.sc-legacy-page :is(input,select,textarea){max-width:100%;min-width:0;font-size:14px!important}
+body.sc-legacy-page :is(button,.cand-btn,.cand-btn-secondary){min-height:35px}
+.sc-risk-disclosure{min-width:0;max-width:100%;margin:18px 0 10px;padding:13px 15px;border-radius:12px;border:1px solid rgba(255,148,90,.23);background:linear-gradient(115deg,rgba(255,139,77,.085),rgba(17,18,27,.42) 60%);display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;align-items:start;box-shadow:inset 0 1px rgba(255,255,255,.04)}
+.sc-risk-disclosure strong{font-size:11px;color:#ffbe92;white-space:nowrap}
+.sc-risk-disclosure p{margin:0;font-size:10px;line-height:1.65;color:#b7aeb9}
+body.sc-legacy-page .sc-risk-disclosure{margin-top:24px}
+@media(max-width:980px){body.sc-legacy-page .cand-columns,body.sc-legacy-page .cand-op-grid{grid-template-columns:minmax(0,1fr)!important}}
+@media(max-width:720px){body.sc-body .sc-main-grid>.sc-chart-panel{min-height:350px!important;height:350px!important}
+body.sc-legacy-page .cand-page{padding:11px!important}
+body.sc-legacy-page .cand-ops-action>button{max-width:100%}
+body.sc-legacy-page .cand-info-row strong{max-width:61%}
+.sc-risk-disclosure{grid-template-columns:minmax(0,1fr);padding:12px;gap:5px}
+body.sp-body .sp-feature{padding:13px!important;min-height:166px!important}
+body.sc-body .sc-hero-metrics>.sc-metric{min-height:97px!important}
+}
+@media(max-width:390px){body.sc-body .sc-main-grid>.sc-chart-panel{height:326px!important;min-height:326px!important}
+body.sc-legacy-page .cand-page{padding:8px!important}
+body.sc-legacy-page .cand-glass.cand-card{padding:11px!important}
+body.sc-legacy-page .cand-info-row{flex-wrap:wrap}
+body.sc-legacy-page .cand-info-row strong{max-width:100%;text-align:left}
+body.sc-legacy-page :is(.cand-page-header h1,.v2-hero h1){font-size:24px!important}
+}
+
+/* Account, administrator operations, and low-width refinements */
+.v2-page .v2-container{width:min(100%,1150px)!important;max-width:100%!important;margin:0 auto!important;padding:clamp(12px,1.75vw,24px)!important;min-width:0}
+.v2-page .v2-hero{max-width:100%;min-width:0!important;margin-bottom:14px!important}
+.v2-page .v2-hero h1{font-size:clamp(25px,2.8vw,36px)!important;line-height:1.14!important;letter-spacing:-.04em}
+.v2-page .v2-kpis{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:stretch!important;gap:12px!important}
+.v2-page .v2-kpis>.v2-panel{height:100%;min-width:0!important;min-height:96px!important;padding:14px!important}
+.v2-page .v2-kpis .v2-panel strong{font-size:clamp(16px,1.9vw,22px)!important;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.v2-page .v2-2col{display:grid!important;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)!important;align-items:stretch!important;gap:12px!important}
+.v2-page .v2-2col>.v2-panel{min-width:0!important;height:100%;padding:clamp(14px,1.4vw,19px)!important}
+.v2-page :is(.v2-wallet,.v2-info strong){max-width:100%;overflow-wrap:anywhere}
+.v2-page .v2-info{display:flex;min-width:0;align-items:flex-start;gap:7px 12px;justify-content:space-between}
+.v2-page .v2-info>strong{text-align:right;min-width:0}
+.v2-page :is(button,input,textarea,select){font-size:13px!important;max-width:100%}
+.v2-page .v2-primary{min-height:38px}
+.cand-health-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:12px;margin:12px 0 14px;min-width:0}
+.cand-health-grid .cand-card{height:100%;margin:0}
+.cand-health-grid .cand-note{overflow-wrap:anywhere}
+.cand-health-grid .cand-panel-title{flex-wrap:wrap}
+body.sc-legacy-page .cand-kpis{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:stretch}
+body.sc-legacy-page .cand-kpis .cand-kpi{min-width:0;min-height:92px;padding:13px}
+body.sc-legacy-page .cand-kpis .cand-kpi strong{font-size:clamp(17px,2.1vw,25px)!important;font-variant-numeric:tabular-nums}
+body.sc-legacy-page .cand-op-grid{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)!important}
+@media(max-width:920px){body.sc-legacy-page .cand-op-grid{grid-template-columns:minmax(0,1fr)!important}}
+@media(max-width:760px){.v2-page .v2-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+.v2-page .v2-2col{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+.v2-page .v2-2col>.v2-panel{height:auto!important}
+.v2-page .v2-hero h1{font-size:27px!important}
+.cand-health-grid{grid-template-columns:minmax(0,1fr);gap:9px}
+body.sc-legacy-page .cand-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:390px){.v2-page .v2-container{padding:9px!important}
+.v2-page .v2-kpis .v2-panel{padding:11px!important;min-height:83px!important}
+.v2-page .v2-info{flex-wrap:wrap}.v2-page .v2-info>strong{text-align:left;max-width:100%}
+.cand-health-grid .cand-card{padding:11px!important}
+}
