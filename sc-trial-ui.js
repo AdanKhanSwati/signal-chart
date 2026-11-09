@@ -177,6 +177,14 @@ async function loadSignals(){
 }
 async function boot(){
  try{
+  for(const link of document.querySelectorAll('#sc-trial-upgrade')){
+   link.addEventListener('click',async e=>{
+    e.preventDefault();const url=link.href;
+    try{await Promise.race([api('upgrade_click',{}),new Promise(resolve=>setTimeout(resolve,450))])}
+    catch{}
+    location.assign(url);
+   });
+  }
   await initializeClient();
   const t=await token();
   if(accountRoot){

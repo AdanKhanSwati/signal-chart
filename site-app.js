@@ -296,11 +296,12 @@ async function loadTrialOps(){
   metrics.replaceChildren();
   const m=stats.metrics||{};
   const mapping=[
-   ['Trials activated',m.trialActivations],['Active free trials',m.activeTrials],
+   ['Registered users',m.registeredUsers],['Trials activated',m.trialActivations],['Active free trials',m.activeTrials],
    ['Trials expired',m.expiredTrials],['Trials exhausted',m.exhaustedTrials],
    ['Verified paid conversions',m.paidConversions],
    ['Trial-to-paid conversion',m.trialToPaidConversionPercent==null?'Not enough data':m.trialToPaidConversionPercent+'%'],
    ['Signals unlocked per trial',m.averageSignalsPerTrial==null?'Not enough data':Number(m.averageSignalsPerTrial).toFixed(2)],
+   ['Avg. days from activation to purchase',m.averageSecondsToFirstPurchase==null?'Not enough data':(Number(m.averageSecondsToFirstPurchase)/86400).toFixed(2)],
    ['Verification completion',m.verificationCompletionPercent==null?'Not enough data':m.verificationCompletionPercent+'%'],
    ['Risk reviews (30 days)',m.riskReviewUsersLast30Days]];
   for(const [key,value] of mapping){
