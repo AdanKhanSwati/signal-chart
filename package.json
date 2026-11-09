@@ -1,1 +1,19 @@
-{"name":"candriva-signals-standalone","version":"0.4.0","private":true,"engines":{"node":">=20.9.0"},"dependencies":{"@vercel/blob":"2.3.0","@clerk/backend":"3.27.0","web-push":"3.6.7"}}
+{
+  "name": "candriva-signals-standalone",
+  "version": "0.4.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "@vercel/blob": "2.3.0",
+    "@clerk/backend": "3.27.0",
+    "web-push": "3.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.15"
+  },
+  "scripts": {
+    "test:trial:sql": "node --test tests/trial-postgres.integration.mjs"
+  }
+}
