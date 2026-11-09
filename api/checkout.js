@@ -26,6 +26,11 @@ function createHandler(core,service){
     const accountAfter=await core.member({uid:pay.uid||pay.memberId,email:pay.email||user.email,name:''});
     return res.status(200).json({review,paidUntil:accountAfter.paidUntil,status:accountAfter.status});
    }
+   if(req.method==='POST'&&action==='sync_approved'){
+    const body=core.securePost(req);
+    const result=await service.syncApprovedPayment(body.paymentId,account);
+    return res.status(200).json({synced:true,result});
+   }
    throw err(404,'Unknown checkout action');
   }catch(e){return core.handleError(res,e)}
  };
