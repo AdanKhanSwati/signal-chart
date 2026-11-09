@@ -13,6 +13,7 @@ test('existing API paths rewrite to the same allowlisted secure handler',()=>{
   assert.ok(rules.some(x=>x.source==='/api/'+route&&x.destination==='/api/compat?sc_route='+route));
  }
  assert.equal(config.git.deploymentEnabled['signalchart-recovery-staging'],false);
+ assert.ok(!Object.hasOwn(config.functions||{},'api/signals.js'),'excluded route must not declare a Vercel function');
 });
 test('Vercel deployment bundles no more than 12 functions on Hobby',()=>{
  const ignored=fs.readFileSync(path.join(root,'.vercelignore'),'utf8').split(/\r?\n/)
