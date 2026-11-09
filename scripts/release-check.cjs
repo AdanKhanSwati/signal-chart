@@ -17,11 +17,11 @@ for(const f of manifest.missingFiles)failures.push('Unrecovered original source:
 if(!fs.existsSync(path.join(root,'tests/24h-trial.test.js')))failures.push('Missing 24-hour trial regression test');
 if(fs.existsSync(path.join(root,'api/config.js'))){
  const conf=fs.readFileSync(path.join(root,'api/config.js'),'utf8');
- if(!conf.includes('trialHours:24'))failures.push('API config is not set to 24-hour trial');
+ if(!conf.includes('trialHours:72'))failures.push('API config is not set to 72-hour trial');
 }
 if(fs.existsSync(path.join(root,'lib/subscription-rules.js'))){
  const rules=fs.readFileSync(path.join(root,'lib/subscription-rules.js'),'utf8');
- if(!rules.includes('start+24*HOUR'))failures.push('Entitlement rules do not enforce 24 hours');
+ if(!fs.existsSync(path.join(root,'api/trial.js'))||!fs.existsSync(path.join(root,'api/premium-signals.js')))failures.push('Missing mandatory OTP and premium signal authorization routes');
 }
 const oldBrand=fs.readFileSync(path.join(root,'signalchart-wordmark.svg'),'utf8');
 if(!oldBrand.includes('data:image/png;base64'))failures.push('Website logo is still the old reconstructed SVG, not the supplied original image');

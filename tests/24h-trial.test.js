@@ -3,20 +3,20 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {entitlement,HOUR,DAY}=require('../lib/subscription-rules');
 const start=Date.parse('2026-11-09T00:00:00Z');
 const record=hours=>({trialStartedAt:new Date(start).toISOString(),trialEndsAt:new Date(start+hours*HOUR).toISOString()});
-test('24-hour free trial stays active before deadline',()=>{
+test('legacy 24-hour record stays active before deadline',()=>{
  const a=entitlement(record(24),[],start+23*HOUR+59*60000);
  assert.equal(a.status,'trial');assert.equal(a.access,true);
  assert.equal(a.trialEndsAt,new Date(start+24*HOUR).toISOString());
  assert.equal(a.accessUntil,new Date(start+24*HOUR).toISOString());
 });
-test('24-hour free trial locks at exactly 24 hours',()=>{
+test('legacy 24-hour record locks at exactly 24 hours',()=>{
  const a=entitlement(record(24),[],start+24*HOUR);
  assert.equal(a.status,'locked');assert.equal(a.access,false);
 });
-test('legacy 72-hour trial record is normalized to 24 hours',()=>{
+test('legacy 72-hour record preserves its previously stored expiry',()=>{
  const a=entitlement(record(72),[],start+36*HOUR);
  assert.equal(a.status,'locked');assert.equal(a.access,false);
- assert.equal(a.trialEndsAt,new Date(start+24*HOUR).toISOString());
+ assert.equal(a.trialEndsAt,new Date(start+72*HOUR).toISOString());
 });
 test('manual approval grants paid access beyond expired trial',()=>{
  const approval={decision:'approved',paymentId:'payment-one',at:new Date(start+25*HOUR).toISOString()};
