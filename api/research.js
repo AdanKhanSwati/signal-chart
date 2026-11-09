@@ -3,7 +3,7 @@
  * Unattended signal publishing intentionally remains disabled until independently validated. */
 function createHandler({
  calendar=require('../lib/sc-economic'),news=require('../lib/sc-news'),
- backtest=require('../lib/sc-backtest'),core=require('../lib/candriva-core'),
+ backtest=require('../lib/sc-backtest'),core=null,
  clock=()=>Date.now()
 }={}){
  return async function(req,res){
@@ -36,7 +36,8 @@ function createHandler({
     return res.status(200).json({...events,news:headlines,assessment:assessment||null});
    }
    if(mode==='backtest'){
-    const user=await core.identity(req),account=await core.member(user);
+    const secureCore=core||require('../lib/candriva-core');
+    const user=await secureCore.identity(req),account=await secureCore.member(user);
     const permitted=account.isAdmin===true||['active','granted','administrator'].includes(account.status);
     // A 72h trial's 3 signal unlocks do not authorize unlimited premium simulations.
     if(!permitted)return res.status(403).json({
