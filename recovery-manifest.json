@@ -1,0 +1,429 @@
+{
+  "originalDeploymentId": "dpl_7V8tjUnDnMNAmW1xAwBZUYvMRfzD",
+  "vercelProject": "candriva-signals-beta",
+  "teamId": "team_MOINx1C4FlKs1BqlFzBvQQeJ",
+  "sourceFileCount": 104,
+  "sha1VerifiedRecovered": 85,
+  "notRecovered": 19,
+  "recoveredFiles": [
+    {
+      "path": "README.txt",
+      "sha1": "f1b5ddf7e4153e3c793df08e48ce68c132972351"
+    },
+    {
+      "path": "account-link.js",
+      "sha1": "cb2d7a93ca38dc09cd349190698302e9031b7d6e"
+    },
+    {
+      "path": "account.html",
+      "sha1": "6d600909dde65ed6a00b26eeef6c050e3f197ed3"
+    },
+    {
+      "path": "admin.html",
+      "sha1": "1c1f6e22abd9da0f603ba454faf20e11aa5668ab"
+    },
+    {
+      "path": "analytics-pulse.js",
+      "sha1": "a5038e5598ac517c294832178e6e8cb255ad475a"
+    },
+    {
+      "path": "analytics.html",
+      "sha1": "3e965c5fb62f34fd6108a43324446558a38b918c"
+    },
+    {
+      "path": "api/candles.js",
+      "sha1": "f5b9670a12a0855c6435a68aab9f3a3eb0522617"
+    },
+    {
+      "path": "api/candriva.js",
+      "sha1": "4a9c3e989f6fa42cba3b57cef4a20e73dc93f153"
+    },
+    {
+      "path": "api/config.js",
+      "sha1": "a2a48ac8f4556852e142a298108bdaaea5cbfcb3"
+    },
+    {
+      "path": "app.html",
+      "sha1": "f0ba84da19b306f3637280c8c867e162e7d4e92f"
+    },
+    {
+      "path": "app.js",
+      "sha1": "d64839bd879ac86b7860667207227b63e1eb7aa8"
+    },
+    {
+      "path": "atelier-pages.css",
+      "sha1": "471096f8d4a9e580e1c522b17dae4d1c2d30632d"
+    },
+    {
+      "path": "atelier-shell.js",
+      "sha1": "94b4f8c0ff35af5470324e27d68b917265fbb76e"
+    },
+    {
+      "path": "atelier.css",
+      "sha1": "1a6bb78007eeba0e7163f0371503bbb892092a31"
+    },
+    {
+      "path": "atelier.js",
+      "sha1": "c422f71d7300ae71b385386b9857c24f3044affe"
+    },
+    {
+      "path": "billing.html",
+      "sha1": "5956593f05274041882a8134a871c15129a83bf8"
+    },
+    {
+      "path": "build-fix.sh",
+      "sha1": "ca710c822bb4cebf2c26cec92efcd4d5904aaaca"
+    },
+    {
+      "path": "candriva-mark.svg",
+      "sha1": "dfa1f95c4a240395ab2848289bde07e7a6e87776"
+    },
+    {
+      "path": "candriva-next.css",
+      "sha1": "9b2f13291644a719dcc2c41866527d9fb4f9e869"
+    },
+    {
+      "path": "candriva-next.js",
+      "sha1": "94a5bec978b5394596f2da4a92b2c109aaaf45db"
+    },
+    {
+      "path": "candriva-ui.css",
+      "sha1": "b50874e88700f926256d68b8f75164fc78deb631"
+    },
+    {
+      "path": "candriva-ui.js",
+      "sha1": "9fdbdc5c7c16e72b9a27604f2d6eec64c4d1aec2"
+    },
+    {
+      "path": "candriva-v2.js",
+      "sha1": "03a9ad0eba291062ccdc8c51c94d799efc72f8ee"
+    },
+    {
+      "path": "candriva-wordmark.svg",
+      "sha1": "5f654838a46588b2e4719876c1535fb635be99fe"
+    },
+    {
+      "path": "crypto-ui.js",
+      "sha1": "090b92c97201b878a70eda3b81cf2d5f5f84dfbc"
+    },
+    {
+      "path": "crypto.html",
+      "sha1": "8499d2f87584911a3542325e3a0e9f20df1a5647"
+    },
+    {
+      "path": "customer.webmanifest",
+      "sha1": "8a98baf1e8f8a2291e11a48dda81b00a39f03b2d"
+    },
+    {
+      "path": "dashboard.html",
+      "sha1": "1ffc696360c8c01aeb25d79b8e65e89151d744f6"
+    },
+    {
+      "path": "dashboard.js",
+      "sha1": "316e3c1305900abc30778e6f1581aa18768fd71a"
+    },
+    {
+      "path": "exchange.css",
+      "sha1": "e723d74f30644b28ba7e67e0571245f9f1138d32"
+    },
+    {
+      "path": "exchange.js",
+      "sha1": "aa19c26772d3a2c8266e21b639eadc2c5c89e1c9"
+    },
+    {
+      "path": "forex.html",
+      "sha1": "a4020a877d802a55c6ed801a1dd5e2aa91eb9fa9"
+    },
+    {
+      "path": "home.html",
+      "sha1": "4d4d4bd1e49808899544964652f15484ac5d6872"
+    },
+    {
+      "path": "hourly-ui.js",
+      "sha1": "fabebb3a5484ed9af96596867576f18d2be11195"
+    },
+    {
+      "path": "index.html",
+      "sha1": "d3cc2d78df9dbe6e27fb18f7dcf0cc49ec820082"
+    },
+    {
+      "path": "interactive-chart.css",
+      "sha1": "64088c1d3d1f717bc1388bb6935d8961c33e8285"
+    },
+    {
+      "path": "interactive-chart.js",
+      "sha1": "d7df054197ae3497c72b342540f43727d4c7ef68"
+    },
+    {
+      "path": "lib/subscription-rules.js",
+      "sha1": "ceeb313f82c977dd2608f444b204bd68b8154286"
+    },
+    {
+      "path": "market-charts.css",
+      "sha1": "8f928b7f368c49306fbf95b1ff041dde49e6fdb8"
+    },
+    {
+      "path": "market-charts.js",
+      "sha1": "3987ba8b2d4441a3d7e865bff41affb125cf9b34"
+    },
+    {
+      "path": "market-feed.js",
+      "sha1": "0f64847855b287af236f3f63ee1fa2fbe9bb2892"
+    },
+    {
+      "path": "marketing.js",
+      "sha1": "0df1df8be898c39f63d23f0a29ee879e1ee646a0"
+    },
+    {
+      "path": "membership.css",
+      "sha1": "10d0ef495e22db43379d0af21d831b6c31a1084c"
+    },
+    {
+      "path": "membership.js",
+      "sha1": "68d9df9f3b89b453c8b27984f5e32067d6765fc3"
+    },
+    {
+      "path": "ops-icon.svg",
+      "sha1": "e061da0af0910c259e09fb34224d3777809b4ca8"
+    },
+    {
+      "path": "signalchart-mark.svg",
+      "sha1": "e061da0af0910c259e09fb34224d3777809b4ca8"
+    },
+    {
+      "path": "ops-sw.js",
+      "sha1": "f0ef343e7046f744be3c6028b6f164a7fbca91e2"
+    },
+    {
+      "path": "ops.html",
+      "sha1": "929963a1ca24c7d073077fd3893d6802846723ad"
+    },
+    {
+      "path": "ops.webmanifest",
+      "sha1": "94b33b912ed8c12bf3c0d0f4bcc923c045219d13"
+    },
+    {
+      "path": "package.json",
+      "sha1": "a1cea09a09a598484a091b43a0c21986ef8072dd"
+    },
+    {
+      "path": "premium-shell.js",
+      "sha1": "f0f8b26799150d36e0833f9d58b64012de0e05e7"
+    },
+    {
+      "path": "premium.css",
+      "sha1": "24e95031a227e451ba109e527f780e0b791fc007"
+    },
+    {
+      "path": "sc-app-live.js",
+      "sha1": "ea72bd4f6d769b51a05d7cb93b7c7328cb357724"
+    },
+    {
+      "path": "sc-app.css",
+      "sha1": "6a41020bd1d17188c4b1795c9e188902bbaa4acd"
+    },
+    {
+      "path": "sc-app.js",
+      "sha1": "3eb868ba37407a0e7dad06f29e465e63e38c0cc6"
+    },
+    {
+      "path": "sc-base-dashboard.css",
+      "sha1": "bd1332105dded1f449d59257f42141e81d71aadc"
+    },
+    {
+      "path": "sc-market-browser.js",
+      "sha1": "912ae52d0a7aad78a23616d17e02aee0eb4a0fa3"
+    },
+    {
+      "path": "sc-original-dashboard.js",
+      "sha1": "93b157e5412a09870c3945eb6254f0c2ccd63558"
+    },
+    {
+      "path": "sc-release.css",
+      "sha1": "03a78e83635385c0a7e2b02b12ebce966fce8a58"
+    },
+    {
+      "path": "sc-research-ui.css",
+      "sha1": "0cf4b4d2e9976bc534a3175edf60bcb852e3fd4c"
+    },
+    {
+      "path": "sc-research-ui.js",
+      "sha1": "ea711263ec443cbac5a98208a442de17e7d0a29f"
+    },
+    {
+      "path": "sc-risk.js",
+      "sha1": "7d8a021e110e6ea8e8b92d2b9f2fa09215b1cd82"
+    },
+    {
+      "path": "setup.html",
+      "sha1": "ecf46b5e51f83efa91baf83b82ecff10ed80c3ec"
+    },
+    {
+      "path": "signalchart-finish.css",
+      "sha1": "32add8c03c72d03d1f83047223bff6e42537a006"
+    },
+    {
+      "path": "signalchart-layout-v5.css",
+      "sha1": "26cd61619441d5b4fb4c36b831d64661fb058c8b"
+    },
+    {
+      "path": "signalchart-legacy.css",
+      "sha1": "810d64229598617dda5fb08341bbea6c6836779b"
+    },
+    {
+      "path": "signalchart-pages.css",
+      "sha1": "79bf160a8d84fd7513d3e5f06bce9c90d7b31000"
+    },
+    {
+      "path": "signalchart-pages.js",
+      "sha1": "c50c03c0604139e7c9830c38b9d90dc9ca57ba53"
+    },
+    {
+      "path": "signalchart-polish.css",
+      "sha1": "c9734ea10bb73170e2fc04eee8bbde10002ce8a1"
+    },
+    {
+      "path": "signalchart-shell.js",
+      "sha1": "d6cc0c063905239d0968fa8484b779509aa895ec"
+    },
+    {
+      "path": "signalchart-wordmark.svg",
+      "sha1": "0112d9548a9156e037f6e1acbfa0779aeee98896"
+    },
+    {
+      "path": "signalchart.css",
+      "sha1": "941a845ed1878eff94a2159ff04b890e1640277a"
+    },
+    {
+      "path": "signalchart.js",
+      "sha1": "0a4ba34abc4d8f8073e851c7df391e93fe397050"
+    },
+    {
+      "path": "signals.html",
+      "sha1": "715042c9f909b648794ad6fe40f31bb7147ccf18"
+    },
+    {
+      "path": "site-app.js",
+      "sha1": "5c988e2673a6c4944982608ef69ba4d7e70a7f8d"
+    },
+    {
+      "path": "styles.css",
+      "sha1": "c7849a7c1d0a187010b1e4a1b31f21ec03a2926b"
+    },
+    {
+      "path": "support.html",
+      "sha1": "4aa016931e0dd2f5cd176fa04638d1a5edcc2161"
+    },
+    {
+      "path": "terminal.html",
+      "sha1": "52dcb9343de7dbc6590118e60340dfc66b45177f"
+    },
+    {
+      "path": "tests/forex.test.js",
+      "sha1": "d0b1e87b9634dbf0fa80ee36f6c3950ac4889f5b"
+    },
+    {
+      "path": "unified-nav.js",
+      "sha1": "11965d99820ccd40c0d01170dc00844877de6418"
+    },
+    {
+      "path": "unified.css",
+      "sha1": "e3046c28f7e28357f242a5e9edd4b1b740db5955"
+    },
+    {
+      "path": "v2.css",
+      "sha1": "9ce69ec6a42dded8bae868ff0c93bc8a9c342f21"
+    },
+    {
+      "path": "v3-patch.sh",
+      "sha1": "98094b95931572a674ef0a9891c56f5a67099e94"
+    },
+    {
+      "path": "vercel.json",
+      "sha1": "39a63351c2d03d045e6ff462f81afabb61f6608d"
+    },
+    {
+      "path": "watchlist.html",
+      "sha1": "423e0657d606f257cf33916264d4927950f52f0c"
+    }
+  ],
+  "missingFiles": [
+    {
+      "path": "api/checkout.js",
+      "sha1": "60878e9e71142a8d533ecdcc73cf544718a05528"
+    },
+    {
+      "path": "api/crypto.js",
+      "sha1": "07c840c8f04e7a8b398e0bfbf3076437bd186158"
+    },
+    {
+      "path": "api/cv-ops.js",
+      "sha1": "ed6e6a4532699fe2cefdaa29c5c9d5a695832881"
+    },
+    {
+      "path": "api/forex.js",
+      "sha1": "fef123ced4af3aa170ff8139e7db91bb22672070"
+    },
+    {
+      "path": "api/market-detail.js",
+      "sha1": "fbccbea28391f150c1fdc8c5c8083f2b24da52a8"
+    },
+    {
+      "path": "api/member.js",
+      "sha1": "cdb0763392752db903ac190548ac7f7031544d26"
+    },
+    {
+      "path": "api/quotes.js",
+      "sha1": "09c655748dfe2d3ffe441c21cf640e1afd4e5067"
+    },
+    {
+      "path": "api/research.js",
+      "sha1": "d1e755213aadf7c41a7caa945e6e588ed350b112"
+    },
+    {
+      "path": "api/signals.js",
+      "sha1": "6328be2a4881c76a1e3ecd6bacea55e1a8a83923"
+    },
+    {
+      "path": "lib/candriva-core.js",
+      "sha1": "f2262c2af71277d648109da55e1b7cfc65e36ee9"
+    },
+    {
+      "path": "lib/forex-engine.js",
+      "sha1": "69381ee3085881dc212ccae79e68ce912da3cd91"
+    },
+    {
+      "path": "lib/sc-backtest.js",
+      "sha1": "f0f3cf17e00faae5c83dc752d1b628e37843e0e9"
+    },
+    {
+      "path": "lib/sc-candles-core.js",
+      "sha1": "b64840e922c199c5c30078f320bccfc3f706ec72"
+    },
+    {
+      "path": "lib/sc-economic.js",
+      "sha1": "f719db06383faff8665eb9dcc52397195c92d433"
+    },
+    {
+      "path": "lib/sc-market-catalog.js",
+      "sha1": "56a187c7916b71799da1c7c9953327b3996cd165"
+    },
+    {
+      "path": "lib/sc-news.js",
+      "sha1": "78e4ac0f2f25459a022b6200e63f3f1f66e64f93"
+    },
+    {
+      "path": "ops-icon-192.png",
+      "sha1": "2c525623fde56c5993d088374f829d222bf2286c"
+    },
+    {
+      "path": "ops-icon-512.png",
+      "sha1": "38a882561225b694f1cab0a801a0de42a3fdccec"
+    },
+    {
+      "path": "tests/subscription.test.js",
+      "sha1": "216bfefc0a185ebba9df371985dfd0e1fe3da9d9"
+    }
+  ],
+  "safety": "Staging only. Backend incomplete. Do not merge into main or deploy until SHA1-verifiable recovery is complete."
+}
