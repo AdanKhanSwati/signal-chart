@@ -1,0 +1,27 @@
+/* Scoped SignalChart trial UI — keep existing colours, scale and component rhythm. */
+.sc-trial-box{margin:12px 0 18px;padding:16px;border:1px solid var(--border,rgba(160,170,190,.25));border-radius:14px;background:rgba(135,155,180,.055)}
+.sc-trial-box[hidden],.sc-trial-box *[hidden]{display:none!important}
+.sc-trial-title{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:9px}
+.sc-trial-title strong{font-size:15px;letter-spacing:.01em}
+.sc-trial-sub{font-size:12.5px;opacity:.76;line-height:1.55;margin:8px 0}
+.sc-trial-stats{display:flex;flex-wrap:wrap;gap:16px;font-size:12.5px;align-items:center}
+.sc-trial-stats strong{font-variant-numeric:tabular-nums}
+.sc-trial-progress{width:100%;height:5px;margin:9px 0 0;accent-color:#f58c22}
+.sc-trial-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:10px 0}
+.sc-trial-row label{display:grid;gap:6px;font-size:12px;flex:1;min-width:170px}
+.sc-trial-row input{width:100%;padding:11px 12px;min-height:42px;border:1px solid rgba(160,170,190,.32);border-radius:9px;background:rgba(10,18,29,.15);color:inherit;font:inherit}
+.sc-trial-button{padding:10px 14px;min-height:42px;font-size:12px;font-weight:700;border-radius:9px;border:1px solid rgba(245,140,34,.6);background:rgba(245,140,34,.12);color:inherit;cursor:pointer}
+.sc-trial-button:disabled{opacity:.55;cursor:wait}
+.sc-trial-hint,.sc-trial-feedback{font-size:12px;line-height:1.5;opacity:.83}
+.sc-trial-feedback[data-error="true"]{color:#ff8686;opacity:1}
+.sc-trial-market-tabs{display:flex;gap:7px;margin-bottom:12px}
+.sc-trial-market-tabs button{padding:7px 12px;border:1px solid rgba(140,150,170,.35);border-radius:9px;background:transparent;color:inherit}
+.sc-trial-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px}
+.sc-trial-signal{border:1px solid rgba(160,170,190,.2);border-radius:12px;padding:12px;min-width:0}
+.sc-trial-signal-top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.sc-trial-signal-top span{font-size:11px;opacity:.65}
+.sc-trial-signal p{font-size:12px;opacity:.76}
+.sc-trial-detail-line{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid rgba(160,170,190,.15)}
+.sc-trial-detail-line small{opacity:.7}
+.sc-trial-detail-line strong{max-width:100%;overflow-wrap:anywhere}
+@media(max-width:480px){.sc-trial-box{padding:12px}.sc-trial-row>*{width:100%}.sc-trial-button{width:auto}}
