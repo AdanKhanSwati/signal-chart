@@ -9,7 +9,8 @@ const migrations=['20261109180000_sc_trial_foundation.sql','20261109180100_sc_tr
 '20261109180200_sc_trial_admin.sql','20261109180300_sc_legacy_guard.sql',
 '20261109190000_sc_trial_reopen.sql',
 '20261109191000_sc_signal_publication_review.sql',
-'20261109192000_sc_signal_review_queue.sql'];
+'20261109192000_sc_signal_review_queue.sql',
+'20261109193000_sc_premium_signal_freshness.sql'];
 const customer1='11111111-1111-4111-8111-111111111111';
 const customer2='22222222-2222-4222-8222-222222222222';
 const admin='33333333-3333-4333-8333-333333333333';
@@ -125,10 +126,27 @@ test('SignalChart trial migrations and security rules execute on real PostgreSQL
  const published=(await db.query("select premium_data,public_meta from public.sc_premium_signals where signal_key='crypto:btc:review-1'")).rows[0];
  assert.equal(published.premium_data.direction,'LONG');
  assert.equal(published.public_meta.review,'manual');
+ assert.ok(new Date(published.premium_data.candleClosedAt).getTime()<=Date.now());
  const publicList=(await db.query('select public.sc_signal_public_list($1,$2) x',['crypto',100])).rows[0].x;
  const publicItem=publicList.find(x=>x.signalKey==='crypto:btc:review-1');
  assert.ok(publicItem);
  assert.equal(Object.hasOwn(publicItem,'entry'),false,'premium entry must remain private');
+ const freshDetail=(await db.query('select public.sc_signal_detail_server($1) x',['crypto:btc:review-1'])).rows[0].x;
+ assert.equal(freshDetail.found,true);
+ const revoke=(await db.query('select public.sc_revoke_premium_signal($1,$2,$3) x',[
+  admin,'crypto:btc:review-1','Trade no longer conforms to independently reviewed market context'
+ ])).rows[0].x;
+ assert.equal(revoke.revoked,true);
+ const afterRevoke=(await db.query('select public.sc_signal_detail_server($1) x',['crypto:btc:review-1'])).rows[0].x;
+ assert.equal(afterRevoke.found,false);
+ assert.equal((await db.query('select public.sc_revoke_premium_signal($1,$2,$3) x',[
+  admin,'crypto:btc:review-1','Already revoked signal cannot be repeatedly revoked'
+ ])).rows[0].x.revoked,false);
+ await db.query("update public.sc_premium_signals set published_at=now()-interval '3 hours',expires_at=now()-interval '1 hour' where signal_key='SETUP6'");
+ const expiredPublic=(await db.query('select public.sc_signal_public_list($1,$2) x',['crypto',100])).rows[0].x;
+ assert.equal(expiredPublic.some(x=>x.signalKey==='SETUP6'),false,'expired signals cannot appear publicly');
+ assert.equal((await db.query('select public.sc_paid_signal($1,$2) x',[customer1,'SETUP6'])).rows[0].x.reason,'not_found');
+
  await assert.rejects(db.query('select public.sc_review_premium_signal($1,$2,$3,$4)',[
    admin,proposed.proposalId,'approve','repeat approval not allowed']),/already reviewed/);
  await assert.rejects(db.query('select public.sc_propose_premium_signal($1,$2,$3,$4,$5,$6,$7::jsonb)',[
