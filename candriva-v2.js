@@ -45,11 +45,11 @@ function setupMemberChrome(){
 function startAccount(data){
  const a=data.account,p=data.payment;
  show('#auth-area',false);show('#auth-off',false);show('#member-area',true);
- put('#membership-status',a.status==='trial'?'24-hour free trial':a.status==='active'?'Subscription active':a.status==='locked'?'LOCKED':'Administrator');
+ put('#membership-status',a.status==='trial'?'24-hour free trial':a.status==='active'?'Subscription active':a.status==='granted'?'Complimentary access':a.status==='locked'?'LOCKED':'Administrator');
  put('#membership-caption',a.access?'Access permitted':'Signals locked until approved payment');
- put('#trial-deadline','Ends: '+clock(a.trialEndsAt));put('#paid-deadline',clock(a.paidUntil));
+ put('#trial-deadline','Ends: '+clock(a.trialEndsAt));put('#paid-deadline',clock(a.accessUntil||a.paidUntil));
  put('#member-email',a.email);put('#member-state',a.status.toUpperCase());put('#trial-expires',clock(a.trialEndsAt));
- put('#membership-copy',a.status==='trial'?'Your 24-hour free access is running. After exactly 24 hours, the server will lock premium signals automatically.':a.status==='active'?'Access renewed for 30 days following independently verified payment approval.':a.status==='locked'?'Your trial has ended. Your account remains accessible, but premium signals stay locked until payment approval.':'Admin access is independent of trials.');
+ put('#membership-copy',a.status==='trial'?'Your 24-hour free access is running. After exactly 24 hours, the server will lock premium signals automatically.':a.status==='active'?'Access renewed for 30 days following independently verified payment approval.':a.status==='granted'?'Complimentary access granted until '+clock(a.manualEndsAt)+'.':a.status==='locked'?'Your trial has ended. Your account remains accessible, but premium signals stay locked until payment approval.':'Admin access is independent of trials.');
  updateClock(a);
  setInterval(async()=>{try{const latest=await fetchMember();startAccountNoInterval(latest);if(a.status==='trial'&&latest.account.status==='locked')showPopup('locked',latest.account)}catch(e){msg(e.message,true)}},30000);
  if(!a.isAdmin&&a.status==='trial'){
@@ -61,8 +61,8 @@ function startAccount(data){
  }
  setupCheckout(data);
 }
-function updateClock(a){const deadline=a.paidUntil&&Date.parse(a.paidUntil)>Date.now()?a.paidUntil:a.trialEndsAt,ms=Math.max(0,Date.parse(deadline)-Date.now());
- put('#trial-clock',a.status==='trial'?Math.floor(ms/3600000)+'h '+Math.floor(ms%3600000/60000)+'m':a.status==='active'?'Completed':a.status==='locked'?'EXPIRED':'—')}
+function updateClock(a){const deadline=a.accessUntil||(a.paidUntil&&Date.parse(a.paidUntil)>Date.now()?a.paidUntil:a.trialEndsAt),ms=Math.max(0,Date.parse(deadline)-Date.now());
+ put('#trial-clock',a.status==='trial'?Math.floor(ms/3600000)+'h '+Math.floor(ms%3600000/60000)+'m':a.status==='active'?'Completed':a.status==='granted'?'GRANTED':a.status==='locked'?'EXPIRED':'—')}
 function startAccountNoInterval(data){membership=data.account;const a=data.account;put('#membership-status',a.status==='locked'?'LOCKED':a.status==='trial'?'24-hour free trial':a.status==='active'?'Subscription active':'Administrator');put('#member-state',a.status.toUpperCase());put('#paid-deadline',clock(a.paidUntil));updateClock(a);setupCheckout(data)}
 function setupCheckout(data){
  const p=data.payment,a=data.account;

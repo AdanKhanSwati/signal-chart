@@ -64,9 +64,10 @@ function paymentStatus(p){return p.decision==='approved'?'Approved':p.decision==
 async function loadBilling(){
  userData=await call('me');
  const u=userData.account,c=userData.checkout;
+ if(c.wallet!==WALLET)throw Error('Receiving wallet mismatch. Payment submissions are disabled.');
  show('#billing-main',true);
- txt('#cand-email',u.email);txt('#cand-plan',u.status==='administrator'?'Administrator':u.status==='active'?'Active subscription':u.status==='trial'?'Free trial':'Expired / renew to unlock');
- txt('#cand-status',u.status.toUpperCase());txt('#cand-trial',dt(u.trialEndsAt));txt('#cand-paid',dt(u.paidUntil));
+ txt('#cand-email',u.email);txt('#cand-plan',u.status==='administrator'?'Administrator':u.status==='active'?'Active subscription':u.status==='granted'?'Complimentary access':u.status==='trial'?'Free trial':'Expired / renew to unlock');
+ txt('#cand-status',u.status.toUpperCase());txt('#cand-trial',dt(u.trialEndsAt));txt('#cand-paid',dt(u.accessUntil||u.paidUntil));
  show('#cand-price-closed',!c.enabled);show('#cand-payment-form',c.enabled);
  txt('#cand-price',formatBTC(c.btcMonthly));txt('#cand-payment-open',c.enabled?formatBTC(c.btcMonthly)+'/ MONTH':'PRICE PENDING');
  const root=$('#cand-payment-history');root.replaceChildren();
