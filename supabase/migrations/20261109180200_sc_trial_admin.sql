@@ -98,7 +98,7 @@ begin
  select count(*),
    count(*) filter(where revoked_at is null and expires_at>now() and signals_consumed<3),
    count(*) filter(where revoked_at is null and expires_at<=now()),
-   count(*) filter(where revoked_at is null and expires_at>now() and signals_consumed>=3),
+   count(*) filter(where signals_consumed>=3),
    count(*) filter(where revoked_at is not null),
    avg(signals_consumed)::double precision
   into total,active,expired,exhausted,revoked,average_used from public.sc_trials;

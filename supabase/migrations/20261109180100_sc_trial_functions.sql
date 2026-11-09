@@ -41,8 +41,7 @@ declare start_at timestamptz;
 begin
  if p_user is null or p_phone_hash !~ '^[0-9a-f]{64}$'
   or p_phone_verified_at is null or p_phone_verified_at>now()+interval '2 minutes'
-  or p_phone_verified_at<now()-interval '30 days'
- then raise exception 'Invalid verified phone proof' using errcode='22023';end if;
+   then raise exception 'Invalid verified phone proof' using errcode='22023';end if;
  -- Serializes claim attempts from concurrent new accounts sharing the same phone.
  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(p_phone_hash));
  select * into existing from public.sc_trials where user_id=p_user for update;
@@ -194,7 +193,7 @@ begin
  if p_user is null or p_phone_hash !~ '^[0-9a-f]{64}$'
   or (p_network_hash is not null and p_network_hash !~ '^[0-9a-f]{64}$')
   or (p_device_hash is not null and p_device_hash !~ '^[0-9a-f]{64}$')
-  or p_kind not in ('request','failed','verified')
+  or p_kind not in ('request','failed','verified','verify_check')
  then raise exception 'Invalid risk event' using errcode='22023';end if;
  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(p_phone_hash));
  select count(*) into sent_1min from public.sc_trial_risk_events
@@ -208,13 +207,15 @@ begin
   event_type='otp_request' and created_at>now()-interval '5 minutes';
  review:=network_5min>=15;
  allowed:=case when p_kind='request' then sent_1min=0 and sent_1hr<4 and failed_15min<5
-   when p_kind='failed' then failed_15min<5
+   when p_kind='failed' or p_kind='verify_check' then failed_15min<5
    else true end;
+ if p_kind<>'verify_check' then
  insert into public.sc_trial_risk_events(user_id,phone_hash,network_hash,device_signal_hash,event_type,risk_level)
   values(p_user,p_phone_hash,p_network_hash,p_device_hash,
    case when p_kind='request' then case when allowed then 'otp_request' else 'otp_request_blocked' end
      when p_kind='failed' then 'otp_verify_failed' else 'otp_verified' end,
    case when allowed then case when review then 'review' else 'normal' end else 'restricted' end);
+ end if;
  return jsonb_build_object('allowed',allowed,'reviewSuggested',review,
    'retryAfterSeconds',case when allowed then 0 else 60 end);
 end $$;
