@@ -35,7 +35,7 @@ returns jsonb language plpgsql security definer set search_path=''
 as $$
 declare existing public.sc_trials%rowtype;
 declare owner_user uuid;
-declare exception public.sc_trial_exceptions%rowtype;
+declare v_exception public.sc_trial_exceptions%rowtype;
 declare claim_id uuid;
 declare start_at timestamptz;
 begin
@@ -51,11 +51,11 @@ begin
  end if;
  select first_user_id into owner_user from public.sc_phone_trial_claims where phone_hash=p_phone_hash;
  if owner_user is not null and owner_user<>p_user then
-  select * into exception from public.sc_trial_exceptions
+  select * into v_exception from public.sc_trial_exceptions
    where user_id=p_user and phone_hash=p_phone_hash
      and redeemed_at is null and revoked_at is null and valid_until>now()
    order by approved_at desc limit 1 for update;
-  if exception.id is null then
+  if v_exception.id is null then
    insert into public.sc_trial_events(user_id,event_type) values(p_user,'trial_reused_phone');
    return jsonb_build_object('result','already_used',
     'message','This number has already been used for a free trial. You can continue with a paid membership.');
@@ -67,10 +67,10 @@ begin
   values(p_phone_hash,p_user) on conflict(phone_hash) do nothing;
  start_at:=now();
  insert into public.sc_trials(user_id,phone_hash,phone_verified_at,activated_at,expires_at,exception_id)
-  values(p_user,p_phone_hash,p_phone_verified_at,start_at,start_at+interval '72 hours',exception.id)
+  values(p_user,p_phone_hash,p_phone_verified_at,start_at,start_at+interval '72 hours',v_exception.id)
   returning id into claim_id;
- if exception.id is not null then
-  update public.sc_trial_exceptions set redeemed_at=now() where id=exception.id;
+ if v_exception.id is not null then
+  update public.sc_trial_exceptions set redeemed_at=now() where id=v_exception.id;
   insert into public.sc_trial_events(user_id,trial_id,event_type)
    values(p_user,claim_id,'trial_exception');
  end if;
@@ -136,9 +136,9 @@ begin
  then raise exception 'Invalid market' using errcode='22023';end if;
  select coalesce(jsonb_agg(jsonb_build_object(
    'signalKey',z.signal_key,'market',z.market,'asset',z.asset,
-   'publishedAt',z.published_at,'metadata',z.public_meta) order by z.published_at desc),
+   'publishedAt',z.published_at) order by z.published_at desc),
    '[]'::jsonb) into results
- from (select signal_key,market,asset,published_at,public_meta
+ from (select signal_key,market,asset,published_at
   from public.sc_premium_signals
   where visible=true and (p_market is null or market=p_market)
   order by published_at desc limit least(greatest(coalesce(p_limit,50),1),100)) z;
