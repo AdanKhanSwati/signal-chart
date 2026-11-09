@@ -5,7 +5,7 @@ const UID='11111111-1111-4111-8111-111111111111',KEY='eyJ'+'x'.repeat(94),TOKEN=
 const PHONE='+923001234567',HMAC='p'.repeat(40);
 function fixture({allow=true,verified=false}={}){
  const calls=[];let verifiedNow=verified;
- const user=()=>({id:UID,email:'customer@example.test',email_confirmed_at:'2026-11-08T00:00:00Z',
+ const user=()=>({id:UID,email:'customer@example.test',email_confirmed_at:'2026-11-08T00:00:00Z',created_at:'2026-11-08T00:00:00Z',
    phone:verifiedNow?PHONE:'',phone_confirmed_at:verifiedNow?'2026-11-09T00:00:00Z':null});
  const fetchFn=async(url,opts={})=>{
   let response={ok:true,status:200};
@@ -13,6 +13,7 @@ function fixture({allow=true,verified=false}={}){
   if(url.endsWith('/auth/v1/user')&&opts.method==='PUT')return {...response,json:async()=>user()};
   if(url.endsWith('/auth/v1/user'))return {...response,json:async()=>user()};
   if(url.endsWith('/auth/v1/verify')){verifiedNow=true;return {...response,json:async()=>({access_token:'verified.jwt.token'})}}
+  if(url.endsWith('/rpc/sc_trial_state'))return {...response,json:async()=>({trialStatus:'not_activated',signalsRemaining:0,signalsUsed:0})};
   if(url.endsWith('/rpc/sc_otp_rate_check'))return {...response,json:async()=>({allowed:allow,retryAfterSeconds:60})};
   if(url.endsWith('/rpc/sc_activate_trial'))return {...response,json:async()=>({
     result:'activated',trial:{trialStatus:'active',signalsRemaining:3,expiresAt:'2026-11-12T00:00:00Z'}})};
@@ -24,7 +25,7 @@ function fixture({allow=true,verified=false}={}){
   throw Error('Unexpected fake fetch: '+url);
  };
  const core={authConfig:()=>({ready:true,url:'https://demo.supabase.co',key:'sb_publishable_test_1234567890'})};
- const gate=createTrialGateway(core,{fetchFn,env:{SUPABASE_SERVICE_ROLE_KEY:KEY,SC_TRIAL_HMAC_SECRET:HMAC},
+ const gate=createTrialGateway(core,{fetchFn,env:{SUPABASE_SERVICE_ROLE_KEY:KEY,SC_TRIAL_HMAC_SECRET:HMAC,SC_TRIAL_ROLLOUT_AT:'2026-11-01T00:00:00Z'},
    clock:()=>Date.parse('2026-11-09T01:00:00Z')});
  const req={headers:{authorization:'Bearer '+TOKEN,'x-vercel-forwarded-for':'203.0.113.42','x-sc-device-hint':'device_hint_1234567890'}};
  return {gate,calls,req};
