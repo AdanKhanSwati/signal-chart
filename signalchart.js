@@ -1,0 +1,1 @@
+(()=>{const x=document.createElement('script');x.src='/sc-original-dashboard.js';x.onload=()=>{const y=document.createElement('script');y.src='/sc-market-browser.js';document.head.append(y)};x.onerror=()=>{document.body.dataset.scFailure='dashboard-core';};document.head.append(x)})();

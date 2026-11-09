@@ -1,0 +1,97 @@
+/* SignalChart theme for the existing authenticated member, billing, support and admin modules. */
+body.sc-legacy-page{background:#0e1118!important;color:#f2f0f4!important;font:12px/1.55 var(--font)!important;min-height:100vh;overflow-x:hidden!important}body.sc-legacy-page::before,body.sc-legacy-page::after{display:none!important}
+.sc-legacy-page a,.sc-legacy-page button,.sc-legacy-page input,.sc-legacy-page select,.sc-legacy-page textarea{font-family:var(--font)!important}
+.sc-legacy-page .aurora,.sc-legacy-page .v2-header,.sc-legacy-page .cand-header,.sc-legacy-page .cand-btm,.sc-legacy-page .v2-modal,.sc-legacy-page .cx-internal-footer{display:none!important}
+.sc-legacy-page .sc-legacy-content{position:relative;min-width:0;padding:8px 18px 70px}.sc-legacy-page .v2-container,.sc-legacy-page .cand-page{max-width:1340px!important;width:100%!important;min-width:0!important;padding:19px 0 20px!important;margin:0 auto!important;color:#e9e6ed!important}
+.sc-legacy-page .v2-hero,.sc-legacy-page .cand-page-header{margin:0 0 19px!important;padding:10px 2px 2px!important}
+.sc-legacy-page .v2-hero>span,.sc-legacy-page .cand-eyebrow{font-size:10px!important;font-weight:800!important;letter-spacing:.12em!important;color:#ff9b62!important}
+.sc-legacy-page .v2-hero h1,.sc-legacy-page .cand-page-header h1{font-family:var(--font)!important;letter-spacing:-.052em!important;font-size:clamp(24px,3.5vw,34px)!important;line-height:1.25!important;color:#f5f0f5!important;margin:7px 0!important;font-weight:800!important}
+.sc-legacy-page .v2-hero h1 em{font:inherit!important;font-style:normal!important;color:#ff8549!important}
+.sc-legacy-page .v2-hero p,.sc-legacy-page .cand-page-header p{font-size:12px!important;line-height:1.65!important;color:#b5adb8!important;max-width:770px!important;margin:0!important}
+.sc-legacy-page .v2-panel,.sc-legacy-page .cv-crypto-card,.sc-legacy-page .v2-kpis article,.sc-legacy-page .cand-card,.sc-legacy-page .cand-glass,.sc-legacy-page .cand-kpi,.sc-legacy-page .v2-signal-grid>.v2-panel{background:linear-gradient(137deg,rgba(48,43,52,.93),rgba(28,29,39,.94) 60%)!important;border:1px solid #433b47!important;box-shadow:inset 0 1px #ffffff0d!important;border-radius:14px!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;color:#ebe5ee!important}
+.sc-legacy-page .v2-panel,.sc-legacy-page .cand-card{padding:18px!important;margin-bottom:11px!important;min-width:0!important}
+.sc-legacy-page .v2-panel h2,.sc-legacy-page .cand-card h2{color:#f5f0f6!important;font-weight:800!important;font-size:16px!important;letter-spacing:-.04em!important;margin:0 0 10px!important}
+.sc-legacy-page .v2-panel h3,.sc-legacy-page .cand-card h3{font-size:13px!important;font-weight:800!important;color:#f6eff5!important}
+.sc-legacy-page .v2-panel p,.sc-legacy-page .cand-card p{font-size:11px!important;color:#b4aeb9!important;line-height:1.7!important}
+.sc-legacy-page .v2-primary,.sc-legacy-page .cand-btn{background:linear-gradient(110deg,#ffa563,#ff6a33)!important;color:#26191b!important;border:1px solid #ff9d62!important;border-radius:9px!important;font-size:11px!important;font-weight:800!important;min-height:38px!important;padding:9px 13px!important;white-space:normal!important}
+.sc-legacy-page .v2-outline,.sc-legacy-page .cand-btn-secondary{background:#282631!important;border:1px solid #564a55!important;border-radius:9px!important;color:#e3dce6!important;font-size:11px!important;font-weight:750!important;min-height:36px!important;padding:8px 12px!important}
+.sc-legacy-page .v2-primary:hover,.sc-legacy-page .cand-btn:hover{filter:brightness(1.15)}.sc-legacy-page .v2-outline:hover,.sc-legacy-page .cand-btn-secondary:hover{background:#39303a!important}
+.sc-legacy-page .v2-tabs,.sc-legacy-page .cand-tabset{background:#20202b!important;border:1px solid #46404b!important;border-radius:10px!important;display:flex!important;gap:5px!important;padding:4px!important;margin:0 0 13px!important;overflow-x:auto!important;scrollbar-width:none!important;max-width:100%}
+.sc-legacy-page .v2-tabs button,.sc-legacy-page .cand-tabset button{color:#b9aebd!important;background:transparent!important;border:0!important;border-radius:7px!important;font-size:11px!important;font-weight:750!important;padding:9px 12px!important;white-space:nowrap!important;flex-shrink:0!important}
+.sc-legacy-page .v2-tabs button.active,.sc-legacy-page .cand-tabset button.active{background:#884832!important;color:#fff5ed!important}
+.sc-legacy-page .v2-kpis,.sc-legacy-page .cand-kpis{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:11px!important;margin:0 0 12px!important;align-items:stretch!important}
+.sc-legacy-page .v2-kpis article,.sc-legacy-page .cand-kpi{padding:16px!important;min-width:0!important;min-height:100px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;gap:4px!important}
+.sc-legacy-page .v2-kpis article strong,.sc-legacy-page .cand-kpi strong{font-size:21px!important;color:#fff4f4!important;font-weight:800!important;letter-spacing:-.05em!important;overflow-wrap:anywhere}
+.sc-legacy-page .v2-kpis article small,.sc-legacy-page .cand-kpi>span,.sc-legacy-page .v2-kpis article span{font-size:10px!important;color:#aba1b0!important}
+.sc-legacy-page .v2-2col,.sc-legacy-page .cand-columns,.sc-legacy-page #ops-main .cand-op-grid{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(270px,.85fr)!important;gap:12px!important;align-items:start!important;min-width:0}
+.sc-legacy-page .cand-columns>div{min-width:0!important;display:grid!important;gap:10px!important}
+.sc-legacy-page .v2-panel label,.sc-legacy-page .cand-field{font-size:11px!important;color:#d2c6d2!important;font-weight:700!important;margin:10px 0!important;display:block!important}
+.sc-legacy-page .v2-panel input:not([type=checkbox]),.sc-legacy-page .v2-panel select,.sc-legacy-page .v2-panel textarea,.sc-legacy-page .cand-field input:not([type=checkbox]),.sc-legacy-page .cand-field select,.sc-legacy-page .cand-field textarea{background:#171820!important;border:1px solid #4a434f!important;color:#f1edf3!important;border-radius:8px!important;min-height:39px!important;font-size:12px!important;padding:9px 11px!important;max-width:100%!important;width:100%!important;box-shadow:none!important;outline-offset:2px!important}
+.sc-legacy-page .v2-panel input::placeholder,.sc-legacy-page .cand-field input::placeholder{color:#887f8f!important}
+.sc-legacy-page .v2-pill,.sc-legacy-page .cand-pill,.sc-legacy-page .v2-badge{background:#483128!important;border:1px solid #76513e!important;color:#ffc09c!important;border-radius:6px!important;font-size:9px!important;font-weight:800!important;white-space:nowrap!important}
+.sc-legacy-page .v2-info,.sc-legacy-page .cand-info-row{padding:10px 0!important;margin:0!important;border-bottom:1px solid #423a45!important;display:flex!important;gap:10px!important;align-items:center!important;justify-content:space-between!important;min-width:0!important;font-size:11px!important}.sc-legacy-page .v2-info span,.sc-legacy-page .cand-info-row span{color:#aaa1ae!important}.sc-legacy-page .v2-info strong,.sc-legacy-page .cand-info-row strong{min-width:0!important;max-width:65%!important;color:#f4edf3!important;text-align:right!important;overflow-wrap:anywhere!important}
+.sc-legacy-page .v2-note,.sc-legacy-page .cand-note{color:#a7a0ab!important;font-size:10px!important;line-height:1.65!important}
+.sc-legacy-page .v2-strip{display:flex!important;flex-wrap:wrap!important;gap:8px!important;align-items:center!important;margin:0 0 14px!important}
+.sc-legacy-page .cv-crypto-grid,.sc-legacy-page #crypto-cards,.sc-legacy-page .v2-signal-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:11px!important;align-items:stretch!important}
+.sc-legacy-page .cv-crypto-card,.sc-legacy-page .v2-signal-grid>.v2-panel{min-width:0!important;padding:16px!important;height:100%!important;display:flex!important;flex-direction:column!important}
+.sc-legacy-page .cv-crypto-title{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important}
+.sc-legacy-page .cv-crypto-stats{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-top:auto!important}
+.sc-legacy-page .cv-crypto-stats>div{background:#26232d!important;border:1px solid #443b47!important;border-radius:7px!important;padding:10px!important;min-width:0!important}
+.sc-legacy-page .cv-crypto-stats strong{color:#f2eff2!important;font-size:12px!important;overflow-wrap:anywhere!important}
+.sc-legacy-page .cv-crypto-stats small,.sc-legacy-page .cv-crypto-muted{color:#aaa0b0!important;font-size:9px!important}
+.sc-legacy-page .cv-mini-link{color:#ffa26e!important;font-weight:800!important;font-size:11px!important;margin-top:12px!important}
+.sc-legacy-page .cv-crypto-badge,.sc-legacy-page .cv-qualified{border-radius:6px!important;background:#48382b!important;color:#ffba8f!important;border:1px solid #745341!important;padding:4px 8px!important;font-size:9px!important;font-weight:800!important}
+.sc-legacy-page .cv-crypto-badge.cv-qualified,.sc-legacy-page .v2-badge.qualified{background:#1e4d37!important;border-color:#327757!important;color:#61eaa4!important}
+.sc-legacy-page .v2-table-wrap,.sc-legacy-page .cand-list{width:100%!important;overflow-x:auto!important;min-width:0!important}
+.sc-legacy-page .v2-table-wrap table{width:100%!important;min-width:550px!important;border-collapse:collapse!important}
+.sc-legacy-page .v2-table-wrap th{background:#2a2831!important;color:#a8a0af!important;font-size:10px!important}
+.sc-legacy-page .v2-table-wrap td{border-bottom:1px solid #423a47!important;font-size:11px!important;padding:10px!important}
+.sc-legacy-page .cand-banner{background:#302a2b!important;border-color:#604c48!important;color:#ffc2a2!important;border-radius:8px!important;font-size:11px!important}
+.sc-legacy-page .cand-code{background:#15151e!important;border:1px solid #554957!important;border-radius:8px!important;color:#f4f0f4!important;padding:10px!important;overflow-wrap:anywhere!important;word-break:break-all!important;font-size:11px!important}
+.sc-legacy-page .cand-qr-area{background:#fff!important;border-radius:12px!important;padding:11px!important;margin:12px auto!important;width:fit-content!important;max-width:100%!important}
+.sc-legacy-page #cand-qr{width:min(205px,100%)!important;height:auto!important;max-width:100%!important}
+.sc-legacy-page .cand-listitem{display:block!important;width:100%!important;text-align:left!important;padding:13px!important;margin-bottom:8px!important;background:#2b2730!important;border:1px solid #4a414d!important;border-radius:10px!important;color:#eae3e9!important}
+.sc-legacy-page .cand-listitem:hover{background:#352b35!important;border-color:#945f4c!important}
+.sc-legacy-page .cand-messages{min-height:260px!important;max-height:470px!important;overflow-y:auto!important;background:#14161e!important;border:1px solid #453b47!important;border-radius:11px!important;padding:11px!important;margin:10px 0!important}
+.sc-legacy-page .cand-bubble{border:1px solid #56414a!important;background:#31242d!important;border-radius:11px!important;padding:11px!important;margin-bottom:10px!important;max-width:85%!important}
+.sc-legacy-page .cand-bubble.admin{background:#51342e!important;border-color:#8a5543!important;margin-left:auto!important}
+.sc-legacy-page .cand-sender{color:#ffc096!important;font-size:9px!important}
+.sc-legacy-page #auth-area{max-width:530px!important;margin:0 auto!important}.sc-legacy-page #auth-area .v2-tabs button{flex:1!important}
+.sc-legacy-page #member-area>.v2-2col{grid-template-columns:minmax(0,1fr)!important}
+.sc-legacy-page #member-area>.v2-2col>section:nth-child(2),.sc-legacy-page #checkout,.sc-legacy-page #checkout-closed{display:none!important}
+.sc-legacy-page #admin-area .v2-tabs button[data-view=payments],.sc-legacy-page #admin-area .v2-tabs button[data-view=settings],.sc-legacy-page #admin-payments,.sc-legacy-page #admin-settings{display:none!important}
+.sc-legacy-page .sc-account-billing-link{display:block;position:relative;padding:15px 45px 15px 17px;background:linear-gradient(120deg,#53382f,#28212a);border:1px solid #8b5942;border-radius:11px;margin:12px 0 16px!important;min-width:0}
+.sc-legacy-page .sc-account-billing-link strong{display:block;font-size:13px;color:#fff3ed;font-weight:800}.sc-legacy-page .sc-account-billing-link small{display:block;font-size:11px;color:#d0bbc0;margin-top:4px}.sc-legacy-page .sc-account-billing-link b{position:absolute;right:16px;top:23px;color:#ffb080;font-size:16px}
+.sc-legacy-page .sc-shell-signout{border:1px solid #55434e;border-radius:10px;background:#322831;color:#dcc5cd;font-size:11px;font-weight:800;padding:11px 14px;text-align:left}.sc-legacy-page .sc-shell-signout:hover{background:#4b3436}
+.sc-legacy-page #ops-main .cand-op-grid{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)!important}
+.sc-legacy-page .cand-page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
+.sc-legacy-page .cand-ops-action{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sc-legacy-page .v2-history-row{background:#2c2630!important;border-color:#433946!important}
+.sc-legacy-page .cx-methodology summary{color:#f3e7e5!important}.sc-legacy-page .cx-methodology[open] summary{border-color:#57434c!important}
+.sc-legacy-page .cx-methodology summary:after{color:#ff944f!important}
+@media(max-width:1050px){.sc-legacy-page #ops-main .cand-op-grid{grid-template-columns:1fr!important}}
+@media(max-width:790px){.sc-legacy-page .sc-legacy-content{padding:7px 13px 95px}.sc-legacy-page .v2-container,.sc-legacy-page .cand-page{padding:14px 0 28px!important}.sc-legacy-page .v2-2col,.sc-legacy-page .cand-columns,.sc-legacy-page #ops-main .cand-op-grid{grid-template-columns:1fr!important}.sc-legacy-page .v2-kpis,.sc-legacy-page .cand-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}.sc-legacy-page .cand-page-header{display:block}.sc-legacy-page .cand-ops-action{justify-content:flex-start;margin-top:10px}}
+@media(max-width:620px){.sc-legacy-page .sc-legacy-content{padding:5px 10px 90px}.sc-legacy-page .v2-panel,.sc-legacy-page .cand-card{padding:13px!important}.sc-legacy-page .v2-hero h1,.sc-legacy-page .cand-page-header h1{font-size:25px!important}.sc-legacy-page .v2-hero p,.sc-legacy-page .cand-page-header p{font-size:11px!important}.sc-legacy-page .v2-kpis,.sc-legacy-page .cand-kpis{gap:8px!important}.sc-legacy-page .v2-kpis article,.sc-legacy-page .cand-kpi{min-height:88px!important;padding:12px!important}.sc-legacy-page .v2-kpis article strong,.sc-legacy-page .cand-kpi strong{font-size:19px!important}.sc-legacy-page .v2-signal-grid,.sc-legacy-page #crypto-cards,.sc-legacy-page .cv-crypto-grid{grid-template-columns:1fr!important;gap:9px!important}.sc-legacy-page .v2-tabs button,.sc-legacy-page .cand-tabset button{font-size:10px!important;padding:8px 11px!important}.sc-legacy-page .v2-info strong,.sc-legacy-page .cand-info-row strong{max-width:65%!important}.sc-legacy-page .cand-bubble{max-width:94%!important}.sc-legacy-page .cand-page-header>a{margin-top:10px!important}}
+/* Preserved market terminal, rethemed in SignalChart orange and charcoal. */
+.sc-legacy-page.sc-terminal-page .sc-legacy-content{padding:12px 17px 70px}
+.sc-legacy-page.sc-terminal-page .mc-container{width:100%!important;max-width:1340px!important;margin:0 auto!important;padding:18px 0!important}
+.sc-legacy-page.sc-terminal-page .mc-heading h1{color:#f1ebf1!important;letter-spacing:-.05em!important}
+.sc-legacy-page.sc-terminal-page .mc-heading p{color:#b7aeba!important}
+.sc-legacy-page.sc-terminal-page .mc-heading .cx-eyebrow{color:#ffa06c!important}
+.sc-legacy-page.sc-terminal-page .mc-signal-shortcut,.sc-legacy-page.sc-terminal-page .mc-next-panel a{background:#8d4631!important;border-color:#bc6a47!important;color:#fff2eb!important}
+.sc-legacy-page.sc-terminal-page .mc-instruments,.sc-legacy-page.sc-terminal-page .mc-chart-panel,.sc-legacy-page.sc-terminal-page .mc-insights-panel,.sc-legacy-page.sc-terminal-page .mc-next-panel,.sc-legacy-page.sc-terminal-page .mc-market-overview{background:linear-gradient(145deg,#292630,#1c1d27 80%)!important;border:1px solid #433b46!important;color:#f4edf4!important;border-radius:15px!important}
+.sc-legacy-page.sc-terminal-page .mc-panel-heading,.sc-legacy-page.sc-terminal-page .mc-chart-title,.sc-legacy-page.sc-terminal-page .mc-chart-toolbar,.sc-legacy-page.sc-terminal-page .mc-chart-foot{border-color:#403945!important}
+.sc-legacy-page.sc-terminal-page .mc-chart-area{background:#181820!important}
+.sc-legacy-page.sc-terminal-page .mc-chart-pair p,.sc-legacy-page.sc-terminal-page .mc-watch-left small{color:#a69ca9!important}
+.sc-legacy-page.sc-terminal-page .mc-pair-market,.sc-legacy-page.sc-terminal-page .mc-watch-tabs button.active,.sc-legacy-page.sc-terminal-page .mc-intervals button.active{background:#864333!important;color:#ffe8d7!important;border-color:#b76646!important}
+.sc-legacy-page.sc-terminal-page .mc-watch-row.active{background:#47312e!important;border-color:#875341!important}
+.sc-legacy-page.sc-terminal-page .mc-watch-row:hover{background:#39303a!important}
+.sc-legacy-page.sc-terminal-page .mc-chart-quote strong,.sc-legacy-page.sc-terminal-page .mc-insights-grid strong{color:#f5eef5!important}
+.sc-legacy-page.sc-terminal-page .mc-coin{background:#fd9043!important}
+.sc-legacy-page.sc-terminal-page .mc-watch-search,.sc-legacy-page.sc-terminal-page .mc-watch-tabs,.sc-legacy-page.sc-terminal-page .mc-watch-row,.sc-legacy-page.sc-terminal-page .mc-chart-toggle,.sc-legacy-page.sc-terminal-page .mc-refresh{background:#272530!important;border-color:#4b414e!important;color:#eee3ef!important}
+.sc-legacy-page.sc-terminal-page .mc-chart-bottom,.sc-legacy-page.sc-terminal-page .mc-watch-bottom,.sc-legacy-page.sc-terminal-page .mc-insights-grid>div{border-color:#423946!important}
+.sc-legacy-page.sc-terminal-page .mc-table th{background:#25242c!important;color:#aba0af!important;border-color:#403845!important}
+.sc-legacy-page.sc-terminal-page .mc-table td{border-color:#3c3641!important;color:#e4dce7!important}
+.sc-legacy-page.sc-terminal-page .mc-table button{background:#673a30!important;border-color:#a35b43!important;color:#ffe7d8!important}
+.sc-legacy-page.sc-terminal-page .mc-next-panel{background:linear-gradient(130deg,#47302f,#241f2a)!important}
+@media(max-width:790px){.sc-legacy-page.sc-terminal-page .sc-legacy-content{padding:8px 11px 92px}.sc-legacy-page.sc-terminal-page .mc-body{grid-template-columns:1fr!important}.sc-legacy-page.sc-terminal-page .mc-instruments{position:static!important}}
