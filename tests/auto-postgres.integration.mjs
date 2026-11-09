@@ -15,7 +15,8 @@ const migrations=[
  '20261109191000_sc_signal_publication_review.sql',
  '20261109192000_sc_signal_review_queue.sql',
  '20261109193000_sc_premium_signal_freshness.sql',
- '20261109194000_sc_automatic_publication.sql'
+ '20261109194000_sc_automatic_publication.sql',
+ '20261109194500_sc_automatic_usd_spot_support.sql'
 ];
 const actor='55555555-5555-4555-8555-555555555555';
 async function install(db){
@@ -40,9 +41,9 @@ test('automatic publication is disabled by default, protects all customer roles 
  const db=new PGlite();t.after(()=>db.close());await install(db);
  const now=Date.now(),closed=new Date(now-8*60000).toISOString(),key='crypto:BTCUSDT:'+Date.parse(closed)+':long';
  const c=candidate(key,closed);
- async function call(obj=c){
+ async function call(obj=c,source='Binance USD-M Futures'){
   const result=(await db.query('select public.sc_publish_automatic_signal($1,$2,$3,$4,$5,$6::jsonb) x',
-   [obj.key,'crypto',obj.key.split(':')[1],'Binance USD-M Futures',obj.at,JSON.stringify(obj.analysis)])).rows[0].x;
+   [obj.key,'crypto',obj.key.split(':')[1],source,obj.at,JSON.stringify(obj.analysis)])).rows[0].x;
   return result;
  }
  const denied=await call();
@@ -67,6 +68,21 @@ test('automatic publication is disabled by default, protects all customer roles 
  const invalid={...c,analysis:{...c.analysis,newsCoverage:'UNKNOWN'}};
  await assert.rejects(call({...invalid,key:'crypto:ETHUSDT:'+Date.parse(closed)+':long'}),/Research or news safety/);
  assert.equal((await db.query("select count(*) n from public.sc_premium_signals")).rows[0].n,1);
+
+ const spot=candidate('crypto:ETHUSD:'+Date.parse(closed)+':long',closed);
+ spot.analysis={...spot.analysis,executionBasis:'EXCHANGE_SPOT_USD_REFERENCE'};
+ const liveSpot=await call(spot,'Kraken USD spot');
+ assert.equal(liveSpot.published,true,'verified USD spot fallback may publish under its own market identity');
+ const mislabeled=candidate('crypto:SOLUSDT:'+Date.parse(closed)+':long',closed);
+ mislabeled.analysis={...mislabeled.analysis,executionBasis:'EXCHANGE_SPOT_USD_REFERENCE'};
+ await assert.rejects(call(mislabeled,'Kraken USD spot'),/source or quote basis mismatch/);
+ const malformed=candidate('crypto:XRPUSDT:'+Date.parse(closed)+':long',closed);
+ delete malformed.analysis.riskPercent;
+ await assert.rejects(call(malformed),/Complete numeric research required/);
+ const feedList=(await db.query('select public.sc_signal_public_list($1,$2) x',['crypto',50])).rows[0].x;
+ assert.equal(feedList.length,2);
+ assert.equal(feedList.find(x=>x.asset==='ETHUSD')?.signalKey,spot.key);
+
  assert.equal((await db.query("select public.sc_paid_signal($1,$2) x",[
   actor,key])).rows[0].x.allowed,false);
  await db.query("select public.sc_record_auto_scan($1,$2,$3,$4,$5,$6::jsonb)",[
