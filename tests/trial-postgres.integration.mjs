@@ -6,7 +6,8 @@ import path from 'node:path';
 import {PGlite} from '@electric-sql/pglite';
 const base=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const migrations=['20261109180000_sc_trial_foundation.sql','20261109180100_sc_trial_functions.sql',
-'20261109180200_sc_trial_admin.sql','20261109180300_sc_legacy_guard.sql'];
+'20261109180200_sc_trial_admin.sql','20261109180300_sc_legacy_guard.sql',
+'20261109190000_sc_trial_reopen.sql'];
 const customer1='11111111-1111-4111-8111-111111111111';
 const customer2='22222222-2222-4222-8222-222222222222';
 const admin='33333333-3333-4333-8333-333333333333';
@@ -52,7 +53,12 @@ test('SignalChart trial migrations and security rules execute on real PostgreSQL
  assert.ok(failed.every(x=>x.allowed===false&&x.reason==='trial_exhausted'));
  const count=(await db.query('select signals_consumed from public.sc_trials where user_id=$1',[customer1])).rows[0].signals_consumed;
  assert.equal(count,3);
- assert.equal((await unlock('SETUP1')).allowed,false,'previous unlocks are locked after exhaustion');
+ const reopened=await unlock('SETUP1');
+ assert.equal(reopened.allowed,true,'previously unlocked signals remain readable during the active trial');
+ assert.equal(reopened.reason,'previously_unlocked');
+ assert.equal(reopened.signalsUsed,3);
+ assert.equal(reopened.signalsRemaining,0);
+ assert.equal((await unlock('SETUP3')).reason,'previously_unlocked');
  const state=(await db.query('select public.sc_trial_state($1) x',[customer1])).rows[0].x;
  assert.equal(state.trialStatus,'exhausted');
  const user2=(await db.query('select public.sc_trial_state($1) x',[customer2])).rows[0].x;
@@ -71,6 +77,7 @@ test('SignalChart trial migrations and security rules execute on real PostgreSQL
  await db.query("update public.sc_trials set activated_at=now()-interval '73 hours', expires_at=now()-interval '1 hour' where user_id=$1",[customer1]);
  assert.equal((await db.query('select public.sc_trial_state($1) x',[customer1])).rows[0].x.trialStatus,'expired');
  assert.equal((await unlock('SETUP6')).reason,'trial_expired');
+ assert.equal((await unlock('SETUP1')).reason,'trial_expired','previously unlocked signals must lock after the trial term');
  assert.equal((await db.query('select public.sc_paid_signal($1,$2) x',[customer1,'SETUP6'])).rows[0].x.allowed,true);
  // Consume a different old account's trial history via audit hold, rather than silently issuing a new trial.
  await db.query('insert into public.sc_legacy_trial_holds(user_id,source,reason) values ($1,$2,$3)',[
