@@ -7,7 +7,8 @@ const changed=new Set(['api/config.js','lib/subscription-rules.js','candriva-v2.
 // Explicitly reviewed edits to previously hash-recovered files: permit only these exact bytes.
 // Never change the original deployment SHA1 in recovery-manifest.json.
 const reviewedEditedSha1=new Map([
- ['signalchart-pages.js','84aab753204393e81aaf53ed0ed56e7d1aaa41ec']
+ ['signalchart-pages.js','84aab753204393e81aaf53ed0ed56e7d1aaa41ec'],
+ ['hourly-ui.js','1a6939267ca46d1f5ef9556c42334b3e452d37c3']
 ]);
 const failures=[];const warnings=[];
 // Keep the original-source gate intact. An independently rewritten replacement
