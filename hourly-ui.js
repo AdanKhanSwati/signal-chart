@@ -1,82 +1,109 @@
 (()=>{'use strict';
-const $=id=>document.getElementById(id),status=$('sh-status'),area=$('sh-setups'),wallet=$('sh-wallet');
+/**
+ * SignalChart hourly publication overview.
+ * Display public, non-actionable signal metadata ONLY.
+ * All premium entry/stop/target/research comes from authenticated POST unlock
+ * in sc-trial-ui.js, which is the single source of trial credit accounting.
+ */
+const $=id=>document.getElementById(id);
+const status=$('sh-status'),area=$('sh-setups'),wallet=$('sh-wallet');
 if(!status||!area||!wallet)return;
-let result=null,session=null,busy=false,client=null;
-try{const saved=localStorage.getItem('signalchart-wallet-size-v1');if(saved&&Number(saved)>0)wallet.value=saved}catch{}
-const usd=n=>Number.isFinite(Number(n))?'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
-const fmt=(n,d=5)=>Number.isFinite(Number(n))?Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
-const hour=()=>new Date(Math.floor(Date.now()/3600000)*3600000).toISOString();
-const small=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e};
-function message(text,error=false){status.classList.toggle('error',error);status.querySelector('span').textContent=text}
-function setContent(text,link=false){area.replaceChildren();const wrap=small('div','sh-empty'),title=small('strong','',text),p=small('p','',link?'A verified SignalChart account with an active trial or subscription is required.':'Try refreshing the page or open the individual Crypto/Forex scanners.');wrap.append(title,p);if(link){const a=small('a','sp-cta','Sign in / Subscribe ↗');a.href='/account.html';a.style.marginTop='14px';wrap.append(a)}area.append(wrap)}
-function sizing(setup,market){
- const balance=Number(wallet.value),s=setup;
- if(!(balance>0&&Number.isFinite(balance)))return null;
- const risk=balance*.005,stopFraction=s.stopDistancePercent/100,leverage=Math.min(2,Math.max(1,Number(s.suggestedLeverage)||1));
- if(!(stopFraction>0))return null;
- const desiredNotional=risk/stopFraction,marginCap=balance*.1,notional=Math.min(desiredNotional,marginCap*leverage),margin=notional/leverage;
- return{margin,notional,actualRisk:notional*stopFraction,leverage,wallet:balance,market}
+let running=false;
+const make=(tag,cls,content)=>{
+ const e=document.createElement(tag);if(cls)e.className=cls;
+ if(content!==undefined)e.textContent=String(content);
+ return e;
+};
+const setStatus=(message,error=false)=>{
+ status.classList.toggle('error',error);
+ const span=status.querySelector('span');
+ if(span)span.textContent=message;else status.textContent=message;
+};
+const clear=()=>area.replaceChildren();
+function empty(title,description){
+ clear();const card=make('div','sh-empty');
+ card.append(make('strong','',title),make('p','',description));
+ area.append(card);
 }
-function stats(group,details){
- const grid=small('div',group),list=details;
- for(const[label,value]of list){const div=small('div'),t=small('span','',label),v=small('strong','',value);div.append(t,v);grid.append(div)}
- return grid;
-}
-function itemCard(item){
- const qualified=item.status==='QUALIFIED'&&item.setup;
- const card=small('article','sh-item'+(qualified?' qualified':''));
- const header=small('div','sh-item-title');const label=small('strong','',item.label||item.symbol);
- const badge=small('span','sh-badge'+(qualified?' qualified':''),qualified?(item.direction+' · SETUP'):item.status.replaceAll('_',' '));header.append(label,badge);card.append(header);
- const reason=small('div','sh-item-meta');reason.append(small('span','',item.market.toUpperCase()),small('span','',item.asof?'Candle '+new Date(item.asof).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'No recent candle'),small('span','',item.indicators?'RSI '+item.indicators.rsi14:'Data not available'));card.append(reason);
- if(qualified){
- const s=item.setup,d=item.symbol==='USDJPY'?3:item.market==='forex'?5:item.symbol==='BTCUSDT'||item.symbol==='ETHUSDT'?2:4;
- card.append(stats('sh-setup-levels',[['ENTRY',fmt(s.entry,d)],['STOP LOSS',fmt(s.stopLoss,d)],['TARGET 1',fmt(s.takeProfit1,d)],['TARGET 2',fmt(s.takeProfit2,d)]]));
- const positions=sizing(s,item.market);
- if(positions)card.append(stats('sh-sizing',[['WALLET MARGIN',usd(positions.margin)],['TOTAL EXPOSURE',usd(positions.notional)],['LEVERAGE',positions.leverage+'×'],['RISK AT STOP',usd(positions.actualRisk)],['WALLET RISK',fmt(positions.actualRisk/positions.wallet*100,2)+'%'],['RISK / REWARD','1:1.5 / 1:2.5']]));
- else card.append(small('p','sh-invalid','Enter your USD wallet balance above to calculate your capital allocation, exposure and leverage.'));
- const why=small('ul','sh-item-reasons');for(const s of (item.reasons||[]).slice(0,5)){const li=small('li','',s);why.append(li)}card.append(why);
- card.append(small('p','sh-invalid','Invalidation: '+s.invalidation+'. Valid until '+new Date(s.validUntil).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'.'));
+function riskNote(){
+ const value=Number(wallet.value),help=$('sh-wallet-help');
+ if(!help)return;
+ if(Number.isFinite(value)&&value>0&&value<=100000000){
+  const risk=value*.005;
+  help.textContent='Illustrative maximum risk budget at 0.5%: $'+risk.toLocaleString('en-US',
+   {minimumFractionDigits:2,maximumFractionDigits:2})+'. Not a trading recommendation; actual loss may exceed a stop.';
  }else{
- const why=small('p','sh-invalid',(item.reasons||[]).slice(0,3).join(' · ')||'This market did not qualify during the latest hourly review.');card.append(why);
+  help.textContent='Optional wallet calculator. Signal details remain protected until you explicitly unlock them.';
  }
- const foot=small('div','sh-item-foot',qualified?'Technical-rule alignment: '+item.confidence+'. Fees, slippage and broker margin rules are not included.':'No position is recommended for this market in the current cycle.');card.append(foot);return card;
 }
-function render(){
- if(!result)return;
- area.replaceChildren();const selected=(result.items||[]).filter(x=>x.status==='QUALIFIED');const newsBlocked=(result.items||[]).filter(x=>x.status==='NEWS_BLACKOUT'||x.status==='ECONOMIC_CALENDAR_UNVERIFIED');
- message(result.marketsReviewed+' markets reviewed · '+(selected.length?selected.length+' technical setup'+(selected.length>1?'s':''):'NO TRADE this hour')+(newsBlocked.length?' · '+newsBlocked.length+' news/calendar blocked':''));
- $('sh-cycle').textContent='NEXT CYCLE · '+new Date(result.nextReviewAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
- $('sh-research-time').textContent='Generated '+new Date(result.generatedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' · Hour bucket UTC';
- if(selected.length){for(const x of selected.slice(0,4))area.append(itemCard(x))}
- else{const box=small('div','sh-empty');box.append(small('strong','',newsBlocked.length?'NO TRADE — economic risk controls':'NO TRADE — conditions not aligned'),small('p','',newsBlocked.length?'One or more technical conditions were blocked by dated macroeconomic releases or incomplete event coverage. Capital allocation and leverage recommendations are withheld.':'The 1-hour and higher-timeframe filters did not confirm a sufficient entry across the reviewed markets. No wallet allocation is recommended for this cycle.'));area.append(box)}
- const monitor=small('div','sh-monitor');for(const x of result.items||[]){const a=small('div'),tag=small('strong','',x.label||x.symbol),st=small('small','',x.status.replaceAll('_',' '));a.append(tag,st);monitor.append(a)}
- const wrapper=small('div','sh-empty');wrapper.style.padding='10px';wrapper.append(small('strong','','All markets reviewed'));wrapper.append(monitor);area.append(wrapper);
-}
-async function getAuth(){
- const c=await fetch('/api/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(new Error('Account service unavailable')));
- if(!c.authReady)throw Error('Secure account access is unavailable');
- if(!window.supabase?.createClient){await new Promise((resolve,reject)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';sc.onload=resolve;sc.onerror=()=>reject(new Error('Unable to load sign-in service'));document.head.append(sc)})}
- client=window.supabase.createClient(c.supabaseUrl,c.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
- session=(await client.auth.getSession()).data?.session;
+function show(rows){
+ clear();
+ if(!rows.length){
+  empty('NO ACTIVE PREMIUM SIGNALS',
+   'No verified qualifying signals are published at the moment. The system can correctly produce zero trades when data, market conditions or risk filters fail.');
+  return;
+ }
+ const list=make('div','sh-monitor');
+ for(const item of rows.slice(0,8)){
+  const card=make('article','sh-item');
+  const header=make('div','sh-item-title');
+  header.append(make('strong','',item.asset),make('span','sh-badge','PREVIEW'));
+  card.append(header);
+  const published=item.publishedAt?new Date(item.publishedAt):null;
+  const posted=published&&Number.isFinite(published.getTime())
+   ?published.toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
+   :'Time unavailable';
+  const meta=make('div','sh-item-meta');
+  meta.append(make('span','',item.market.toUpperCase()),make('span','',posted));
+  card.append(meta);
+  card.append(make('p','sh-invalid',
+   'Strategy, entry levels and risk details are protected. Opening this preview does not consume a trial credit.'));
+  const link=make('a','sp-cta','Open in signal vault ↗');
+  link.href='#sc-trial-signals';
+  link.setAttribute('aria-label','Open protected signal vault for '+item.asset);
+  card.append(link);list.append(card);
+ }
+ area.append(list);
 }
 async function refresh(){
- if(busy)return;busy=true;$('sh-refresh').disabled=true;
+ if(running)return;running=true;
+ const button=$('sh-refresh');if(button)button.disabled=true;
+ setStatus('Checking latest published signals…');
  try{
-  if(!client)await getAuth();
-  if(!session){message('Sign in to unlock hourly analysis');setContent('Member sign-in required',true);return}
-  message('Researching closed market candles and momentum…');
-  const response=await fetch('/api/research?mode=current',{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
-  if(response.status===401||response.status===403){message('Active membership required',true);setContent('Subscription or trial access required',true);return}
-  if(!response.ok)throw Error('Hourly market research is temporarily unavailable');
-  const payload=await response.json();
-  if(!Array.isArray(payload.items))throw Error('Incomplete market analysis response');
-  result=payload;render();
- }catch(e){message(e.message,true);setContent('Analysis temporarily unavailable')}finally{busy=false;$('sh-refresh').disabled=false}
+  const [feedResult,healthResult]=await Promise.allSettled([
+   fetch('/api/premium-signals?action=list',{cache:'no-store'}).then(async res=>{
+    if(!res.ok)throw Error('Premium signal feed unavailable');
+    return res.json();
+   }),
+   fetch('/api/research?mode=health',{cache:'no-store'}).then(res=>res.ok?res.json():null)
+  ]);
+  if(feedResult.status!=='fulfilled')throw Error('Premium signal feed is temporarily unavailable');
+  const payload=feedResult.value;
+  if(!Array.isArray(payload?.signals))throw Error('Invalid signal feed');
+  const rows=payload.signals.filter(s=>s&&typeof s.asset==='string'&&
+   typeof s.signalKey==='string'&&(s.market==='crypto'||s.market==='forex'));
+  show(rows);
+  const health=healthResult.status==='fulfilled'?healthResult.value:null;
+  const automaticActive=health?.unattendedPublishing?.enabled===true;
+  setStatus(rows.length+' active premium preview'+(rows.length===1?'':'s')+
+   (automaticActive?' · automatic scan enabled':' · automatic publishing not yet verified'));
+  const cycle=$('sh-cycle');
+  if(cycle)cycle.textContent=automaticActive?'NEXT AUTOMATIC SCAN · HOURLY':'AUTOMATIC SCANS · NOT YET ACTIVE';
+  const at=$('sh-research-time');
+  if(at)at.textContent='Updated '+new Date().toLocaleTimeString([],
+   {hour:'2-digit',minute:'2-digit'})+' · Published signal timestamps are shown in your local time zone.';
+ }catch(e){
+  setStatus(e.message||'Signal overview unavailable',true);
+  empty('Signal feed unavailable','Unable to verify current published setups. No prices or trading directions have been estimated.');
+ }finally{running=false;if(button)button.disabled=false}
 }
-wallet.addEventListener('input',()=>{try{wallet.value?localStorage.setItem('signalchart-wallet-size-v1',wallet.value):localStorage.removeItem('signalchart-wallet-size-v1')}catch{}if(result)render()});
-$('sh-refresh').addEventListener('click',refresh);
+wallet.addEventListener('input',()=>{try{
+ if(wallet.value)localStorage.setItem('signalchart-wallet-size-v1',wallet.value);
+ else localStorage.removeItem('signalchart-wallet-size-v1');
+}catch{}riskNote()});
+try{const v=localStorage.getItem('signalchart-wallet-size-v1');if(v&&Number(v)>0)wallet.value=v}catch{}
+riskNote();const refreshButton=$('sh-refresh');if(refreshButton)refreshButton.addEventListener('click',refresh);
 refresh();
-let lastHour=hour();
-setInterval(()=>{const h=hour();if(h!==lastHour){lastHour=h;if(!document.hidden)refresh()}},60000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&result?.hour!==hour())refresh()});
+setInterval(()=>{if(!document.hidden)refresh()},5*60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 })();
