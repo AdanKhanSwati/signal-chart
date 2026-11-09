@@ -14,7 +14,7 @@ function setup(isAdmin=true){
   securePost:req=>req.body,
   handleError:(res,e)=>res.status(e.status||500).json({error:e.message})
  };
- const gate={rpc:async(name,params)=>{calls.push({name,params});if(name==='sc_signal_proposal_queue')return [{proposalId:'11111111-1111-4111-8111-111111111111',market:'crypto',asset:'BTCUSDT'}];return name==='sc_propose_premium_signal'
+ const gate={rpc:async(name,params)=>{calls.push({name,params});if(name==='sc_signal_proposal_queue')return [{proposalId:'11111111-1111-4111-8111-111111111111',market:'crypto',asset:'BTCUSDT'}];if(name==='sc_revoke_premium_signal')return {revoked:true};return name==='sc_propose_premium_signal'
   ?{proposalId:'11111111-1111-4111-8111-111111111111',published:false,status:'pending'}
   :{published:true,status:'approved'}}};
  async function run(action,body,method='POST',authorized=true){
@@ -72,4 +72,15 @@ test('pending review queue requires signed-in administrator',async()=>{
  assert.equal(allowed.code,200);
  assert.equal(allowed.data.proposals.length,1);
  assert.equal(admin.calls[0].name,'sc_signal_proposal_queue');
+});
+
+test('emergency revocation is admin-only and requires a reason',async()=>{
+ const admin=setup(),normal=setup(false);
+ assert.equal((await normal.run('revoke',{signalKey:'crypto:btc:test-1',reason:'Stale market context detected'})).code,403);
+ assert.equal((await admin.run('revoke',{signalKey:'crypto:btc:test-1',reason:'no'})).code,400);
+ const done=await admin.run('revoke',{signalKey:'crypto:btc:test-1',reason:'Verified market data invalidated the setup'});
+ assert.equal(done.code,200);
+ assert.equal(done.data.revoked,true);
+ assert.equal(admin.calls.length,1);
+ assert.equal(admin.calls[0].name,'sc_revoke_premium_signal');
 });
