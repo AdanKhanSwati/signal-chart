@@ -125,7 +125,8 @@ async function supportSetup(){
 }
 function switchTab(name){
  document.querySelectorAll('[data-ops-tab]').forEach(b=>b.classList.toggle('active',b.dataset.opsTab===name));
- for(const x of ['payments','messages','settings','members'])show('#ops-tab-'+x,x===name);
+ for(const x of ['payments','messages','settings','members','trials'])show('#ops-tab-'+x,x===name);
+ if(name==='trials')loadTrialOps().catch(e=>note(e.message,true));
  if(name==='members')loadAdminMembers().catch(e=>note(e.message,true));
 }
 
@@ -272,7 +273,76 @@ async function testPush(){
  await reg.showNotification('SignalChart Ops · device test',{body:'Device notification displayed. Server-side payment push must be tested separately.',icon:'/ops-icon.svg',data:{url:'/ops.html'},tag:'local-device-test'});
  return {sent:1};
 }
+
+async function trialOpsRequest(action,method='GET',body,params={}){
+ const token=(await sb.auth.getSession()).data?.session?.access_token;
+ if(!token)throw Error('Sign in as Super Admin');
+ const query=new URLSearchParams({action,...params});
+ const opts={method,cache:'no-store',credentials:'omit',headers:{Authorization:'Bearer '+token}};
+ if(method==='POST'){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body||{})}
+ const response=await fetch('/api/trial?'+query.toString(),opts);
+ const result=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(result.error||'Trial management is unavailable');
+ return result;
+}
+async function loadTrialOps(){
+ const metrics=$('#sc-trial-metrics'),users=$('#sc-trial-users');
+ if(!metrics||!users)return;
+ metrics.textContent='Loading real metrics…';users.textContent='Loading trial accounts…';
+ try{
+  const [stats,people]=await Promise.all([
+   trialOpsRequest('admin_metrics'),
+   trialOpsRequest('admin_trials','GET',null,{q:$('#sc-trial-search')?.value.trim()||''})]);
+  metrics.replaceChildren();
+  const m=stats.metrics||{};
+  const mapping=[
+   ['Trials activated',m.trialActivations],['Active free trials',m.activeTrials],
+   ['Trials expired',m.expiredTrials],['Trials exhausted',m.exhaustedTrials],
+   ['Verified paid conversions',m.paidConversions],
+   ['Trial-to-paid conversion',m.trialToPaidConversionPercent==null?'Not enough data':m.trialToPaidConversionPercent+'%'],
+   ['Signals unlocked per trial',m.averageSignalsPerTrial==null?'Not enough data':Number(m.averageSignalsPerTrial).toFixed(2)],
+   ['Verification completion',m.verificationCompletionPercent==null?'Not enough data':m.verificationCompletionPercent+'%'],
+   ['Risk reviews (30 days)',m.riskReviewUsersLast30Days]];
+  for(const [key,value] of mapping){
+   const line=el('div','cand-listitem');line.append(el('span','',key),el('strong','',value===undefined?'—':value));
+   metrics.append(line);
+  }
+  users.replaceChildren();
+  for(const p of (people.members||[])){
+   const line=el('button','cand-listitem');line.type='button';
+   line.append(el('strong','',p.user_id+' · '+String(p.trial_status||'—').toUpperCase()),
+    el('small','',p.signals_consumed+'/3 unlocked · expires '+dt(p.expires_at)+(p.risk_flag?' · Review risk flag':'')));
+   line.onclick=()=>{$('#sc-trial-admin-user').value=p.user_id;$('#sc-trial-admin-user').focus()};
+   users.append(line);
+  }
+  if(!(people.members||[]).length)empty(users,'No matching verified trial records.');
+ }catch(e){metrics.textContent='Trial database unavailable: '+e.message;users.textContent='No verified trial records loaded.';throw e}
+}
 async function opsSetup(){
+
+ $('#sc-trial-refresh').onclick=()=>loadTrialOps().catch(e=>note(e.message,true));
+ $('#sc-trial-search-form').onsubmit=e=>{e.preventDefault();loadTrialOps().catch(err=>note(err.message,true))};
+ $('#sc-trial-admin-form').onsubmit=async e=>{
+  e.preventDefault();const button=e.target.querySelector('button[type=submit]');button.disabled=true;
+  try{
+   const action=$('#sc-trial-admin-action').value;
+   const userId=$('#sc-trial-admin-user').value.trim(),reason=$('#sc-trial-admin-reason').value.trim();
+   if(reason.length<5)throw Error('A reason with at least 5 characters is required');
+   const body={userId,reason};
+   if(action==='admin_exception'){
+    body.phone=$('#sc-trial-admin-phone').value.trim();
+    if(!/^\+[1-9]\d{7,14}$/.test(body.phone))throw Error('Enter verified international phone number');
+    const date=new Date($('#sc-trial-admin-expiry').value);
+    if(!Number.isFinite(date.getTime()))throw Error('Enter an exception expiry date');
+    body.validUntil=date.toISOString();
+   }
+   if(action==='admin_revoke'&&!confirm('Revoke this customer free trial? This is audited and cannot be undone automatically.'))return;
+   await trialOpsRequest(action,'POST',body);
+   note('Audited trial action recorded.');$('#sc-trial-admin-phone').value='';$('#sc-trial-admin-reason').value='';
+   await loadTrialOps();
+  }catch(err){note(err.message,true)}finally{button.disabled=false}
+ };
+
  $('#ops-member-search-form').onsubmit=async e=>{e.preventDefault();try{await loadAdminMembers()}catch(err){note(err.message,true)}};
  $('#ops-grant-form').onsubmit=async e=>{e.preventDefault();if(!selectedAccessMember)return;const button=e.target.querySelector('button[type=submit]');button.disabled=true;try{const date=new Date($('#ops-grant-expiry').value),expiresAt=date.toISOString();const reason=$('#ops-grant-reason').value.trim();if(!reason)throw Error('A reason is required');await accessRequest('grant','POST',{memberId:selectedAccessMember.uid,expiresAt,reason});note('Manual access granted to '+selectedAccessMember.email+' until '+dt(expiresAt));$('#ops-grant-reason').value='';await loadMemberGrants()}catch(err){note(err.message,true)}finally{button.disabled=false}};
  document.querySelectorAll('[data-ops-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.opsTab));
