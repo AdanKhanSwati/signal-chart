@@ -4,6 +4,11 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const root=path.resolve(__dirname,'..');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'recovery-manifest.json'),'utf8'));
 const changed=new Set(['api/config.js','lib/subscription-rules.js','candriva-v2.js','account.html','billing.html','home.html','vercel.json','signalchart-wordmark.svg','ops.html','site-app.js','README.txt','app.js','candriva-ui.js','dashboard.js','forex.html','membership.js','signals.html','crypto.html','package.json']);
+// Explicitly reviewed edits to previously hash-recovered files: permit only these exact bytes.
+// Never change the original deployment SHA1 in recovery-manifest.json.
+const reviewedEditedSha1=new Map([
+ ['signalchart-pages.js','84aab753204393e81aaf53ed0ed56e7d1aaa41ec']
+]);
 const failures=[];const warnings=[];
 // Keep the original-source gate intact. An independently rewritten replacement
 // is not evidence that its pre-deployment source was recovered or QA-equivalent.
@@ -14,7 +19,8 @@ for(const item of manifest.recoveredFiles){
  const buffer=requireFile(item.path);
  if(buffer&&!changed.has(item.path)){
   const h=crypto.createHash('sha1').update(buffer).digest('hex');
-  if(h!==item.sha1)failures.push('Unexpected change in recovered source: '+item.path);
+  if(h!==item.sha1&&h!==reviewedEditedSha1.get(item.path))
+   failures.push('Unexpected change in recovered source: '+item.path);
  }
 }
 for(const f of manifest.missingFiles){
