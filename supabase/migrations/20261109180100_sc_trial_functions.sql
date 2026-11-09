@@ -48,6 +48,16 @@ begin
  if existing.id is not null then
   return jsonb_build_object('result','existing_trial','trial',public.sc_trial_state(p_user));
  end if;
+ if exists(select 1 from public.sc_legacy_trial_holds where user_id=p_user) then
+  select * into v_exception from public.sc_trial_exceptions
+    where user_id=p_user and phone_hash=p_phone_hash
+      and redeemed_at is null and revoked_at is null and valid_until>now()
+    order by approved_at desc limit 1 for update;
+  if v_exception.id is null then
+   return jsonb_build_object('result','legacy_review_required',
+     'message','This account has earlier trial history. You can continue with a paid membership or request a free-trial review.');
+  end if;
+ end if;
  select first_user_id into owner_user from public.sc_phone_trial_claims where phone_hash=p_phone_hash;
  if owner_user is not null and owner_user<>p_user then
   select * into v_exception from public.sc_trial_exceptions
