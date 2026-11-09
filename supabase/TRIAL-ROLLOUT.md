@@ -17,7 +17,7 @@ The new \`public.sc_*\` tables do not drop, truncate or overwrite older records.
 Do **not** import historical free-trial timestamps as fresh promotional trials.
 
 ## Before switching on trial activation
-- Configure \`SUPABASE_SERVICE_ROLE_KEY\` **server-side only**, never in client JavaScript.
+- Configure \`SUPABASE_SECRET_KEY\` (preferred \`sb_secret_...\`) **server-side only**; legacy \`SUPABASE_SERVICE_ROLE_KEY\` JWT also works. Never expose either in client JavaScript or GitHub. The new secret key is sent only in the \`apikey\` header, not as a Bearer JWT.
 - Configure a long randomly generated \`SC_TRIAL_HMAC_SECRET\` (at least 32 characters). Securely back up this key; changing it without a planned hash migration can permit repeated claims.
 - Set \`SC_TRIAL_ROLLOUT_AT\` to the actual UTC cutover timestamp **after** completing the historical-user migration. Older accounts require admin review/exception even if prior Blob data is incomplete.
 - Keep \`SUPABASE_URL\`, \`SUPABASE_PUBLISHABLE_KEY\`, verified JWT authentication and \`CANDRIVA_ADMIN_EMAIL\`.
@@ -58,3 +58,23 @@ This installs a testing dependency locally only. It does not mutate production o
 5. Signal/news/research and forex engine source recovery remain incomplete; do not promote the staging branch into production.
 
 **Do not claim a 100% secure launch until the external checks have passed.**
+
+## Isolated verification (2026-11-09, latest)
+
+- **79/79** JavaScript regression/security tests passed (the old Forex source integration test is intentionally excluded because the original market engine is not recovered).
+- The disposable PostgreSQL-compatible PGlite suite passed **30/30** additional behavioral checks: phone claim uniqueness, 72-hour activation, unique crypto/forex unlocks, exhaustion, expiry, paid conversion, RLS-denied direct selects, risk rate checks and historical-account holds.
+- The separate executable PostgreSQL integration test **tests/trial-postgres.integration.mjs passed** using an isolated PGlite engine. This does **not** establish live Supabase RLS or independent database-connection race testing.
+- The public premium-signal listing now strips privileged fields at the HTTP API boundary even if upstream data accidentally contains them. See **tests/premium-preview-sanitization.test.js**.
+- Both modern `SUPABASE_SECRET_KEY` and older JWT `SUPABASE_SERVICE_ROLE_KEY` are supported with regression tests; do not configure both unless transitioning intentionally.
+
+## Cutover blockers — strict
+
+1. Read and compare **actual** Supabase auth/user/payment schema, live RLS and previous accounts before applying any additive migration. Do **not** execute unreviewed SQL solely because isolated tests pass.
+2. Verify the correct Supabase project ID, enable an **approved and funded** SMS provider only after owner authorization, and run real OTP sends and failed-attempt tests.
+3. Back up and preserve `SC_TRIAL_HMAC_SECRET` securely. A different key would yield different trial identity hashes and could permit repeat claims.
+4. Set `SC_TRIAL_ROLLOUT_AT` only after importing documented legacy trial holders; never silently give prior trial users new promotional access.
+5. End-to-end tests must use verified customer/admin sessions and include a second email with the same verified phone, simultaneous unlocks from independent DB connections, trial expiration and an approved manual-payment conversion.
+6. No Android source/Play Integrity integration is present in this repository; Android app release status remains **not implemented/unverified**.
+7. The original project source recovery and non-trial SignalChart market feeds remain incomplete. Keep the staging Git branch configured not to auto-deploy and preserve the current production alias.
+
+**Cost control:** Supabase SMS providers bill per delivery. The current code prepares for OTP but does not provision a provider, send real texts, create paid resources, or change the free hosting plan.
