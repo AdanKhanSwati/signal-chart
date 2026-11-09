@@ -25,7 +25,7 @@ function createHandler({engineFactory=createAutoEngine,makeGateway=null,
    const gate=makeGateway?makeGateway():require('../lib/trial-gate').createTrialGateway(require('../lib/candriva-core'));
    const publisher=async item=>{
     return gate.rpc('sc_publish_automatic_signal',{
-     p_signal_key:item.signalKey,p_market:item.market,p_asset:item.symbol,
+     p_signal_key:item.signalKey,p_market:item.market,p_asset:item.asset||item.symbol,
      p_source:item.source,p_closed_at:item.candleClosedAt,p_analysis:item.analysis});
    };
    const engine=engineFactory({publisher,allowIndicativeForex:false,now});
