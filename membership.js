@@ -25,7 +25,7 @@ $('#auth-form')?.addEventListener('submit',async e=>{
  e.preventDefault();
  const register=$('#auth-form').dataset.mode==='register',email=$('#auth-email').value.trim(),password=$('#auth-password').value;
  const body={email,password,...(register?{name:$('#auth-name').value.trim()}:{})};
- try{await showLoading($('#auth-submit'),()=>api(register?'register':'login',body));say(register?'Account created. Manual review is required before the 24-hour trial begins.':'Signed in successfully.');await loadAccount();}catch(err){say(err.message,true)}
+ try{await showLoading($('#auth-submit'),()=>api(register?'register':'login',body));say(register?'Account created. Manual review is required before the 72-hour trial begins.':'Signed in successfully.');await loadAccount();}catch(err){say(err.message,true)}
 });
 function renderAccount(a,sub){
  const member=sub?.account||a;
@@ -35,7 +35,7 @@ function renderAccount(a,sub){
  text('#account-created','Joined '+date(member.createdAt));text('#account-name',member.name);text('#account-email',member.email);
  text('#account-verification',member.verified?'Reviewed':'Manual review pending');
  text('#account-subscription',subscriptionReadable(member.status));
- text('#trial-message',member.status==='pending_verification'?'Your account is registered, but the 24-hour trial has not started. Contact the operator for manual verification.':member.status==='trial'?'Your free 24-hour trial is active. '+remaining(member.trialEnd)+' remaining.':member.status==='active'?'Subscription active through '+date(member.paidUntil):member.status==='expired'?'Trial or subscription ended. Renewals require administrator approval.':member.status==='suspended'?'Account suspended. Contact support.':'Operator account');
+ text('#trial-message',member.status==='pending_verification'?'Your account is registered, but the 72-hour trial has not started. Contact the operator for manual verification.':member.status==='trial'?'Your free 72-hour trial is active. '+remaining(member.trialEnd)+' remaining.':member.status==='active'?'Subscription active through '+date(member.paidUntil):member.status==='expired'?'Trial or subscription ended. Renewals require administrator approval.':member.status==='suspended'?'Account suspended. Contact support.':'Operator account');
  toggle($('#admin-nav'),member.role==='superadmin');toggle($('#admin-dashboard-link'),member.role==='superadmin');
  const payment=sub?.payment||{},available=!!payment.enabled;
  toggle($('#checkout-disabled'),!available);toggle($('#payment-form'),available);
@@ -87,7 +87,7 @@ async function loadOverview(){try{const d=await api('admin_dashboard'),c=d.count
 async function loadUsers(){try{const d=await api('admin_users');usersCache=d.users||[];renderUsers();}catch(err){say(err.message,true)}}
 function userActionButtons(u){
  const area=document.createElement('div');area.className='admin-actions';
- const actions=u.role==='superadmin'?[]:u.status==='pending_verification'?[['verify','Start 24h trial','']]:[['grant','Grant days',''],[u.suspended?'restore':'suspend',u.suspended?'Restore':'Suspend',u.suspended?'':'danger'],['revoke','Revoke paid','danger']];
+ const actions=u.role==='superadmin'?[]:u.status==='pending_verification'?[['verify','Activate 3-day trial','']]:[['grant','Grant days',''],[u.suspended?'restore':'suspend',u.suspended?'Restore':'Suspend',u.suspended?'':'danger'],['revoke','Revoke paid','danger']];
  for(const [type,label,style] of actions){const b=document.createElement('button');b.className='tiny-btn '+style;b.textContent=label;b.addEventListener('click',()=>confirmUser(u,type));area.append(b)}
  return area;
 }
@@ -100,7 +100,7 @@ function renderUsers(){const filter=($('#user-filter')?.value||'').toLowerCase()
 }
 $('#user-filter')?.addEventListener('input',renderUsers);
 $('#reload-users')?.addEventListener('click',loadUsers);
-function confirmUser(u,type){pendingAction={uid:u.id,type};const names={verify:'Begin 24-hour trial',grant:'Grant paid access',suspend:'Suspend account',restore:'Restore account',revoke:'Revoke paid subscription'};text('#confirm-title',names[type]);text('#confirm-body',u.name+' · '+u.email+' — '+(type==='verify'?'This begins a non-repeatable 24-hour trial. Verify the account first.':'This action is recorded in the permanent audit trail.'));toggle($('#confirm-days-label'),type==='grant');toggle($('#confirm-reason-label'),['suspend','revoke'].includes(type));$('#confirm-reason').value='';$('#confirm-dialog').hidden=false;}
+function confirmUser(u,type){pendingAction={uid:u.id,type};const names={verify:'Begin 72-hour trial',grant:'Grant paid access',suspend:'Suspend account',restore:'Restore account',revoke:'Revoke paid subscription'};text('#confirm-title',names[type]);text('#confirm-body',u.name+' · '+u.email+' — '+(type==='verify'?'This begins a non-repeatable 72-hour trial. Verify the account first.':'This action is recorded in the permanent audit trail.'));toggle($('#confirm-days-label'),type==='grant');toggle($('#confirm-reason-label'),['suspend','revoke'].includes(type));$('#confirm-reason').value='';$('#confirm-dialog').hidden=false;}
 $('#cancel-confirm')?.addEventListener('click',()=>{$('#confirm-dialog').hidden=true;pendingAction=null});
 $('#confirm-form')?.addEventListener('submit',async e=>{e.preventDefault();if(!pendingAction)return;
  const body={...pendingAction,days:Number($('#confirm-days').value),reason:$('#confirm-reason').value.trim()};

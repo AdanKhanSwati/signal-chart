@@ -15,7 +15,7 @@ test('legacy 24-hour record locks at exactly 24 hours',()=>{
 });
 test('legacy 72-hour record preserves its previously stored expiry',()=>{
  const a=entitlement(record(72),[],start+36*HOUR);
- assert.equal(a.status,'locked');assert.equal(a.access,false);
+ assert.equal(a.status,'trial');assert.equal(a.access,true);
  assert.equal(a.trialEndsAt,new Date(start+72*HOUR).toISOString());
 });
 test('manual approval grants paid access beyond expired trial',()=>{
