@@ -153,6 +153,7 @@ grant select,insert,update,delete on table
   public.sc_premium_signals,public.sc_trial_signal_unlocks,
   public.sc_paid_access,public.sc_trial_risk_events,public.sc_trial_events,
   public.sc_trial_admin_audit to service_role;
-grant usage,select on all sequences in schema public to service_role;
+grant usage,select on sequence public.sc_trial_risk_events_id_seq,
+ public.sc_trial_events_id_seq to service_role;
 
 commit;
