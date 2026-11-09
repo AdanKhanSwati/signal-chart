@@ -5,6 +5,10 @@ const root=path.resolve(__dirname,'..');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'recovery-manifest.json'),'utf8'));
 const changed=new Set(['api/config.js','lib/subscription-rules.js','candriva-v2.js','account.html','billing.html','home.html','vercel.json','signalchart-wordmark.svg','ops.html','site-app.js','README.txt','app.js','candriva-ui.js','dashboard.js','forex.html','membership.js','signals.html','crypto.html','package.json']);
 const failures=[];const warnings=[];
+// Keep the original-source gate intact. An independently rewritten replacement
+// is not evidence that its pre-deployment source was recovered or QA-equivalent.
+const reconstructedUnverified=[];
+const missingFromWorkingTree=[];
 const requireFile=(p)=>{const q=path.join(root,p);if(!fs.existsSync(q)){failures.push('Missing required file: '+p);return null}return fs.readFileSync(q)};
 for(const item of manifest.recoveredFiles){
  const buffer=requireFile(item.path);
@@ -13,7 +17,11 @@ for(const item of manifest.recoveredFiles){
   if(h!==item.sha1)failures.push('Unexpected change in recovered source: '+item.path);
  }
 }
-for(const f of manifest.missingFiles)failures.push('Unrecovered original source: '+f.path);
+for(const f of manifest.missingFiles){
+ if(fs.existsSync(path.join(root,f.path)))reconstructedUnverified.push(f.path);
+ else missingFromWorkingTree.push(f.path);
+ failures.push('Unrecovered original source: '+f.path);
+}
 if(!fs.existsSync(path.join(root,'tests/24h-trial.test.js')))failures.push('Missing legacy-trial regression test');
 if(!fs.existsSync(path.join(root,'tests/trial-postgres.integration.mjs')))failures.push('Missing live-SQL integration test');
 for(const file of ['api/trial.js','api/premium-signals.js','lib/trial-gate.js','sc-trial-ui.js']){
@@ -35,6 +43,10 @@ if(fs.existsSync(path.join(root,'lib/subscription-rules.js'))){
 const oldBrand=fs.readFileSync(path.join(root,'signalchart-wordmark.svg'),'utf8');
 if(!oldBrand.includes('data:image/png;base64'))failures.push('Website logo is still the old reconstructed SVG, not the supplied original image');
 const total=manifest.sourceFileCount,available=total-manifest.missingFiles.length;
-const result={pass:failures.length===0,originalFiles:total,verifiableRestored:available,errors:failures,warnings};
+const result={pass:failures.length===0,originalFiles:total,verifiableRestored:available,
+ originalSourcesStillUnverified:manifest.missingFiles.length,
+ rewrittenPresentButOriginalUnverified:reconstructedUnverified,
+ genuinelyMissingFromWorkingTree:missingFromWorkingTree,
+ errors:failures,warnings};
 console.log(JSON.stringify(result,null,2));
 if(failures.length)process.exitCode=1;
