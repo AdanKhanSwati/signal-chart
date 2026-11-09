@@ -94,14 +94,10 @@ begin
  if (p_analysis->'indicators'->>'signalScore')::numeric<8.5
   or (p_analysis->'indicators'->>'atrPercent')::numeric<=0
  then raise exception 'Unqualified technical strategy' using errcode='22023';end if;
- if p_market='crypto' and not (
-   (p_source='Binance USD-M Futures'
-    and p_analysis->>'executionBasis'='EXCHANGE_FUTURES_REFERENCE'
-    and right(p_asset,4)='USDT')
-   or (p_source in ('Kraken USD spot','Coinbase USD spot')
-    and p_analysis->>'executionBasis'='EXCHANGE_SPOT_USD_REFERENCE'
-    and right(p_asset,3)='USD' and right(p_asset,4)<>'USDT')
- ) then raise exception 'Exchange source or quote basis mismatch' using errcode='22023';end if;
+ if p_market='crypto' and
+    (p_source<>'Binance USD-M Futures'
+     or p_analysis->>'executionBasis'<>'EXCHANGE_FUTURES_REFERENCE')
+ then raise exception 'Verified exchange reference required' using errcode='22023';end if;
  -- Yahoo Finance FX candles are INDICATIVE research, not broker executable.
  -- No automated actionable forex publication until a trusted broker feed exists.
  if p_market='forex' then
