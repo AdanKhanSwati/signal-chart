@@ -124,7 +124,65 @@ async function supportSetup(){
 }
 function switchTab(name){
  document.querySelectorAll('[data-ops-tab]').forEach(b=>b.classList.toggle('active',b.dataset.opsTab===name));
- for(const x of ['payments','messages','settings'])show('#ops-tab-'+x,x===name);
+ for(const x of ['payments','messages','settings','members'])show('#ops-tab-'+x,x===name);
+ if(name==='members')loadAdminMembers().catch(e=>note(e.message,true));
+}
+
+let selectedAccessMember=null;
+async function accessRequest(action,method='GET',payload,params={}){
+ const token=(await sb.auth.getSession()).data?.session?.access_token;
+ if(!token)throw Error('Sign in as Super Admin to manage access.');
+ const qs=new URLSearchParams({action,...params});
+ const opts={method,headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit'};
+ if(method==='POST'){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(payload||{})}
+ const resp=await fetch('/api/admin-access?'+qs.toString(),opts);
+ const data=await resp.json().catch(()=>({}));
+ if(!resp.ok)throw Error(data.error||'Admin access operation failed');
+ return data;
+}
+async function loadAdminMembers(){
+ const root=$('#ops-member-list');if(!root)return;
+ const q=$('#ops-member-search')?.value.trim()||'';
+ root.textContent='Loading members…';
+ const data=await accessRequest('members','GET',null,{q});
+ root.replaceChildren();const list=data.members||[];
+ if(!list.length)return empty(root,'No matching registered members.');
+ for(const m of list){
+  const b=el('button','cand-listitem');b.type='button';
+  b.append(el('strong','',m.email||m.uid),el('small','',m.uid));
+  b.onclick=()=>selectAccessMember(m).catch(e=>note(e.message,true));root.append(b);
+ }
+}
+async function selectAccessMember(m){
+ selectedAccessMember=m;
+ txt('#ops-grant-member',(m.email||m.uid)+' · '+m.uid);
+ show('#ops-grant-form',true);
+ const expiry=$('#ops-grant-expiry');
+ if(!expiry.value){const d=new Date(Date.now()+30*86400000);expiry.value=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)}
+ await loadMemberGrants();
+}
+async function loadMemberGrants(){
+ if(!selectedAccessMember)return;
+ const root=$('#ops-grant-list');root.replaceChildren();
+ const data=await accessRequest('grants','GET',null,{memberId:selectedAccessMember.uid});
+ const events=data.events||[],revoked=new Set(events.filter(x=>x.type==='revoke').map(x=>x.grantId));
+ const grants=events.filter(x=>x.type==='grant').sort((a,b)=>String(b.issuedAt).localeCompare(String(a.issuedAt)));
+ if(!grants.length)return empty(root,'No complimentary access grants for this member.');
+ for(const g of grants){
+  const line=el('div','cand-listitem'),active=!revoked.has(g.id)&&Date.parse(g.expiresAt)>Date.now();
+  line.append(el('strong','',active?'Grant active':'Grant expired or revoked'),el('small','', 'Ends '+dt(g.expiresAt)+' · '+(g.reason||'No reason')));
+  if(active){
+   const b=action('Revoke this grant',async()=>{
+    if(!confirm('Revoke this grant? This does not cancel any paid membership.'))return;
+    const reason=prompt('Reason for revocation:');if(!reason?.trim())return;
+    b.disabled=true;
+    try{await accessRequest('revoke','POST',{memberId:selectedAccessMember.uid,grantId:g.id,reason:reason.trim()});note('Manual access grant revoked.');await loadMemberGrants()}
+    catch(e){note(e.message,true)}finally{b.disabled=false}
+   });
+   line.append(b);
+  }
+  root.append(line);
+ }
 }
 async function updateResearchOps(){
  try{
@@ -214,6 +272,8 @@ async function testPush(){
  return {sent:1};
 }
 async function opsSetup(){
+ $('#ops-member-search-form').onsubmit=async e=>{e.preventDefault();try{await loadAdminMembers()}catch(err){note(err.message,true)}};
+ $('#ops-grant-form').onsubmit=async e=>{e.preventDefault();if(!selectedAccessMember)return;const button=e.target.querySelector('button[type=submit]');button.disabled=true;try{const date=new Date($('#ops-grant-expiry').value),expiresAt=date.toISOString();const reason=$('#ops-grant-reason').value.trim();if(!reason)throw Error('A reason is required');await accessRequest('grant','POST',{memberId:selectedAccessMember.uid,expiresAt,reason});note('Manual access granted to '+selectedAccessMember.email+' until '+dt(expiresAt));$('#ops-grant-reason').value='';await loadMemberGrants()}catch(err){note(err.message,true)}finally{button.disabled=false}};
  document.querySelectorAll('[data-ops-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.opsTab));
  $('#ops-push').onclick=installPush;$('#ops-test-push').textContent='Test device alert';
  $('#ops-test-push').onclick=async()=>{const btn=$('#ops-test-push');btn.disabled=true;try{const data=await testPush();note('Local device alert displayed; this does not verify remote push delivery.')}catch(e){note(e.message,true)}finally{btn.disabled=false}};
