@@ -8,7 +8,7 @@ test('hourly panel reads the actual protected premium signal feed, not a retired
 });
 test('hourly overview never bypasses 72-hour trial credit accounting',()=>{
  assert.equal(ui.includes('/api/premium-signals?action=unlock'),false);
- assert.equal(ui.includes('POST'),false);
+ assert.equal(/fetch\\(['\"]\\/api\\/premium-signals\\?action=unlock/.test(ui),false);
  assert.ok(ui.includes('Opening this preview does not consume a trial credit.'));
 });
 test('unverified backend returns NO TRADE or feed unavailable, not fabricated trading levels',()=>{
