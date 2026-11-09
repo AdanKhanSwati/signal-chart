@@ -28,3 +28,21 @@ The original API implementation is not completely recovered. Before activating t
 
 ## Android
 If distributed on Google Play, the customer app's payment UI must comply with Play's payments rules for digital subscriptions, including any permitted alternative-billing exceptions. Web/manual crypto payment does not itself establish a Play exception. No customer billing feature should be published to Google Play before review.
+
+## Implemented API routes (staging branch only)
+
+- `GET /api/cv-ops?action=me`: signed-in member account, allowed BTC invoice state, own payment history.
+- `POST /api/cv-ops?action=submit_payment`: signed-in user submits `{txid,receipt,note}`; the receipt is a PNG/JPEG data URL. Creates a pending record and immutable TXID reservation; no subscription activation.
+- `GET /api/cv-ops?action=admin`: super-admin payment review queue, billing settings and aggregate counts.
+- `GET /api/cv-ops?action=receipt&id=<paymentId>`: super-admin-only receipt image.
+- `POST /api/cv-ops?action=review_payment`: super-admin rejection with required reason. Approval goes to the secure checkout route.
+- `POST /api/cv-ops?action=save_billing`: super-admin sets BTC monthly amount and checkout enabled preference. Effective enablement also requires the existing server payment flag.
+- `GET /api/checkout?action=quote`: public non-binding BTC/USD reference.
+- `GET /api/checkout?action=verify&paymentId=<id>`: super-admin blockchain lookup for amount, receiving wallet and confirmations.
+- `POST /api/checkout?action=approve`: super-admin-only approval; **re-verifies on chain** immediately before the immutable review write.
+- `/api/member`: compatibility endpoints for the older account and admin screens (same payment data, not a second membership system).
+- `/api/admin-access`: existing dedicated super-admin member search, grant, revoke and grant listing.
+
+All operations run against authenticated, server-side identities. The Vercel Blob SDK version in package.json supports private Blob storage. Storage must be a **private** Vercel Blob store; a token alone does not guarantee private access. No manual crypto purchase or billing gateway is active on production.
+
+**Current limitation:** the original support messaging API is not rebuilt in this phase; it returns a clear unavailable response. Historical receipt compatibility from earlier unrecovered schemas also requires migration tests.
