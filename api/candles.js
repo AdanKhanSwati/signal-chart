@@ -1,0 +1,1 @@
+'use strict';const candles=require('../lib/sc-candles-core');const catalog=require('../lib/sc-market-catalog');module.exports=(req,res)=>String(req.query?.action||'')==='markets'?catalog(req,res):candles(req,res);
