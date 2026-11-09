@@ -96,3 +96,24 @@ test('an audited recycled-number exception allows verified legacy applicant to r
  assert.equal(r.status,'otp_sent');
  assert.equal(x.calls.some(z=>z.method==='PUT'),true);
 });
+
+test('WhatsApp delivery is disabled by default and cannot contact Supabase or activate a trial',async()=>{
+ const calls=[];
+ const trial=createTrialGateway(
+  {authConfig:()=>({ready:true,url:'https://demo.supabase.co',key:'sb_publishable_test_1234567890'})},
+  {fetchFn:async(...args)=>{calls.push(args);throw Error('NO NETWORK ALLOWED')},
+   env:{SUPABASE_SERVICE_ROLE_KEY:KEY,SC_TRIAL_HMAC_SECRET:HMAC,SC_TRIAL_ROLLOUT_AT:'2026-11-01T00:00:00Z'}} );
+ const request={headers:{authorization:'Bearer '+TOKEN}};
+ await assert.rejects(()=>trial.otpStart(request,PHONE),e=>e.status===503&&/WhatsApp/.test(e.message));
+ assert.equal(calls.length,0,'disabled mode must not send or try to send WhatsApp/SMS');
+});
+test('invalid configured delivery value cannot cause SMS fallback',async()=>{
+ const calls=[];
+ const trial=createTrialGateway(
+  {authConfig:()=>({ready:true,url:'https://demo.supabase.co',key:'sb_publishable_test_1234567890'})},
+  {fetchFn:async(...args)=>{calls.push(args);throw Error('NO NETWORK ALLOWED')},
+   env:{SUPABASE_SERVICE_ROLE_KEY:KEY,SC_TRIAL_HMAC_SECRET:HMAC,SC_TRIAL_ROLLOUT_AT:'2026-11-01T00:00:00Z',
+    SC_TRIAL_PHONE_DELIVERY_ENABLED:'sms'}} );
+ await assert.rejects(()=>trial.otpStart({headers:{authorization:'Bearer '+TOKEN}},PHONE),e=>e.status===503);
+ assert.equal(calls.length,0);
+});
