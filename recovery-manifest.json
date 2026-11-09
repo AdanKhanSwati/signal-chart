@@ -3,13 +3,9 @@
   "vercelProject": "candriva-signals-beta",
   "teamId": "team_MOINx1C4FlKs1BqlFzBvQQeJ",
   "sourceFileCount": 104,
-  "sha1VerifiedRecovered": 85,
-  "notRecovered": 19,
+  "sha1VerifiedRecovered": 91,
+  "notRecovered": 13,
   "recoveredFiles": [
-    {
-      "path": "README.txt",
-      "sha1": "f1b5ddf7e4153e3c793df08e48ce68c132972351"
-    },
     {
       "path": "account-link.js",
       "sha1": "cb2d7a93ca38dc09cd349190698302e9031b7d6e"
@@ -155,6 +151,30 @@
       "sha1": "d7df054197ae3497c72b342540f43727d4c7ef68"
     },
     {
+      "path": "lib/forex-engine.js",
+      "sha1": "69381ee3085881dc212ccae79e68ce912da3cd91"
+    },
+    {
+      "path": "lib/sc-backtest.js",
+      "sha1": "f0f3cf17e00faae5c83dc752d1b628e37843e0e9"
+    },
+    {
+      "path": "lib/sc-candles-core.js",
+      "sha1": "b64840e922c199c5c30078f320bccfc3f706ec72"
+    },
+    {
+      "path": "lib/sc-economic.js",
+      "sha1": "f719db06383faff8665eb9dcc52397195c92d433"
+    },
+    {
+      "path": "lib/sc-market-catalog.js",
+      "sha1": "56a187c7916b71799da1c7c9953327b3996cd165"
+    },
+    {
+      "path": "lib/sc-news.js",
+      "sha1": "78e4ac0f2f25459a022b6200e63f3f1f66e64f93"
+    },
+    {
       "path": "lib/subscription-rules.js",
       "sha1": "ceeb313f82c977dd2608f444b204bd68b8154286"
     },
@@ -187,10 +207,6 @@
       "sha1": "e061da0af0910c259e09fb34224d3777809b4ca8"
     },
     {
-      "path": "signalchart-mark.svg",
-      "sha1": "e061da0af0910c259e09fb34224d3777809b4ca8"
-    },
-    {
       "path": "ops-sw.js",
       "sha1": "f0ef343e7046f744be3c6028b6f164a7fbca91e2"
     },
@@ -213,6 +229,10 @@
     {
       "path": "premium.css",
       "sha1": "24e95031a227e451ba109e527f780e0b791fc007"
+    },
+    {
+      "path": "README.txt",
+      "sha1": "f1b5ddf7e4153e3c793df08e48ce68c132972351"
     },
     {
       "path": "sc-app-live.js",
@@ -269,6 +289,10 @@
     {
       "path": "signalchart-legacy.css",
       "sha1": "810d64229598617dda5fb08341bbea6c6836779b"
+    },
+    {
+      "path": "signalchart-mark.svg",
+      "sha1": "e061da0af0910c259e09fb34224d3777809b4ca8"
     },
     {
       "path": "signalchart-pages.css",
@@ -387,30 +411,6 @@
     {
       "path": "lib/candriva-core.js",
       "sha1": "f2262c2af71277d648109da55e1b7cfc65e36ee9"
-    },
-    {
-      "path": "lib/forex-engine.js",
-      "sha1": "69381ee3085881dc212ccae79e68ce912da3cd91"
-    },
-    {
-      "path": "lib/sc-backtest.js",
-      "sha1": "f0f3cf17e00faae5c83dc752d1b628e37843e0e9"
-    },
-    {
-      "path": "lib/sc-candles-core.js",
-      "sha1": "b64840e922c199c5c30078f320bccfc3f706ec72"
-    },
-    {
-      "path": "lib/sc-economic.js",
-      "sha1": "f719db06383faff8665eb9dcc52397195c92d433"
-    },
-    {
-      "path": "lib/sc-market-catalog.js",
-      "sha1": "56a187c7916b71799da1c7c9953327b3996cd165"
-    },
-    {
-      "path": "lib/sc-news.js",
-      "sha1": "78e4ac0f2f25459a022b6200e63f3f1f66e64f93"
     },
     {
       "path": "ops-icon-192.png",

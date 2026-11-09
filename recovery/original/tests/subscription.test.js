@@ -1,0 +1,11 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),{entitlement,HOUR,DAY}=require('../lib/subscription-rules');
+const start=Date.parse('2026-11-08T00:00:00.000Z'),trial={trialStartedAt:new Date(start).toISOString(),trialEndsAt:new Date(start+72*HOUR).toISOString()},approve=(id,at)=>({paymentId:id,at:new Date(at).toISOString(),decision:'approved'});
+test('starts 72 hour free trial and locks automatically at expiry',()=>{assert.equal(entitlement(trial,[],start).status,'trial');assert.equal(entitlement(trial,[],start+72*HOUR-1).access,true);assert.equal(entitlement(trial,[],start+72*HOUR).access,false);assert.equal(entitlement(trial,[],start+72*HOUR).status,'locked')});
+test('user cannot reactivate a trial after expiry without payment',()=>{assert.equal(entitlement(trial,[],start+7*DAY).status,'locked')});
+test('admin-approved payment grants exactly 30 days',()=>{const at=start+4*DAY;assert.equal(entitlement(trial,[approve('a',at)],at+30*DAY-1).status,'active');assert.equal(entitlement(trial,[approve('a',at)],at+30*DAY).status,'locked')});
+test('early renewal extends current expiry rather than resetting it',()=>{const a=start+4*DAY,b=start+15*DAY;assert.equal(Date.parse(entitlement(trial,[approve('a',a),approve('b',b)],start+40*DAY).paidUntil),a+60*DAY)});
+test('duplicate payment ID cannot grant a second month',()=>{const at=start+4*DAY;assert.equal(Date.parse(entitlement(trial,[approve('same',at),approve('same',at+1)],at).paidUntil),at+30*DAY)});
+test('rejected and invalid decisions never extend access',()=>{const rejected={paymentId:'xx',at:new Date(start+4*DAY).toISOString(),decision:'rejected'};assert.equal(entitlement(trial,[rejected],start+4*DAY).status,'locked')});
+test('invalid trial timestamps fail closed',()=>assert.throws(()=>entitlement({...trial,trialEndsAt:trial.trialStartedAt},[],start)));
+test('superadmin access is independent of subscriber trials',()=>{const x=entitlement(trial,[],start+50*DAY,true);assert.equal(x.status,'administrator');assert.equal(x.access,true)});
