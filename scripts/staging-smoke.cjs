@@ -54,7 +54,7 @@ async function run(){
  assert.ok(typeof calendar.coverage==='string');
  const quote=await read('/api/checkout?action=quote');
  assert.ok(quote.note?.includes('Reference')||quote.note?.includes('reference'));
- console.log(JSON.stringify({status:'PASS',readOnly:true,endpoints:10,
+ console.log(JSON.stringify({status:'PASS',readOnly:true,endpoints:9,
   trialHours:config.trialHours,trialSignalLimit:config.trialSignalLimit,
   billingDisabled:true,autopublishingDisabled:true,premiumPreviewCount:feed.signals.length,
   candleCount:market.candles.length,calendarCoverage:calendar.coverage},null,2));
