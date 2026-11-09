@@ -91,3 +91,36 @@ test('authenticated enabled automation executes and records an auditable run',as
  assert.deepEqual(calls.map(x=>x.name),['sc_publish_automatic_signal','sc_record_auto_scan']);
  assert.equal(r.headers['Cache-Control'],'no-store, private');
 });
+
+test('USD spot fallback is labeled correctly and never presented as Binance futures',async()=>{
+ const now=Date.UTC(2026,10,9,19,8);
+ const bars=fixture(now,330);
+ const feed=(url)=>{
+  if(url.includes('fapi.binance.com'))return {ok:false,status:451,json:async()=>({})};
+  if(url.includes('/OHLC?'))return {ok:true,json:async()=>({error:[],result:{XXBTZUSD:bars.map(b=>[
+   Math.round(b.time/1000),String(b.open),String(b.high),String(b.low),String(b.close),
+   String(b.close),String(b.volume),13
+  ]),last:0}})};
+  if(url.includes('/Ticker?'))return {ok:true,json:async()=>({error:[],result:{XXBTZUSD:{c:[String(bars.at(-2).close)]}}})};
+  throw Error('Unexpected provider path '+url);
+ };
+ const scanner=createAutoEngine({
+  now:()=>now,
+  fetchFn:async url=>feed(url),
+  calendar:{snapshot:async()=>({coverage:'FULL_WEEK'}),assess:()=>({decision:'CLEAR',blocked:false})},
+  cryptoSymbols:['BTCUSDT'],fxSymbols:[]
+ });
+ const candidate=await scanner.scanOne('crypto','BTCUSDT',{coverage:'FULL_WEEK'});
+ assert.equal(candidate.status,'QUALIFIED');
+ assert.equal(candidate.asset,'BTCUSD');
+ assert.equal(candidate.source,'Kraken USD spot');
+ assert.equal(candidate.analysis.executionBasis,'EXCHANGE_SPOT_USD_REFERENCE');
+ assert.equal(candidate.signalKey.split(':')[1],'BTCUSD');
+ assert.ok(!candidate.signalKey.includes('BTCUSDT'));
+});
+test('natural forex weekend gap does not masquerade as bad market data',()=>{
+ const now=Date.UTC(2026,10,9,19,8),bars=fixture(now,330,'forex');
+ const weekend=bars.map((b,i)=>i<310?{...b,time:b.time-48*H,closeTime:b.closeTime-48*H}:b);
+ assert.throws(()=>validateBars(weekend,now,'crypto'),/Discontinuous/);
+ assert.ok(validateBars(weekend,now,'forex').length>=260);
+});
