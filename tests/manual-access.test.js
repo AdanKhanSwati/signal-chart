@@ -4,9 +4,9 @@ const {createGrantEvent,createRevokeEvent,resolveManualGrants}=require('../lib/m
 const {entitlement,HOUR,DAY}=require('../lib/subscription-rules');
 const MEMBER='11111111-1111-4111-8111-111111111111',OTHER='22222222-2222-4222-8222-222222222222',ADMIN='33333333-3333-4333-8333-333333333333';
 const T=Date.parse('2026-11-09T00:00:00Z');
-const trial={trialStartedAt:new Date(T).toISOString(),trialEndsAt:new Date(T+72*HOUR).toISOString()};
+const trial={trialStartedAt:new Date(T).toISOString(),trialEndsAt:new Date(T+24*HOUR).toISOString()};
 const grant=(end,memberId=MEMBER)=>createGrantEvent({memberId,expiresAt:new Date(T+end).toISOString(),reason:'Founder promotional access'},{adminUserId:ADMIN,now:T});
-test('manual 17-day access extends expired 72-hour trial without payment',()=>{
+test('manual 17-day access extends expired 24-hour trial without payment',()=>{
  const g=grant(17*DAY),a=entitlement(trial,[],T+7*DAY,false,[g],MEMBER);
  assert.equal(a.status,'granted');assert.equal(a.access,true);assert.equal(a.manualEndsAt,g.expiresAt);assert.equal(a.accessUntil,g.expiresAt);
 });
