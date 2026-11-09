@@ -2,7 +2,7 @@
 /** Public market PRICE snapshots only; no premium signal information. */
 const PAIRS='EURUSD GBPUSD USDJPY USDCHF USDCAD AUDUSD NZDUSD EURGBP EURJPY EURCHF EURAUD EURCAD EURNZD GBPJPY GBPCHF GBPAUD GBPCAD GBPNZD AUDJPY AUDCAD AUDNZD AUDCHF NZDJPY NZDCAD NZDCHF CADJPY CADCHF CHFJPY USDSGD USDHKD USDNOK USDSEK USDCNH USDMXN USDZAR USDTRY USDINR USDPKR'.split(' ');
 const TOP=new Set(['BTCUSDT','ETHUSDT','SOLUSDT','XRPUSDT','DOGEUSDT','BNBUSDT','ADAUSDT','AVAXUSDT','LINKUSDT','LTCUSDT']);
-const cache=new Map();
+
 async function json(fetchFn,url){
  const r=await fetchFn(url,{headers:{Accept:'application/json','User-Agent':'SignalChartMarketData/1.0'},
   cache:'no-store',signal:AbortSignal.timeout(11000)});
@@ -10,7 +10,7 @@ async function json(fetchFn,url){
  return r.json();
 }
 const finite=x=>x!==undefined&&x!==null&&x!==''&&Number.isFinite(Number(x))?Number(x):null;
-function createHandler({fetchFn=globalThis.fetch,catalog=require('../lib/sc-market-catalog'),clock=()=>Date.now()}={}){
+function createHandler({fetchFn=globalThis.fetch,catalog=require('../lib/sc-market-catalog'),clock=()=>Date.now(),cache=new Map()}={}){
  return async function(req,res){
   res.setHeader('X-Content-Type-Options','nosniff');
   res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=30');
@@ -18,7 +18,7 @@ function createHandler({fetchFn=globalThis.fetch,catalog=require('../lib/sc-mark
   const mode=String(req.query?.mode||''),market=String(req.query?.market||'crypto');
   if(mode==='catalog')return catalog(req,res);
   if(!['crypto','forex'].includes(market))return res.status(400).json({error:'Unsupported market'});
-  const key=market+':'+String(req.query?.all)==='1';
+  const key=market+':'+(String(req.query?.all||'')==='1'?'all':'top');
   const old=cache.get(key);
   if(old&&clock()-old.at<15000)return res.status(200).json(old.data);
   try{
