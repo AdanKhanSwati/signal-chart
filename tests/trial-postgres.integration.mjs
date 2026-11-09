@@ -8,7 +8,8 @@ const base=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const migrations=['20261109180000_sc_trial_foundation.sql','20261109180100_sc_trial_functions.sql',
 '20261109180200_sc_trial_admin.sql','20261109180300_sc_legacy_guard.sql',
 '20261109190000_sc_trial_reopen.sql',
-'20261109191000_sc_signal_publication_review.sql'];
+'20261109191000_sc_signal_publication_review.sql',
+'20261109192000_sc_signal_review_queue.sql'];
 const customer1='11111111-1111-4111-8111-111111111111';
 const customer2='22222222-2222-4222-8222-222222222222';
 const admin='33333333-3333-4333-8333-333333333333';
@@ -103,10 +104,15 @@ test('SignalChart trial migrations and security rules execute on real PostgreSQL
  assert.equal(beforeReview.length,0,'pending signals cannot appear in public feed');
  const proposalRow=(await db.query('select status from public.sc_signal_proposals where id=$1',[proposed.proposalId])).rows[0];
  assert.equal(proposalRow.status,'pending');
+ const pendingQueue=(await db.query('select public.sc_signal_proposal_queue(50) x')).rows[0].x;
+ assert.equal(pendingQueue.length,1);
+ assert.equal(pendingQueue[0].proposalId,proposed.proposalId);
+ assert.ok(pendingQueue[0].analysis.research.length>=80);
 
  await db.exec('set role authenticated;');
  try{
   await assert.rejects(db.query('select * from public.sc_signal_proposals'),/permission denied/);
+  await assert.rejects(db.query('select public.sc_signal_proposal_queue(50)'),/permission denied/);
   await assert.rejects(db.query('select public.sc_review_premium_signal($1,$2,$3,$4)',[
    admin,proposed.proposalId,'approve','approved independent review']),/permission denied/);
  }finally{await db.exec('reset role;')}
@@ -115,6 +121,7 @@ test('SignalChart trial migrations and security rules execute on real PostgreSQL
  ])).rows[0].x;
  assert.equal(reviewed.status,'approved');
  assert.equal(reviewed.published,true);
+ assert.equal((await db.query('select public.sc_signal_proposal_queue(50) x')).rows[0].x.length,0);
  const published=(await db.query("select premium_data,public_meta from public.sc_premium_signals where signal_key='crypto:btc:review-1'")).rows[0];
  assert.equal(published.premium_data.direction,'LONG');
  assert.equal(published.public_meta.review,'manual');
