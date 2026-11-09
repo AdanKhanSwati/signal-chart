@@ -78,3 +78,13 @@ This installs a testing dependency locally only. It does not mutate production o
 7. The original project source recovery and non-trial SignalChart market feeds remain incomplete. Keep the staging Git branch configured not to auto-deploy and preserve the current production alias.
 
 **Cost control:** Supabase SMS providers bill per delivery. The current code prepares for OTP but does not provision a provider, send real texts, create paid resources, or change the free hosting plan.
+
+
+## Current audited staging snapshot (9 November 2026)
+
+- **82/82 tests passed** on GitHub commit `1c77a2787a7df578881878b6ce28a071da459b53`: 81 Node.js regression/security tests plus one executed PostgreSQL integration test using PGlite. The tests include a real SQL deployment against a disposable Postgres-compatible engine, role-based data denial, duplicate phone claims, 72-hour expiry, three-signal exhaustion, duplicate opens, and payment entitlement. This is not production Supabase testing.
+- Forex and Crypto website navigation now lead to the shared protected `/signals.html` vault; no unrelated branding, fonts, or layouts were changed.
+- The release gate has been updated for the 72-hour/three-signal contract and expected source changes. It still rejects deployment due to **19 unverified originals** (some backend files were rewritten, but the original source hashes remain unavailable). There are no additional unexpected-source errors in the current gate report.
+- Connected Vercel project currently has `SUPABASE_URL` and public key configured, but **does not** have `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`, and **does not** have `SC_TRIAL_HMAC_SECRET`. No database migration or SMS integration was applied to the real Supabase account.
+- Do not activate SMS billing, accept crypto payments or deploy production from this branch. Current tests exercise fake accounts and a disposable test database; actual phone verification and account migration must be tested against the real Supabase project after authorized connection.
+- **Next:** inspect live schema, RLS and historical accounts, provision server-side secret key and stable HMAC secret through Vercel's protected environment, select an approved SMS provider, then run verified-phone/duplicate-phone and concurrent premium-unlock tests with real test identities in a preview deployment.
