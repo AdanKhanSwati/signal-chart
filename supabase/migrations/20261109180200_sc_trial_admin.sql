@@ -94,6 +94,7 @@ declare exhausted integer;declare revoked integer;declare paid integer;
 declare first_unlock_avg double precision;declare average_used double precision;
 declare exhausted_pct numeric;declare conversion_pct numeric;
 declare verified_users integer;declare otp_users integer;declare risk_reviews integer;
+declare registered_users integer;declare purchase_delay double precision;
 begin
  select count(*),
    count(*) filter(where revoked_at is null and expires_at>now() and signals_consumed<3),
@@ -108,6 +109,12 @@ begin
   into first_unlock_avg from public.sc_trials t
   join (select trial_id,min(unlocked_at) first_unlock
    from public.sc_trial_signal_unlocks group by trial_id) f on f.trial_id=t.id;
+ select count(*) into registered_users from auth.users;
+ select avg(extract(epoch from (first_paid.verified_at - t.activated_at)))::double precision
+  into purchase_delay from public.sc_trials t
+  join (select user_id,min(verified_at) verified_at from public.sc_paid_access group by user_id) first_paid
+   on first_paid.user_id=t.user_id
+  where first_paid.verified_at>=t.activated_at;
  select count(distinct user_id) into verified_users from public.sc_trial_risk_events
   where event_type='otp_verified';
  select count(distinct user_id) into otp_users from public.sc_trial_risk_events
@@ -117,12 +124,12 @@ begin
  exhausted_pct:=case when total>0 then round(100*exhausted::numeric/total,2) else null end;
  conversion_pct:=case when total>0 then round(100*paid::numeric/total,2) else null end;
  return jsonb_build_object(
-  'trialActivations',total,'activeTrials',active,'expiredTrials',expired,
+  'registeredUsers',registered_users,'trialActivations',total,'activeTrials',active,'expiredTrials',expired,
   'exhaustedTrials',exhausted,'revokedTrials',revoked,'paidConversions',paid,
   'trialToPaidConversionPercent',conversion_pct,
   'averageSignalsPerTrial',average_used,
   'exhaustionPercent',exhausted_pct,
-  'averageSecondsToFirstUnlock',first_unlock_avg,
+  'averageSecondsToFirstUnlock',first_unlock_avg,'averageSecondsToFirstPurchase',purchase_delay,
   'otpRequestedUsers',otp_users,'otpVerifiedUsers',verified_users,
   'verificationCompletionPercent',case when otp_users>0
      then round(100*verified_users::numeric/otp_users,2) else null end,
