@@ -1,3 +1,3 @@
-# SignalChart recovery staging
+# SignalChart source recovery (staging only)
 
-This is an isolated recovery branch, not deployable production source. The existing Vercel deployment remains the source of truth until the complete application can be verified.
+This branch contains source files recovered and SHA-1 verified from the existing Vercel deployment. It is incomplete until all server-side source is recovered. Do NOT promote or deploy it to production.

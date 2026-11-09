@@ -1,0 +1,1 @@
+(()=>{'use strict';const profile=document.querySelector('.account-top-link');if(profile)profile.textContent='♙ Candriva account';})();

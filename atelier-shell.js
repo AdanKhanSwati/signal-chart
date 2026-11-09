@@ -1,0 +1,22 @@
+(()=>{'use strict';const path=location.pathname;
+const route=[['/','grid','Overview'],['/crypto.html','bitcoin','Crypto'],['/forex.html','trend','Forex'],['/terminal.html','chart','Markets'],['/billing.html','wallet','Membership'],['/support.html','msg','Messages'],['/ops.html','shield','Admin']];
+const icons={"grid":"<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/>","bitcoin":"<path d=\"M8 4h7a3 3 0 0 1 0 6H8m0 0h8a3 3 0 0 1 0 7H8M10 2v19M14 2v19M6 4h2M6 17h2\"/>","trend":"<path d=\"m3 17 7-7 4 4 7-8M15 6h6v6\"/>","chart":"<path d=\"M3 18h18M6 15V9m5 9V4m5 12V8m5 8V5\"/>","wallet":"<rect x=\"3\" y=\"6\" width=\"18\" height=\"15\" rx=\"3\"/><path d=\"M3 10h18M16 15h2\"/>","msg":"<path d=\"M5 4h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H9l-5 3V6a2 2 0 0 1 2-2Z\"/><path d=\"M8 10h8M8 14h5\"/>","shield":"<path d=\"m12 2 9 4v6c0 6-4 9-9 10-5-1-9-4-9-10V6l9-4Z\"/><path d=\"m8.5 12 2.5 2.5 4.8-5\"/>"};
+const svg=(name)=>'<svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">'+(icons[name]||'')+'</svg>';
+const oldNodes=[...document.body.children];
+const shell=document.createElement('div');shell.className='at-submain';
+const page=document.createElement('div');page.className='at-subpage';
+for(const el of oldNodes){if(el.tagName==='SCRIPT'||el.classList?.contains('aurora'))continue;page.appendChild(el)}
+const rail=document.createElement('aside');rail.className='at-sub-rail';rail.setAttribute('aria-label','Primary navigation');
+rail.innerHTML='<a class="at-rail-logo" title="Candriva overview" href="/">⌁</a><span class="at-rail-rule"></span>';
+for(const [href,name,label]of route){const a=document.createElement('a');a.href=href;a.title=label;a.setAttribute('aria-label',label);a.className='at-route'+(path===href?' active':'');a.innerHTML=svg(name);rail.append(a)}
+const flex=document.createElement('span');flex.className='at-flexspace';rail.append(flex);const user=document.createElement('span');user.className='at-user';user.textContent='C';rail.append(user);
+const header=document.createElement('header');header.className='at-subtop';
+const brand=document.createElement('a');brand.href='/';brand.className='at-subbrand';brand.innerHTML='CANDRIVA<span>.</span><small>MARKET INTELLIGENCE</small>';header.append(brand);
+const nav=document.createElement('nav');nav.className='at-subnav';nav.setAttribute('aria-label','Market navigation');for(const [href,label] of [['/crypto.html','CRYPTO'],['/forex.html','FOREX'],['/terminal.html','TERMINAL'],['/billing.html','MEMBERSHIP']]){const a=document.createElement('a');a.href=href;a.textContent=label;if(path===href)a.className='active';nav.append(a)}header.append(nav);
+const tools=document.createElement('div');tools.className='at-sub-actions';tools.innerHTML='<a href="/support.html">SUPPORT</a><a href="/account.html" class="at-sub-cta">MY ACCOUNT ↗</a>';const sign=document.createElement('button');sign.id='at-signout';sign.textContent='SIGN OUT';sign.hidden=true;sign.onclick=()=>document.querySelector('#signout')?.click();tools.append(sign);header.append(tools);
+const crumbs=document.createElement('div');crumbs.className='at-sub-breadcrumb';crumbs.innerHTML='CANDRIVA <span>/</span><strong>'+(route.find(x=>x[0]===path)?.[2]||'MARKETS').toUpperCase()+'</strong>';
+const mnav=document.createElement('nav');mnav.className='at-sub-mobile';mnav.setAttribute('aria-label','Mobile navigation');for(const [href,name,label] of [route[0],route[1],route[2],['/account.html','wallet','Account']]){const a=document.createElement('a');a.href=href;a.innerHTML=svg(name)+label;if(path===href)a.className='active';mnav.append(a)}
+shell.append(header,crumbs,page,mnav);document.body.prepend(rail,shell);
+const oldSign=document.querySelector('#signout');
+if(oldSign){const observe=new MutationObserver(()=>{sign.hidden=oldSign.hidden||oldSign.hasAttribute('hidden')});observe.observe(oldSign,{attributes:true,attributeFilter:['hidden','style','class']});sign.hidden=oldSign.hidden||oldSign.hasAttribute('hidden')}
+})();
