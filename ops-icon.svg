@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-label="SignalChart">
+  <defs><linearGradient id="sun" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#ff713e"/><stop offset="1" stop-color="#ffad69"/></linearGradient></defs>
+  <path d="M10 47.7 22.2 27h15L24.7 59H7z" fill="url(#sun)"/>
+  <path d="M32.3 40.8 44 15h16L46 48H29z" fill="url(#sun)"/>
+</svg>

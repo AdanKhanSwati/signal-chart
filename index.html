@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e1018"><meta name="description" content="SignalChart — Crypto and Forex signals, real market charts, indicators, heatmaps, and membership in one modern workspace.">
+<title>SignalChart — Crypto & Forex Signals</title>
+<link rel="icon" type="image/svg+xml" href="/signalchart-mark.svg">
+<link rel="stylesheet" href="/signalchart.css">
+<link rel="stylesheet" href="/signalchart-polish.css"><link rel="stylesheet" href="/signalchart-finish.css"><link rel="stylesheet" href="/signalchart-layout-v5.css"><link rel="stylesheet" href="/interactive-chart.css"><link rel="stylesheet" href="/sc-release.css"><link rel="manifest" href="/customer.webmanifest"></head><body class="sc-body" data-sc-page="dashboard">
+<svg class="sc-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM9 21v-8h6v8"/></symbol>
+<symbol id="i-signal" viewBox="0 0 24 24"><path d="M12 16v5M8 8a6 6 0 0 0 0 8m8-8a6 6 0 0 1 0 8M5 5a10 10 0 0 0 0 14m14-14a10 10 0 0 1 0 14"/><circle cx="12" cy="11" r="2"/></symbol>
+<symbol id="i-market" viewBox="0 0 24 24"><path d="M4 20V13m5 7V9m5 11V4m5 16V11"/></symbol>
+<symbol id="i-pie" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9h-9zM14 3a8 8 0 0 1 7 7h-7z"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.9 6.5 1-4.7 4.5 1.1 6.5-5.7-3-5.7 3 1.1-6.5-4.7-4.5 6.5-1z"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="m4 17 6-6 4 4 6-8M15 7h5v5"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18m-6 6h3"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 4h16v13H8l-4 4zM8 9h8m-8 4h6"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5.5 5.5"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0v5l-2 3h16l-2-3zM10 21h4"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M5 19 19 5M8 5h11v11"/></symbol>
+<symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 9 5 5 5-5"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M3 4h8v17H3zm10 0h8v17h-8zM6 8h2m8 0h2"/></symbol>
+</defs></svg>
+<div class="sc-layout">
+ <aside class="sc-sidebar" id="sc-sidebar">
+   <a href="/" class="sc-logo"><img src="/signalchart-wordmark.svg" alt="SignalChart Trading Signals" width="185" height="52"></a>
+   <nav class="sc-nav" aria-label="Main navigation">
+    <a class="selected" href="/dashboard.html" aria-current="page"><svg><use href="#i-home"/></svg> Dashboard</a>
+    <a href="/signals.html"><svg><use href="#i-signal"/></svg> Trading Signals</a>
+    <a href="/terminal.html"><svg><use href="#i-market"/></svg> Markets</a>
+    <a href="/analytics.html"><svg><use href="#i-pie"/></svg> Analytics</a>
+    <a href="/watchlist.html"><svg><use href="#i-star"/></svg> Watchlist</a>
+    <div class="sc-nav-divider"></div>
+    <a href="/billing.html"><svg><use href="#i-wallet"/></svg> Plans & Billing</a>
+    <a href="/support.html"><svg><use href="#i-chat"/></svg> Messages & Support</a>
+   </nav>
+   <div class="sc-side-bottom">
+    <div class="sc-upgrade"><div class="sc-crown">♛</div><strong>Unlock more signals</strong><p>Access crypto and forex scanners, market insights and member support.</p><a href="/billing.html">View membership <span>↗</span></a></div>
+    <div class="sc-side-footer">© <span id="sc-year">2026</span> SIGNALCHART</div>
+   </div>
+ </aside>
+ <div class="sc-shade" id="sc-shade" hidden></div>
+ <div class="sc-page">
+   <header class="sc-topbar">
+    <button class="sc-menu-toggle" id="sc-menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><svg><use href="#i-menu"/></svg></button>
+    <a class="sc-mobile-logo" href="/"><img src="/signalchart-wordmark.svg" width="140" height="36" alt="SignalChart"></a>
+    <button class="sc-search" id="sc-search-trigger" type="button" aria-label="Search markets or pages"><svg><use href="#i-search"/></svg><span>Search markets, pairs or signals...</span><kbd>⌘ K</kbd></button>
+    <div class="sc-top-actions"><a href="/support.html" class="sc-notify" title="Messages and notifications" aria-label="Messages"><svg><use href="#i-bell"/></svg><i></i></a><a href="/account.html" class="sc-user"><span class="sc-avatar" id="sc-avatar">S</span><span><strong id="sc-user-name">My account</strong><small id="sc-user-status">Membership</small></span><svg class="sc-user-chevron"><use href="#i-chevron"/></svg></a></div>
+   </header>
+   <main class="sc-main">
+    <section class="sc-hero" aria-label="SignalChart overview">
+      <div class="sc-hero-wave" aria-hidden="true"><svg preserveAspectRatio="none" viewBox="0 0 1300 275"><defs><linearGradient id="w1" x1="0" y1="1" x2=".93" y2=".05"><stop stop-color="#4c1e1b" stop-opacity=".06"/><stop offset=".45" stop-color="#fa6330" stop-opacity=".8"/><stop offset=".8" stop-color="#ff9954" stop-opacity=".96"/><stop offset="1" stop-color="#fd8043" stop-opacity="0"/></linearGradient><linearGradient id="w2" x1="0" y1="1" x2=".9" y2="0"><stop stop-color="#d94428" stop-opacity="0"/><stop offset=".5" stop-color="#e35c38" stop-opacity=".21"/><stop offset="1" stop-color="#ffb271" stop-opacity=".05"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="18"/></filter></defs><path d="M460 260 C 620 68, 672 270, 836 129 S 986 57, 1116 -5 L 1280 -55" stroke="url(#w1)" stroke-width="40" opacity=".65" fill="none" filter="url(#glow)"/><path d="M445 263 C 615 77, 688 245, 835 136 S 978 76, 1115 -7 L 1280 -60" stroke="url(#w1)" stroke-width="2.3" fill="none" opacity=".94"/><path d="M475 270 C 630 88, 710 259, 856 150 S 1000 70, 1138 -24" stroke="url(#w1)" stroke-width="1.1" fill="none" opacity=".42"/><path d="M478 279 C 635 88, 702 275, 855 165 S 1003 87, 1128 -18" stroke="url(#w1)" stroke-width=".7" fill="none" opacity=".52"/><path d="M470 256 C 606 90, 684 261, 828 120 S 997 88, 1120 -30 L 1320 -60" stroke="url(#w2)" stroke-width="100" fill="none" opacity=".7"/></svg></div>
+      <div class="sc-hero-copy"><div class="sc-greeting" id="sc-greeting">Welcome to SignalChart <span>✦</span></div><h1>Market Opportunities<br>at a <em>Glance</em></h1><p>Crypto & forex signals, real market charts and the insights that matter—all in one place.</p><div class="sc-hero-buttons"><a class="sc-button-orange" href="/signals.html"><span>▶</span> Today's Signals</a><a class="sc-button-dark" href="/terminal.html"><svg><use href="#i-pie"/></svg> Market Overview</a></div></div>
+      <div class="sc-hero-metrics" aria-label="Verified market statistics">
+        <div class="sc-metric sc-metric-feature"><div class="sc-metric-top"><span>Qualified Signals</span><svg><use href="#i-signal"/></svg></div><div class="sc-metric-value"><strong id="sc-metric-qualified">—</strong><small id="sc-metric-qualified-note">Sign in to view</small></div></div>
+        <div class="sc-metric"><div class="sc-metric-icon">◎</div><span>Market Breadth</span><div class="sc-metric-value"><strong id="sc-metric-breadth">—</strong><small id="sc-metric-breadth-note">Tracked crypto assets</small></div></div>
+        <div class="sc-metric"><div class="sc-metric-icon">▥</div><span>BTC 24h</span><div class="sc-metric-value"><strong id="sc-metric-btc">—</strong><small id="sc-metric-btc-note">Exchange movement</small></div></div>
+        <div class="sc-metric"><div class="sc-metric-icon">☆</div><span>Active Pairs</span><div class="sc-metric-value"><strong id="sc-metric-pairs">8</strong><small>5 crypto · 3 forex</small></div></div>
+      </div>
+    </section>
+    <div class="sc-grid-content">
+      <div class="sc-main-grid">
+       <section class="sc-panel sc-chart-panel" id="sc-primary-chart"><div class="sc-chart-title"><button type="button" class="sc-selected-symbol" id="sc-symbol-button"><span class="sc-coin" id="sc-coin">₿</span><span><strong id="sc-chart-pair">BTC/USDT</strong><small id="sc-chart-subtitle">Bitcoin · Futures</small></span><svg><use href="#i-chevron"/></svg></button><div class="sc-chart-price"><strong id="sc-chart-price">—</strong><small id="sc-chart-change">Loading price…</small></div><div class="sc-timeframes" role="group" aria-label="Chart timeframe"><button data-timeframe="1h">1H</button><button data-timeframe="4h">4H</button><button data-timeframe="1d" class="active">1D</button><button data-timeframe="1w">1W</button><button data-timeframe="1mo">1M</button></div><button type="button" class="sc-chart-expand" id="sc-chart-expand" title="Expand chart" aria-label="Expand chart"><svg><use href="#i-expand"/></svg></button></div><div class="sc-chart-canvas"><canvas id="sc-candles" role="img" aria-label="Real market candlestick price chart"></canvas><div class="sc-chart-loading" id="sc-chart-loading">Connecting to market candles…</div><div class="sc-ohlc" id="sc-ohlc" aria-live="off"></div></div><div class="sc-chart-bottom"><div><span><i class="sc-ema20"></i> EMA 20</span><span><i class="sc-ema50"></i> EMA 50</span><span><i class="sc-volume"></i> Volume</span></div><span id="sc-chart-updated">SOURCE: BINANCE FUTURES</span></div></section>
+       <div class="sc-mid-stack">
+         <section class="sc-panel sc-progress-panel"><div class="sc-panel-head"><h2>Market Breadth</h2><span class="sc-subtle">5 crypto assets</span></div><div class="sc-ring-content"><div class="sc-donut" id="sc-breadth-donut"><div><strong id="sc-breadth-pct">—</strong><small>Advancing</small></div></div><div class="sc-ring-stats"><div><i class="green"></i><span>Up (24h)</span><strong id="sc-breadth-up">—</strong></div><div><i class="red"></i><span>Down (24h)</span><strong id="sc-breadth-down">—</strong></div><div><i class="neutral"></i><span>Flat / no data</span><strong id="sc-breadth-flat">—</strong></div></div></div></section>
+         <section class="sc-panel sc-monthly-panel"><div class="sc-panel-head"><h2>BTC · 30-Day Trend</h2><small id="sc-trend-change">—</small></div><div class="sc-line-graph"><svg id="sc-monthly-svg" viewBox="0 0 300 122" preserveAspectRatio="none" aria-label="Bitcoin 30-day closing price trend" role="img"><defs><linearGradient id="sc-line-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fa7438" stop-opacity=".45"/><stop offset="1" stop-color="#fa7438" stop-opacity="0"/></linearGradient></defs><path id="sc-monthly-area" fill="url(#sc-line-fill)" d=""/><path id="sc-monthly-line" d="" stroke="#ff8a43" stroke-width="2.6" fill="none" stroke-linejoin="round" stroke-linecap="round"/></svg><div class="sc-trend-axis"><span>30d ago</span><span>15d ago</span><span>Today</span></div></div></section>
+       </div>
+       <div class="sc-right-stack">
+         <section class="sc-panel sc-sentiment-panel"><div class="sc-panel-head"><h2>Market Sentiment <span class="sc-hint" title="Computed from the 24-hour change of the five covered cryptocurrencies">ⓘ</span></h2></div><div class="sc-gauge"><svg viewBox="0 0 260 130" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><defs><linearGradient id="sc-sent-gradient" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#41d38d"/><stop offset=".5" stop-color="#e6e66d"/><stop offset=".77" stop-color="#ff8a46"/><stop offset="1" stop-color="#c54b5e"/></linearGradient></defs><path d="M32 118 A98 98 0 0 1 228 118" fill="none" stroke="#30323b" stroke-width="21" stroke-linecap="round"/><path d="M32 118 A98 98 0 0 1 228 118" fill="none" stroke="url(#sc-sent-gradient)" stroke-width="18" stroke-linecap="round"/><circle id="sc-gauge-dot" cx="130" cy="21" r="7" fill="#faf9fa" stroke="#fff" stroke-width="1"/></svg><div><strong id="sc-sentiment-text">—</strong><small id="sc-sentiment-note">Based on tracked markets</small></div></div></section>
+         <section class="sc-panel sc-signals-panel"><div class="sc-panel-head"><h2>Today's Signals</h2><a href="/signals.html">View All →</a></div><div class="sc-signals-list" id="sc-top-signals"><div class="sc-signal-empty"><strong>Loading signal access…</strong><small>Verified scanner results appear here.</small></div></div></section>
+       </div>
+      </div>
+      <div class="sc-bottom-grid">
+        <section class="sc-panel sc-volume-panel"><div class="sc-panel-head"><h2>Volume Distribution</h2><span class="sc-subtle">24H</span></div><div class="sc-volume-content"><div class="sc-volume-ring" id="sc-volume-ring"><div><strong id="sc-total-volume">—</strong><small>Tracked volume</small></div></div><div class="sc-volume-legend" id="sc-volume-legend"><div class="sc-muted">Loading volumes…</div></div></div><div class="sc-data-foot">5 covered Binance futures markets</div></section>
+        <section class="sc-panel sc-movers-panel"><div class="sc-panel-head"><h2>Top Gainers <span>(24h)</span></h2><a href="/analytics.html" aria-label="All market gainers">↗</a></div><div class="sc-bars" id="sc-gainers"><div class="sc-bars-loading">Loading movers…</div></div></section>
+        <section class="sc-panel sc-movers-panel"><div class="sc-panel-head"><h2>Top Losers <span>(24h)</span></h2><a href="/analytics.html" aria-label="All market losers">↗</a></div><div class="sc-bars" id="sc-losers"><div class="sc-bars-loading">Loading movers…</div></div></section>
+        <section class="sc-panel sc-heatmap-panel"><div class="sc-panel-head"><h2>Market Heatmap</h2><a href="/analytics.html" aria-label="Market heatmap details">↗</a></div><div class="sc-heatmap" id="sc-heatmap"><div class="sc-bars-loading">Loading 24-hour changes…</div></div></section>
+      </div>
+      <footer class="sc-content-footer"><span>SignalChart © <span id="sc-footer-year">2026</span></span><span>Exchange statistics reflect covered markets, not verified trading returns.</span><a href="/support.html">Help & Support</a></footer>
+    </div>
+   </main>
+ </div>
+</div>
+<div class="sc-command-wrap" id="sc-command-wrap" hidden><div class="sc-command-shade" data-close-command></div><div class="sc-command-dialog" role="dialog" aria-modal="true" aria-label="Search SignalChart"><div class="sc-command-input-row"><svg><use href="#i-search"/></svg><input id="sc-command-input" placeholder="Search BTC, EUR/USD, pages…" autocomplete="off" aria-label="Search markets and pages"><button id="sc-command-close" aria-label="Close search"><svg><use href="#i-x"/></svg></button></div><div id="sc-command-results"></div><div class="sc-command-help">↑ ↓ Navigate <span>↵ Select</span><span>ESC Close</span></div></div></div>
+<nav class="sc-mobile-bottom" aria-label="Mobile navigation"><a href="/dashboard.html" class="active"><svg><use href="#i-home"/></svg>Home</a><a href="/signals.html"><svg><use href="#i-signal"/></svg>Signals</a><a href="/terminal.html"><svg><use href="#i-market"/></svg>Markets</a><a href="/account.html"><svg><use href="#i-wallet"/></svg>Account</a></nav>
+<script src="/interactive-chart.js" defer></script><script src="/signalchart.js" defer></script>
+<script src="/sc-risk.js" defer></script></body></html>

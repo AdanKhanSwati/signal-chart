@@ -1,0 +1,13 @@
+/* Interactive SignalChart candlesticks */
+.sc-chart-canvas{position:relative!important;min-width:0!important}
+#sc-candles{display:block;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair}
+.sc-chart-toolbox{position:absolute;top:7px;right:83px;z-index:4;display:flex;align-items:center;gap:4px;padding:3px;background:rgba(23,22,30,.78);border:1px solid rgba(255,149,86,.26);border-radius:8px;box-shadow:0 4px 13px #0004;backdrop-filter:blur(10px)}
+.sc-chart-toolbox>button{border:0;background:rgba(255,255,255,.035);color:#ebd8d6;min-width:26px;min-height:26px;padding:4px 6px;font:700 10px system-ui,-apple-system,sans-serif;border-radius:5px;touch-action:manipulation;cursor:pointer}
+.sc-chart-toolbox>button:hover,.sc-chart-toolbox>button:focus-visible{background:rgba(255,139,72,.2);color:#ffcaad}
+.sc-chart-toolbox>button[aria-pressed=false]{color:#847c8b;background:transparent}
+.sc-chart-toolbox>button:focus-visible{outline:2px solid #ff985c;outline-offset:2px}
+.sc-chart-hint{position:absolute;left:13px;bottom:25px;z-index:2;color:#a79da9;background:rgba(14,15,22,.65);padding:3px 6px;border-radius:4px;font:500 9px system-ui,-apple-system,sans-serif;pointer-events:none}
+.sc-chart-canvas .sc-ohlc{pointer-events:none;max-width:calc(100% - 16px);overflow-wrap:anywhere}
+@media(max-width:760px){.sc-chart-toolbox{right:65px;top:5px;gap:2px}.sc-chart-toolbox>button{min-height:25px;min-width:24px;padding:3px 4px}.sc-chart-hint{left:6px;bottom:23px;font-size:8px}}
+@media(max-width:430px){.sc-chart-toolbox{right:62px;top:3px;gap:1px}.sc-chart-toolbox>button{font-size:9px;min-width:22px;min-height:24px;padding:2px 3px}.sc-chart-hint{left:5px;bottom:22px;font-size:7px}}
+@media(prefers-reduced-motion:reduce){.sc-chart-toolbox,.sc-chart-toolbox>button{transition:none!important}}
