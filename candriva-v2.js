@@ -49,16 +49,13 @@ function startAccount(data){
  put('#membership-caption',a.access?'Access permitted':'Signals locked until approved payment');
  put('#trial-deadline','Ends: '+clock(a.trialEndsAt));put('#paid-deadline',clock(a.accessUntil||a.paidUntil));
  put('#member-email',a.email);put('#member-state',a.status.toUpperCase());put('#trial-expires',clock(a.trialEndsAt));
- put('#membership-copy',a.status==='trial'?'Your 72-hour free access is running. After exactly 72 hours, the server will lock premium signals automatically.':a.status==='active'?'Access renewed for 30 days following independently verified payment approval.':a.status==='granted'?'Complimentary access granted until '+clock(a.manualEndsAt)+'.':a.status==='locked'?'Your trial has ended. Your account remains accessible, but premium signals stay locked until payment approval.':'Admin access is independent of trials.');
+ put('#membership-copy',a.status==='trial'?'Your 72-hour free access is running. After exactly 72 hours, the server will lock premium signals automatically.':a.status==='active'?'Access renewed for 30 days following independently verified payment approval.':a.status==='granted'?'Complimentary access granted until '+clock(a.manualEndsAt)+'.':a.status==='locked'?(a.trialStatus==='not_activated'?'Verify your phone to activate the 72-hour, three-signal trial.':a.trialStatus==='exhausted'?'All 3 trial signal unlocks have been used. Upgrade to continue.':a.trialStatus==='expired'?'Your trial has expired. Subscribe to continue.':'Premium signals are locked; free market charts remain available.'):'Admin access is independent of trials.');
  updateClock(a);
  setInterval(async()=>{try{const latest=await fetchMember();startAccountNoInterval(latest);if(a.status==='trial'&&latest.account.status==='locked')showPopup('locked',latest.account)}catch(e){msg(e.message,true)}},30000);
  if(false&&!a.isAdmin&&a.status==='trial'){
   const key='candriva_trial_welcome_'+a.uid;
   if(!localStorage.getItem(key)){localStorage.setItem(key,'1');showPopup('trial',a)}
- }else if(a.status==='locked'){
-  const key='candriva_trial_expired_'+a.uid;
-  if(!sessionStorage.getItem(key)){sessionStorage.setItem(key,'1');showPopup('locked',a)}
- }
+ } // Verification and expiry use inline status, not an automatic locking popup.
  setupCheckout(data);
 }
 function updateClock(a){const deadline=a.accessUntil||(a.paidUntil&&Date.parse(a.paidUntil)>Date.now()?a.paidUntil:a.trialEndsAt),ms=Math.max(0,Date.parse(deadline)-Date.now());
@@ -126,7 +123,7 @@ async function initForex(){
   $('#reload-forex-history')?.addEventListener('click',loadForexHistory);
  await initSupabase();if(!await signedIn()){show('#signals-locked',true);return}
  const data=await fetchMember();membership=data.account;setupMemberChrome();
- if(!data.account.access){show('#signals-area',false);show('#signals-locked',true);$('#signals-locked h2').textContent='Your premium forex access is locked';$('#signals-locked p').textContent='Your 72-hour trial has expired. Only payment plus super-admin approval can reactivate access.';$('#signals-locked a').textContent='Review membership and renewal →';showPopup('locked',data.account);return}
+ if(!data.account.access){show('#signals-area',false);show('#signals-locked',true);$('#signals-locked h2').textContent='Premium forex details require an active entitlement';$('#signals-locked p').textContent=data.account.trialStatus==='not_activated'?'Verify your phone to activate 72 hours and 3 unique crypto/forex unlocks.':'Your 72-hour trial has expired or its 3-signal allowance was exhausted. You may continue with an approved membership.';$('#signals-locked a').textContent='Review membership and renewal →';showPopup('locked',data.account);return}
  show('#signals-locked',false);show('#signals-area',true);await scanForex();
  $('#scan-again').onclick=scanForex;
  setInterval(async()=>{try{const latest=await fetchMember();if(!latest.account.access){show('#signals-area',false);show('#signals-locked',true);showPopup('locked',latest.account);return}await scanForex()}catch(e){msg(e.message,true)}},60000);
