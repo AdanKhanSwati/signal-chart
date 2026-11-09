@@ -3,9 +3,9 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {createTrialGateway,e164}=require('../lib/trial-gate');
 const UID='11111111-1111-4111-8111-111111111111',KEY='eyJ'+'x'.repeat(94),TOKEN='customer.jwt.token';
 const PHONE='+923001234567',HMAC='p'.repeat(40);
-function fixture({allow=true,verified=false}={}){
+function fixture({allow=true,verified=false,legacy=false,exception=false}={}){
  const calls=[];let verifiedNow=verified;
- const user=()=>({id:UID,email:'customer@example.test',email_confirmed_at:'2026-11-08T00:00:00Z',created_at:'2026-11-08T00:00:00Z',
+ const user=()=>({id:UID,email:'customer@example.test',email_confirmed_at:'2026-11-08T00:00:00Z',created_at:legacy?'2026-10-08T00:00:00Z':'2026-11-08T00:00:00Z',
    phone:verifiedNow?PHONE:'',phone_confirmed_at:verifiedNow?'2026-11-09T00:00:00Z':null});
  const fetchFn=async(url,opts={})=>{
   let response={ok:true,status:200};
@@ -14,6 +14,7 @@ function fixture({allow=true,verified=false}={}){
   if(url.endsWith('/auth/v1/user'))return {...response,json:async()=>user()};
   if(url.endsWith('/auth/v1/verify')){verifiedNow=true;return {...response,json:async()=>({access_token:'verified.jwt.token'})}}
   if(url.endsWith('/rpc/sc_trial_state'))return {...response,json:async()=>({trialStatus:'not_activated',signalsRemaining:0,signalsUsed:0})};
+  if(url.endsWith('/rpc/sc_can_override_legacy_trial'))return {...response,json:async()=>exception};
   if(url.endsWith('/rpc/sc_otp_rate_check'))return {...response,json:async()=>({allowed:allow,retryAfterSeconds:60})};
   if(url.endsWith('/rpc/sc_activate_trial'))return {...response,json:async()=>({
     result:'activated',trial:{trialStatus:'active',signalsRemaining:3,expiresAt:'2026-11-12T00:00:00Z'}})};
@@ -79,4 +80,15 @@ test('paid membership bypasses trial credit but still uses protected server deta
 test('trial rejects fake key reference without contacting database',async()=>{
  const x=fixture();await assert.rejects(()=>x.gate.premiumUnlock(UID,'../../etc/passwd'));
  assert.equal(x.calls.length,0);
+});
+
+test('older accounts are denied repeat OTP trial activation before any SMS is sent',async()=>{
+ const x=fixture({legacy:true});
+ await assert.rejects(()=>x.gate.otpStart(x.req,PHONE),e=>e.status===409);
+ assert.equal(x.calls.some(z=>z.method==='PUT'),false);
+});
+test('an audited recycled-number exception allows verified legacy applicant to request SMS',async()=>{
+ const x=fixture({legacy:true,exception:true});const r=await x.gate.otpStart(x.req,PHONE);
+ assert.equal(r.status,'otp_sent');
+ assert.equal(x.calls.some(z=>z.method==='PUT'),true);
 });
