@@ -52,6 +52,6 @@ test('unknown member cannot receive access',async()=>{
 });
 test('invalid identifiers and expiry cannot grant access',async()=>{
  const x=setup();assert.equal((await x.request('POST','grant',{memberId:'not-an-id',expiresAt:'2100-01-01T00:00:00Z',reason:'Test'})).code,400);
- assert.equal((await x.request('POST','grant',{memberId:USER,expiresAt:'2000-01-01T00:00:00Z',reason:'Test'})).code,500);
+ assert.equal((await x.request('POST','grant',{memberId:USER,expiresAt:'2000-01-01T00:00:00Z',reason:'Test'})).code,400);
  assert.equal(x.writes.length,0);
 });

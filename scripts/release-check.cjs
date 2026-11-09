@@ -3,7 +3,7 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const root=path.resolve(__dirname,'..');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'recovery-manifest.json'),'utf8'));
-const changed=new Set(['api/config.js','lib/subscription-rules.js','candriva-v2.js','account.html','billing.html','home.html','vercel.json']);
+const changed=new Set(['api/config.js','lib/subscription-rules.js','candriva-v2.js','account.html','billing.html','home.html','vercel.json','signalchart-wordmark.svg','ops.html','site-app.js']);
 const failures=[];const warnings=[];
 const requireFile=(p)=>{const q=path.join(root,p);if(!fs.existsSync(q)){failures.push('Missing required file: '+p);return null}return fs.readFileSync(q)};
 for(const item of manifest.recoveredFiles){

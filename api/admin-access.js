@@ -36,12 +36,14 @@ function createHandler(core){
     if(!existing)throw issue(404,'Member not found. The customer must first complete sign-in.');
     let event;
     if(action==='grant'){
-     event=createGrantEvent({memberId,startsAt:body.startsAt,expiresAt:body.expiresAt,reason:body.reason},{adminUserId:actor.uid});
+     try{event=createGrantEvent({memberId,startsAt:body.startsAt,expiresAt:body.expiresAt,reason:body.reason},{adminUserId:actor.uid})}
+     catch(e){throw issue(400,e.message)}
     }else{
      const grantId=safeUid(body.grantId),events=await records('cv5/grants/'+memberId+'/',1000);
      if(!events.some(e=>e.type==='grant'&&e.id===grantId))throw issue(404,'Grant not found');
      if(events.some(e=>e.type==='revoke'&&e.grantId===grantId))throw issue(409,'Grant has already been revoked');
-     event=createRevokeEvent({memberId,grantId,reason:body.reason},{adminUserId:actor.uid});
+     try{event=createRevokeEvent({memberId,grantId,reason:body.reason},{adminUserId:actor.uid})}
+     catch(e){throw issue(400,e.message)}
     }
     await write('cv5/grants/'+memberId+'/'+event.id+'.json',event);
     return res.status(201).json({event});
