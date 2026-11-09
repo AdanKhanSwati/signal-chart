@@ -9,12 +9,16 @@ function createHandler(core,gate){
   res.setHeader('Cache-Control','no-store, private');
   res.setHeader('X-Content-Type-Options','nosniff');
   try{
-   if(req.method!=='POST')throw issue(405,'POST required');
+   const action=String(req.query?.action||'');
+   if(req.method!=='POST'&&!(req.method==='GET'&&action==='queue'))
+    throw issue(405,'Unsupported method');
    const user=await core.identity(req);
    const account=await core.member(user);
    core.adminOnly(account);
+   if(req.method==='GET'&&action==='queue'){
+    return res.status(200).json({proposals:await gate.rpc('sc_signal_proposal_queue',{p_limit:50})});
+   }
    const body=core.securePost(req,12000);
-   const action=String(req.query?.action||'');
    if(action==='submit'){
     if(!body||typeof body!=='object'||Array.isArray(body)||
       typeof body.signalKey!=='string'||typeof body.market!=='string'||
