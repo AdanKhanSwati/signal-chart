@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const script=fs.readFileSync(path.join(__dirname,'..','sc-trial-ui.js'),'utf8');
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-async function fixture({memberVisible=false,trialEnabled=true,verifiedSession=true,existingShared=false}={}){
+async function fixture({memberVisible=false,trialEnabled=true,verifiedSession=true,existingShared=false,trialOverride=null}={}){
  const browserPanel={hidden:true},memberArea={hidden:!memberVisible};
  const renders=[],observations=[],handlers={};let clientCreations=0;
  const nodes={
@@ -11,6 +11,9 @@ async function fixture({memberVisible=false,trialEnabled=true,verifiedSession=tr
   '#member-area':memberArea,'#sc-browser-activation':browserPanel,
   '#sc-activate-browser':{disabled:true,addEventListener(){}},
   '#sc-trial-state':{textContent:''},
+  '#sc-trial-clock':{textContent:''},
+  '#sc-trial-credits':{textContent:''},
+  '#sc-trial-upgrade':{hidden:true},
   '#sc-browser-availability':{textContent:'',dataset:{}},
   '#sc-browser-guide-link':{href:'',textContent:''},
   '#sc-browser-delivery-note':{textContent:''}
@@ -33,7 +36,7 @@ async function fixture({memberVisible=false,trialEnabled=true,verifiedSession=tr
     emailDeviceTrialEnabled:trialEnabled,trialVerificationMethod:'verified_email_browser',
     turnstileSiteKey:'qa-cloudflare-site'})};
    if(u==='/api/trial?action=state')return {ok:true,json:async()=>({
-    trialStatus:'not_activated',serverNow:new Date().toISOString()})};
+    trialStatus:'not_activated',serverNow:new Date().toISOString(),...(trialOverride||{})})};
    if(u==='/api/member?action=me')return {ok:true,json:async()=>({account:{status:'locked'}})};
    throw Error('Unexpected URL '+u);
   },
@@ -91,4 +94,26 @@ test('the Account and trial pages use an identical shared Supabase client helper
  };
  assert.equal(extract(account),extract(script),'Both pages must share exactly the same client-construction policy');
  assert.ok(extract(script).includes('window.__scSupabaseAuthClient'));
+});
+
+test('an expired trial never looks active when the tab is reopened without a backend status change',async()=>{
+ const q=await fixture({memberVisible:true,trialOverride:{
+  trialStatus:'active',signalsUsed:1,signalsRemaining:2,
+  expiresAt:new Date(Date.now()-90000).toISOString()
+ }});
+ assert.equal(q.nodes['#sc-trial-state'].textContent,'Free trial expired');
+ assert.match(q.nodes['#sc-trial-clock'].textContent,/^Expired /);
+ assert.equal(q.nodes['#sc-trial-credits'].textContent,'0 of 3 remaining');
+ assert.equal(q.nodes['#sc-trial-upgrade'].hidden,false,'Expired trial must show upgrade path');
+ assert.equal(q.browserPanel.hidden,true,'Expired trial must not allow a second activation');
+ assert.equal(q.renders.length,0,'Expired trials do not need a CAPTCHA widget');
+});
+test('nonexpired trial still shows its remaining credits and stays active',async()=>{
+ const q=await fixture({memberVisible:true,trialOverride:{
+  trialStatus:'active',signalsUsed:1,signalsRemaining:2,
+  expiresAt:new Date(Date.now()+3600000).toISOString()
+ }});
+ assert.equal(q.nodes['#sc-trial-state'].textContent,'Free trial active');
+ assert.equal(q.nodes['#sc-trial-credits'].textContent,'2 of 3 remaining');
+ assert.equal(q.nodes['#sc-trial-upgrade'].hidden,true);
 });
