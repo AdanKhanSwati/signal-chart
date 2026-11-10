@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const {randomUUID}=require('node:crypto');
+const blob=require('@vercel/blob');
 const blobId=require.resolve('@vercel/blob'),previous=require.cache[blobId].exports;
 const coreId=require.resolve('../lib/candriva-core');
 const existingToken=process.env.BLOB_READ_WRITE_TOKEN;
