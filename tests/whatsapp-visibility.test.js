@@ -65,3 +65,13 @@ test('Turnstile challenge is deferred until the authenticated trial panel is vis
  const boot=ui.slice(ui.indexOf("async function boot()"),ui.indexOf("setInterval("));
  assert.ok(!boot.includes("   await renderTurnstile();"),'Do not render into hidden account area at boot');
 });
+
+test('trial configuration ignores deprecated typo-named Turnstile secrets',()=>{
+ assert.ok(config.includes("process.env.SC_TURNSTILE_SITE_KEY"));
+ assert.ok(config.includes("process.env.SC_TURNSTILE_SECRET_KEY"));
+ assert.ok(gate.includes("env.SC_TURNSTILE_SECRET_KEY"));
+ assert.ok(!config.includes("process.env.Site_key"));
+ assert.ok(!config.includes("process.env.Sceret_key"));
+ assert.ok(!gate.includes("env.Sceret_key"));
+ assert.ok(gate.includes("payload.hostname!==expectedHost"));
+});
