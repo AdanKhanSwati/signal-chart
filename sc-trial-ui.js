@@ -6,33 +6,22 @@ const $=s=>document.querySelector(s),create=(tag,cls,text)=>{
 const accountRoot=$('#sc-trial-account'),signalsRoot=$('#sc-trial-signals');
 if(!accountRoot&&!signalsRoot)return;
 let auth=null,session=null,trial=null,serverOffset=0,selectedMarket='all',allSignals=[];
-let resendUntil=0,paidOverride=null,phoneDeliveryEnabled=false;
+let paidOverride=null,browserTrialEnabled=false,turnstileSiteKey=null,turnstileWidget=null;
 const notify=(text,bad=false)=>{
  const node=$('#sc-trial-feedback');if(!node)return;
  node.textContent=String(text||'');node.dataset.error=bad?'true':'false'};
 const safeTime=s=>s?new Date(s).toLocaleString():'—';
 function updateVerificationGuide(signedIn){
- const available=phoneDeliveryEnabled;
- const state=$('#sc-whatsapp-availability');
- if(state){
-  state.textContent=available?'WhatsApp OTP available':'WhatsApp OTP setup pending';
-  state.dataset.available=available?'true':'false';
- }
- const link=$('#sc-whatsapp-guide-link');
- if(link){
-  link.href=signedIn?'#sc-phone-verification':'#auth-area';
-  link.textContent=signedIn?'View phone verification':'Sign in to continue';
- }
- const signalNote=$('#sc-signal-phone-delivery');
- if(signalNote)signalNote.textContent=available?
-  'WhatsApp OTP available after email sign-in':
-  'WhatsApp codes are not yet enabled. No OTP will be sent.';
- const note=$('#sc-otp-delivery-note');
- if(note)note.textContent=available?
-  'Request a one-time code through WhatsApp to verify this number.':
-  'WhatsApp delivery requires provider activation. No verification message is sent while unavailable.';
- const send=$('#sc-send-otp');
- if(send&&!available){send.disabled=true;send.textContent='WhatsApp verification unavailable'}
+ const ready=browserTrialEnabled&&!!turnstileSiteKey;
+ const state=$('#sc-browser-availability');
+ if(state){state.textContent=ready?'Browser trial activation available':'Browser trial setup pending';state.dataset.available=ready?'true':'false'}
+ const link=$('#sc-browser-guide-link');
+ if(link){link.href=signedIn?'#sc-browser-activation':'#auth-area';link.textContent=signedIn?'Activate free trial':'Sign in to continue'}
+ const small=$('#sc-signal-browser-status');
+ if(small)small.textContent=ready?'Verified email and browser anti-bot verification required':'Free trial activation is being configured';
+ const note=$('#sc-browser-delivery-note');
+ if(note)note.textContent=ready?'Complete the anti-bot check, then activate your 72-hour trial. No phone needed.':'Browser trial activation will become available after anti-bot setup. No trial has started.';
+ const btn=$('#sc-activate-browser');if(btn)btn.disabled=!ready;
 }
 
 const expString=()=>{
@@ -44,7 +33,8 @@ const expString=()=>{
 async function initializeClient(){
  const c=await fetch('/api/config',{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject(Error('Authentication unavailable')));
  if(!c.authReady||!c.supabaseUrl||!c.supabaseAnonKey)throw Error('Sign-in service unavailable');
- phoneDeliveryEnabled=c.phoneVerificationEnabled===true&&c.phoneVerificationChannel==='whatsapp';
+ browserTrialEnabled=c.emailDeviceTrialEnabled===true&&c.trialVerificationMethod==='verified_email_browser';
+ turnstileSiteKey=typeof c.turnstileSiteKey==='string'?c.turnstileSiteKey:null;
  updateVerificationGuide(false);
  if(!window.supabase?.createClient)await new Promise((resolve,reject)=>{
   const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
@@ -83,14 +73,14 @@ function paintStatus(){
  const active=trial.trialStatus==='active',termOpen=active||trial.trialStatus==='exhausted',count=Math.max(0,Math.min(3,Number(trial.signalsUsed)||0));
  const remaining=Math.max(0,Math.min(3,Number(trial.signalsRemaining)||0));
  const label=$('#sc-trial-state'),clock=$('#sc-trial-clock'),counter=$('#sc-trial-credits'),bar=$('#sc-trial-progress');
- if(label)label.textContent=paidOverride?'Active paid / complimentary access':trial.trialStatus==='not_activated'?'Phone verification required':
+ if(label)label.textContent=paidOverride?'Active paid / complimentary access':trial.trialStatus==='not_activated'?'Activate your verified-email free trial':
    active?'Free trial active':trial.trialStatus==='exhausted'?'3/3 unlocked · Reopen until expiry':
    trial.trialStatus==='expired'?'Free trial expired':trial.trialStatus==='revoked'?'Trial unavailable':'Trial pending';
  if(clock)clock.textContent=paidOverride?paidOverride.accessUntil?safeTime(paidOverride.accessUntil):'Authorized':termOpen?expString():trial.expiresAt?safeTime(trial.expiresAt):'Not started';
  if(counter)counter.textContent=paidOverride?'Membership access':remaining+' of 3 remaining';
  if(bar){bar.max=3;bar.value=count}
- const phone=$('#sc-phone-verification');
- if(phone)phone.hidden=!!paidOverride||trial.trialStatus!=='not_activated';
+ const activation=$('#sc-browser-activation');
+ if(activation)activation.hidden=!!paidOverride||trial.trialStatus!=='not_activated';
  const upgrade=$('#sc-trial-upgrade');if(upgrade)upgrade.hidden=active||!!paidOverride;
 }
 async function refresh(){
@@ -106,61 +96,39 @@ async function refresh(){
  }catch{paidOverride=null}
  paintStatus();updateVerificationGuide(true);return value;
 }
-function riskHint(){
- // Random pseudonymous session indicator, not a hardware fingerprint or identity.
- const k='sc_trial_device_hint_v1';
- let id;try{id=localStorage.getItem(k)}catch{}
- if(!id&&window.crypto?.getRandomValues){
-  const bytes=new Uint8Array(24);window.crypto.getRandomValues(bytes);
-  id=[...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');
-  try{localStorage.setItem(k,id)}catch{}}
- return id||'';
+async function renderTurnstile(){
+ if(!accountRoot||!browserTrialEnabled||!turnstileSiteKey)return;
+ if(!window.turnstile?.render)await new Promise((resolve,reject)=>{
+  const script=document.createElement('script');
+  script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+  script.async=true;script.onload=resolve;
+  script.onerror=()=>reject(Error('Unable to load the verification challenge'));
+  document.head.append(script);
+ });
+ const node=$('#sc-turnstile');
+ if(node&&window.turnstile?.render)
+  turnstileWidget=window.turnstile.render(node,{sitekey:turnstileSiteKey,theme:'auto'});
 }
-async function startOTP(e){
- e.preventDefault();const phone=$('#sc-phone')?.value.trim()||'';
- if(!phoneDeliveryEnabled){notify('WhatsApp verification is not configured yet. No message has been sent.',true);return}
- if(Date.now()<resendUntil)return;
- const btn=$('#sc-send-otp');btn.disabled=true;
+async function activateBrowser(){
+ const button=$('#sc-activate-browser');
+ if(!button||button.disabled||!browserTrialEnabled)return;
+ button.disabled=true;
  try{
-  if(!/^\+[1-9]\d{7,14}$/.test(phone))throw Error('Enter an international mobile number, such as +923001234567.');
-  const t=await token();if(!t)throw Error('Sign in first');
-  const response=await fetch('/api/trial?action=otp_start',{
-   method:'POST',cache:'no-store',
-   headers:{Authorization:'Bearer '+t,'Content-Type':'application/json','X-SC-Device-Hint':riskHint()},
-   body:JSON.stringify({phone})});
-  const payload=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(payload.error||'WhatsApp verification request failed');
-  resendUntil=Date.now()+60000;
-  const otp=$('#sc-otp-form');otp.hidden=false;
-  notify('WhatsApp verification requested. Enter the code from WhatsApp to activate your trial.');
- }catch(err){notify(err.message,true)}finally{
-  btn.disabled=false;updateResend();
- }
-}
-function updateResend(){
- const btn=$('#sc-send-otp');if(!btn)return;
- const s=Math.ceil((resendUntil-Date.now())/1000);
- if(s>0){btn.disabled=true;btn.textContent='Resend in '+s+'s'}
- else{btn.disabled=!phoneDeliveryEnabled;btn.textContent=phoneDeliveryEnabled?'Send WhatsApp code':'WhatsApp verification unavailable'}
-}
-async function verifyOTP(e){
- e.preventDefault();const btn=$('#sc-confirm-otp');btn.disabled=true;
- try{
-  const result=await api('otp_verify',{phone:$('#sc-phone').value.trim(),code:$('#sc-otp').value.trim()});
-  if(result.status==='already_used'){
-   notify(result.message||'This number has already been used for a free trial. You can continue with a paid membership.',true);
-  }else{
-   notify('Phone verified. Your 72-hour trial is active, with 3 premium signal unlocks.');
-   await refresh();
-  }
- }catch(err){notify(err.message,true)}finally{btn.disabled=false}
-}
-async function activateExisting(){
- const btn=$('#sc-existing-phone');if(btn)btn.disabled=true;
- try{const result=await api('activate_existing_phone',{});
-  notify(result.message||'Your verified phone status has been checked.',result.status==='already_used');
+  const challenge=turnstileWidget!==null&&window.turnstile?.getResponse?
+   window.turnstile.getResponse(turnstileWidget):'';
+  if(!challenge)throw Error('Complete the anti-bot verification first');
+  await api('device',undefined,'GET'); // Backend issues secure HttpOnly cookie.
+  const result=await api('activate_browser',{turnstileToken:challenge});
+  if(result.status==='activated')notify('Trial activated: 72 hours and 3 unique signal unlocks.');
+  else if(result.status==='device_already_used')notify(result.message||'This browser already claimed a trial. Sign in to your original account.',true);
+  else if(result.status==='rate_limited')notify('Too many trial attempts. Try again later.',true);
+  else notify(result.message||'Trial eligibility has been checked.',result.status!=='existing_trial');
   await refresh();
- }catch(e){notify(e.message,true)}finally{if(btn)btn.disabled=false}
+ }catch(e){notify(e.message,true)}
+ finally{
+  if(turnstileWidget!==null&&window.turnstile?.reset)window.turnstile.reset(turnstileWidget);
+  button.disabled=!(browserTrialEnabled&&!!turnstileSiteKey);
+ }
 }
 function renderSignalData(root,signal){
  root.replaceChildren();
@@ -224,13 +192,8 @@ async function boot(){
   const t=await token();
   updateVerificationGuide(!!t);
   if(accountRoot){
-   $('#sc-phone-form')?.addEventListener('submit',startOTP);
-   if(!phoneDeliveryEnabled){
-    const send=$('#sc-send-otp');if(send){send.disabled=true;send.textContent='WhatsApp verification unavailable'}
-    const status=$('#sc-otp-delivery-note');if(status)status.textContent='WhatsApp verification will be enabled after provider setup. No message is sent during development.';
-   }
-   $('#sc-otp-form')?.addEventListener('submit',verifyOTP);
-   $('#sc-existing-phone')?.addEventListener('click',activateExisting);
+   $('#sc-activate-browser')?.addEventListener('click',activateBrowser);
+   await renderTurnstile();
   }
   if(signalsRoot){
    document.querySelectorAll('[data-sc-trial-market]').forEach(btn=>btn.onclick=()=>{
@@ -240,27 +203,19 @@ async function boot(){
   if(t){await refresh()}
   else{
    if($('#sc-trial-state'))$('#sc-trial-state').textContent='Sign in to check trial status';
-   const phone=$('#sc-phone-verification');if(phone)phone.hidden=true;
+   const activation=$('#sc-browser-activation');if(activation)activation.hidden=true;
   }
-  if(t)await activateKnownVerifiedPhoneHint();
+
  }catch(e){notify(e.message,true);updateVerificationGuide(!!session)}
 }
-async function activateKnownVerifiedPhoneHint(){
- // Show optional no-SMS activation if Supabase already confirmed an account phone.
- if(!auth||!trial||trial.trialStatus!=='not_activated')return;
- const user=(await auth.auth.getUser()).data?.user;
- if(user?.phone&&user.phone_confirmed_at){
-  const b=$('#sc-existing-phone');if(b)b.hidden=false;
- }
-}
-setInterval(()=>{if(trial)paintStatus();updateResend()},1000);
+setInterval(()=>{if(trial)paintStatus()},1000);
 window.addEventListener('signalchart:auth-changed',()=>{
  token().then(async t=>{
   updateVerificationGuide(!!t);
-  if(t){await refresh();await activateKnownVerifiedPhoneHint()}
+  if(t){await refresh()}
   else{
    trial=null;paidOverride=null;
-   const phone=$('#sc-phone-verification');if(phone)phone.hidden=true;
+   const activation=$('#sc-browser-activation');if(activation)activation.hidden=true;
    const state=$('#sc-trial-state');if(state)state.textContent='Sign in to check trial status';
   }
  }).catch(e=>notify(e.message,true));
