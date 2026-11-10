@@ -41,7 +41,10 @@ test('SignalChart trial migrations and security rules execute on real PostgreSQL
  const browserA='b'.repeat(64),browserB='c'.repeat(64),network='d'.repeat(64);
  const webStart=async(user,device,ip=network)=>
   (await db.query('select public.sc_activate_browser_trial($1,$2,$3) x',[user,device,ip])).rows[0].x;
+ await db.query("insert into public.sc_trial_risk_events(user_id,network_hash,device_signal_hash,event_type,expires_at) values ($1,$2,$3,'trial_attempt',now()-interval '1 day')",[webA,network,browserA]);
  const firstWeb=await webStart(webA,browserA);
+ assert.equal((await db.query("select count(*)::integer n from public.sc_trial_risk_events where expires_at<now()")).rows[0].n,0,
+  'Expired hashed network events should be pruned by the bounded cleanup');
  assert.equal(firstWeb.result,'activated');
  assert.equal(firstWeb.trial.signalsRemaining,3);
  assert.equal(firstWeb.networkRisk,'normal');
