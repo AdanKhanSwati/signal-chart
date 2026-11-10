@@ -86,7 +86,7 @@ async function api(action,body,method='POST'){
 async function unlock(signalKey){
  const t=await token();if(!t)throw Error('Sign in before unlocking a signal');
  const response=await fetch('/api/premium-signals?action=unlock',{
-  method:'POST',cache:'no-store',credentials:'omit',
+  method:'POST',cache:'no-store',credentials:'same-origin',
   headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},
   body:JSON.stringify({signalKey})});
  const value=await response.json().catch(()=>({}));
