@@ -1,6 +1,6 @@
 # SignalChart — Privacy-first email and browser free-trial protection
 
-Status: **Implemented in staging source; not activated or deployed.** Date: 2026-11-10.
+Status: **Implemented in staging source and Supabase migration applied; not activated or deployed.** Date: 2026-11-10.
 
 ## Customer flow
 
@@ -32,13 +32,22 @@ Status: **Implemented in staging source; not activated or deployed.** Date: 2026
 
 ## Setup required before a live trial rollout
 
-1. Create a **Cloudflare Turnstile Managed** widget (free plan) restricted to the intended SignalChart staging host and, later, production domain. Configure `SC_TURNSTILE_SITE_KEY` (public) and `SC_TURNSTILE_SECRET_KEY` (encrypted and server-only) directly in Vercel. Never send the secret through chat or place it in GitHub. Documentation: https://developers.cloudflare.com/turnstile/get-started/widget-management/dashboard/
-2. Review, backup, test and apply the additive migration to the connected Supabase project. It has passed an isolated PGlite PostgreSQL test but **has not been applied to the live project**.
-3. Confirm `SC_TRIAL_HMAC_SECRET` (random server-only secret, at least 32 characters), `SC_TRIAL_ROLLOUT_AT`, server-only Supabase credential, and approved hostname list. Preserve any existing historical trial holds.
-4. Deploy the staging commit **only when the existing five-assistant-deployments-per-24-hours budget permits** and re-test same-browser duplicate accounts, shared-IP legitimate customers, signed-cookie integrity, Turnstile replay, expiry, and payment/admin isolation.
-5. After complete end-to-end staging verification, enable `SC_EMAIL_DEVICE_TRIAL_ENABLED=true` for staging first; never switch production on without QA and release authorization.
-6. Existing release integrity gate still blocks commercial production launch: **11 original deployed files remain SHA-unverified**. Do not represent the web customer experience or Android apps as production ready.
+1. **Completed:** Cloudflare Turnstile `SC_TURNSTILE_SITE_KEY` and `SC_TURNSTILE_SECRET_KEY` variables exist under staging Preview, branch `signalchart-recovery-staging`, with Sensitive type. The secret contents were not inspected. Confirm the Cloudflare widget permits the actual next preview hostname. Documentation: https://developers.cloudflare.com/turnstile/get-started/widget-management/dashboard/
+2. **Completed 2026-11-10:** Applied migration `signalchart_email_device_trial_20261110` to the connected Supabase project `nnailvcgaupjtdaxvjsx`. Verified private browser-claim table + service-only activation RPC + RLS. `anon` and `authenticated` cannot select claims or execute the RPC. Existing count: 0 trials, 0 browser claims, 0 paid records; 1 legacy hold preserved. This DB is also used by production, so avoid destructive QA.
+3. **Partially completed:** Vercel staging has environment entries for `SC_TRIAL_HMAC_SECRET`, `SC_TRIAL_ROLLOUT_AT` and server-only Supabase credentials. Their values and runtime behavior have not been verified end to end; confirmed the existing historical hold remains untouched.
+4. **Pending:** Deploy staging **only** within the existing five-assistant-deployments-per-24-hours budget; perform real browser/Turnstile end-to-end checks, shared-IP fairness, duplicate account controls, cookie integrity, expiry, and payment/admin isolation.
+5. **Pending:** After staging release and complete end-to-end verification, enable `SC_EMAIL_DEVICE_TRIAL_ENABLED=true` for staging first; never switch production on without QA and release authorization.
+6. **Pending:** Existing release integrity gate still blocks commercial production launch: **11 original deployed files remain SHA-unverified**. Do not represent the web customer experience or Android apps as production ready.
 
 ## Safety switches
 
 Staging branch Vercel env **SC_EMAIL_DEVICE_TRIAL_ENABLED=false**, set explicitly. All user-facing activation is blocked until the complete feature is configured. WhatsApp message sending, manual payment collection and automatic signal publication remain disabled; no new Vercel deployment performed in this step.
+
+## Latest independent checks — 2026-11-10
+
+- Connected Supabase migration applied successfully and listed in migration history; no customer data was created during application.
+- RLS on `sc_browser_trial_claims`: enabled; `anon` and `authenticated` have no SELECT access; neither can invoke `sc_activate_browser_trial`. Service role alone has these privileges.
+- Existing automatic signal scanner and scheduled cron both remain disabled.
+- Full isolated test run: **153 passed, 0 failed**. Release integrity gate: **93 restored original files, 11 original files unverified**.
+- Security advisor: 15 information-level no-policy findings on intentionally private server-only tables, plus a pre-existing warning for Auth leaked-password protection. Ref: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy and https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+- **Zero** deployments were initiated for the migration and QA. The existing preview does not yet contain the newly implemented browser trial UI.
