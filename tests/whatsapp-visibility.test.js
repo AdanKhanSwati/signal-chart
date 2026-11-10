@@ -37,6 +37,14 @@ test('frontend never claims OTP can be sent while backend delivery is disabled',
  assert.ok(gate.includes("if(env.SC_TRIAL_PHONE_DELIVERY_ENABLED!=='true')"));
  assert.ok(!gate.includes('Enter the OTP code from your SMS'));
 });
+test('signing in on Account refreshes the phone verification panel without a reload',()=>{
+ const authPage=read('candriva-v2.js');
+ assert.ok(authPage.includes("window.dispatchEvent(new Event('signalchart:auth-changed'))"));
+ assert.ok(ui.includes("window.addEventListener('signalchart:auth-changed'"));
+ assert.ok(ui.includes('updateVerificationGuide(!!t);'));
+ assert.ok(ui.includes("if(t){await refresh();await activateKnownVerifiedPhoneHint()}"));
+ assert.ok(ui.includes("if(phone)phone.hidden=true;"));
+});
 test('WhatsApp setup guide is compact on smaller screens and preserves hidden form behavior',()=>{
  assert.ok(css.includes('.sc-whatsapp-guide,.sc-whatsapp-signal-cta'));
  assert.ok(css.includes('@media(max-width:650px)'));
