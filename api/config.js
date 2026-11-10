@@ -3,11 +3,9 @@ const {authConfig}=require('../lib/candriva-core');
 module.exports=(req,res)=>{
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
  const auth=authConfig();
- // Sensitive Vercel entries created under the short names cannot be renamed
- // in-place. Accept those staging aliases without retrieving their values.
- // Canonical names take precedence when supplied.
- const turnstileSite=String(process.env.SC_TURNSTILE_SITE_KEY||process.env.Site_key||'');
- const turnstileSecret=String(process.env.SC_TURNSTILE_SECRET_KEY||process.env.Sceret_key||'');
+ // Use only canonical key names. Old typo'd aliases are not accepted by the app.
+ const turnstileSite=String(process.env.SC_TURNSTILE_SITE_KEY||'');
+ const turnstileSecret=String(process.env.SC_TURNSTILE_SECRET_KEY||'');
  const emailTrialReady=process.env.SC_EMAIL_DEVICE_TRIAL_ENABLED==='true'&&
   turnstileSecret.length>=20&&
   turnstileSite.length>5&&
