@@ -86,3 +86,20 @@ test('trial activation stays off unless explicitly enabled, and legacy users can
  legacy.req.headers.cookie=legacy.res.headers['Set-Cookie'].split(';')[0];
  await assert.rejects(legacy.gate.activateBrowserTrial(legacy.req,'valid-turnstile-token-12345'),e=>e.status===409);
 });
+
+test('old phone activation endpoints are blocked when browser trials replace WhatsApp',async()=>{
+ const f=fixture();
+ await assert.rejects(f.gate.otpStart(f.req,'+923001234567'),e=>e.status===503);
+ await assert.rejects(f.gate.otpVerify(f.req,'+923001234567','123456'),e=>e.status===503);
+ await assert.rejects(f.gate.activateExistingVerifiedPhone(f.req),e=>e.status===503);
+ assert.ok(!f.calls.some(x=>x.url.endsWith('/rpc/sc_activate_trial')),
+  'Legacy activation must never reach the paid or trial claim RPC');
+});
+test('missing browser cookie returns HTTP 428 instead of a generic HTTP 500',()=>{
+ const core=require('../lib/candriva-core');
+ const res={statusCode:0,headers:{},setHeader(k,v){this.headers[k]=v;return this},
+  status(n){this.statusCode=n;return this},json(payload){this.payload=payload;return this}};
+ core.handleError(res,Object.assign(new Error('Initialize secure browser recognition'),{status:428}));
+ assert.equal(res.statusCode,428);
+ assert.match(res.payload.error,/Initialize secure browser recognition/);
+});
