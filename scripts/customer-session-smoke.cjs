@@ -53,6 +53,9 @@ async function run(){
  assert.equal(member.status,200,'Authenticated member endpoint unavailable');
  assert.equal(member.data?.account?.uid,verified.uid,'HTTP membership identity mismatch');
  assert.equal(member.data?.account?.isAdmin,false,'QA identity must not be an administrator');
+ assert.equal(member.data?.account?.uid,session.user?.id??verified.uid,'User session must match membership record');
+ assert.equal(member.data?.account?.access,false,'Fresh QA member must not have premium access before trial verification');
+ assert.equal(member.data?.account?.signalsUsed,0,'QA identity must begin without trial signal consumption');
  assert.equal(member.data?.payment?.enabled,false,'Staging payment collection must be disabled');
  const trial=await json(origin+'/api/trial?action=state',headers);
  assert.equal(trial.status,200,'Authenticated trial state unavailable');
@@ -64,7 +67,7 @@ async function run(){
  assert.equal(payment.status,503,'Staging payment submission must remain disabled');
  const otp=await json(origin+'/api/trial?action=otp_start',headers,{phone:'+923001234567'});
  assert.equal(otp.status,503,'Staging WhatsApp OTP delivery must remain disabled');
- const publicFeed=await json(origin+'/api/premium-signals?action=list');
+ const publicFeed=await json(origin+'/api/premium-signals?action=list',{'x-vercel-protection-bypass':bypass});
  assert.equal(publicFeed.status,200);
  assert.ok(Array.isArray(publicFeed.data?.signals));
  console.log(JSON.stringify({result:'PASS',dedicatedVerifiedAuth:true,memberRoute:true,
