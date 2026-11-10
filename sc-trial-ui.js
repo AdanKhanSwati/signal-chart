@@ -254,6 +254,17 @@ async function activateKnownVerifiedPhoneHint(){
  }
 }
 setInterval(()=>{if(trial)paintStatus();updateResend()},1000);
+window.addEventListener('signalchart:auth-changed',()=>{
+ token().then(async t=>{
+  updateVerificationGuide(!!t);
+  if(t){await refresh();await activateKnownVerifiedPhoneHint()}
+  else{
+   trial=null;paidOverride=null;
+   const phone=$('#sc-phone-verification');if(phone)phone.hidden=true;
+   const state=$('#sc-trial-state');if(state)state.textContent='Sign in to check trial status';
+  }
+ }).catch(e=>notify(e.message,true));
+});
 window.addEventListener('focus',()=>{token().then(t=>t&&refresh()).catch(()=>{})});
 boot();
 })();
