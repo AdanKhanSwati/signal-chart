@@ -10,24 +10,59 @@ const migrations=['20261109180000_sc_trial_foundation.sql','20261109180100_sc_tr
 '20261109190000_sc_trial_reopen.sql',
 '20261109191000_sc_signal_publication_review.sql',
 '20261109192000_sc_signal_review_queue.sql',
-'20261109193000_sc_premium_signal_freshness.sql'];
+'20261109193000_sc_premium_signal_freshness.sql',
+'20261110110000_sc_email_device_trial.sql'];
 const customer1='11111111-1111-4111-8111-111111111111';
 const customer2='22222222-2222-4222-8222-222222222222';
 const admin='33333333-3333-4333-8333-333333333333';
 const phoneHash='a'.repeat(64);
 async function install(db){
- await db.exec('create schema auth; create table auth.users(id uuid primary key, email text); create role anon; create role authenticated; create role service_role;');
+ await db.exec('create schema auth; create table auth.users(id uuid primary key, email text, email_confirmed_at timestamptz); create role anon; create role authenticated; create role service_role;');
  for(const filename of migrations){
   const sql=await fs.readFile(path.join(base,'supabase/migrations',filename),'utf8');
   await db.exec(sql);
  }
  for(const [id,email] of [[customer1,'first@test.example'],[customer2,'second@test.example'],[admin,'admin@test.example']])
-  await db.query('insert into auth.users(id,email) values ($1,$2)',[id,email]);
+  await db.query('insert into auth.users(id,email,email_confirmed_at) values ($1,$2,now())',[id,email]);
 }
 const first=(await async function(){return new PGlite()}());
 test('SignalChart trial migrations and security rules execute on real PostgreSQL engine',async t=>{
  const db=first;await install(db);
  t.after(async()=>db.close());
+
+ // Email/browser trial assertions use their own synthetic user, never existing paid data.
+ const webA='44444444-4444-4444-8444-444444444444';
+ const webB='55555555-5555-4555-8555-555555555555';
+ const webC='66666666-6666-4666-8666-666666666666';
+ const webD='77777777-7777-4777-8777-777777777777';
+ for(const [id,verified] of [[webA,true],[webB,true],[webC,true],[webD,false]])
+  await db.query('insert into auth.users(id,email,email_confirmed_at) values ($1,$2,$3)',[
+   id,id+'@test.example',verified?new Date().toISOString():null]);
+ const browserA='b'.repeat(64),browserB='c'.repeat(64),network='d'.repeat(64);
+ const webStart=async(user,device,ip=network)=>
+  (await db.query('select public.sc_activate_browser_trial($1,$2,$3) x',[user,device,ip])).rows[0].x;
+ const firstWeb=await webStart(webA,browserA);
+ assert.equal(firstWeb.result,'activated');
+ assert.equal(firstWeb.trial.signalsRemaining,3);
+ assert.equal(firstWeb.networkRisk,'normal');
+ const row=(await db.query('select proof_method,phone_hash,phone_verified_at,activated_at,expires_at from public.sc_trials where user_id=$1',[webA])).rows[0];
+ assert.equal(row.proof_method,'verified_email_browser');
+ assert.equal(row.phone_hash,null);
+ assert.equal(row.phone_verified_at,null);
+ assert.equal(new Date(row.expires_at)-new Date(row.activated_at),72*3600000);
+ assert.equal((await webStart(webA,browserA)).result,'existing_trial');
+ const duplicateWeb=await webStart(webB,browserA);
+ assert.equal(duplicateWeb.result,'device_already_used','Second email on recognized browser gets no trial');
+ assert.equal((await db.query('select count(*)::integer n from public.sc_trials where user_id=$1',[webB])).rows[0].n,0);
+ const sharedNetwork=await webStart(webC,browserB);
+ assert.equal(sharedNetwork.result,'activated','Shared IP alone must not block a distinct browser');
+ await assert.rejects(webStart(webD,'e'.repeat(64)),/Confirmed email required/);
+ await db.exec('set role authenticated;');
+ try {
+  await assert.rejects(db.query('select * from public.sc_browser_trial_claims'),/permission denied/);
+  await assert.rejects(db.query('select public.sc_activate_browser_trial($1,$2,$3)',[webD,'f'.repeat(64),network]),/permission denied/);
+ } finally {await db.exec('reset role;')}
+ // Older phone trials must remain valid under the additive schema.
  const active=(await db.query('select public.sc_activate_trial($1,$2,now()) x',[customer1,phoneHash])).rows[0].x;
  assert.equal(active.result,'activated');
  assert.equal(active.trial.signalsRemaining,3);
