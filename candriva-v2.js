@@ -49,7 +49,7 @@ function startAccount(data){
  put('#membership-caption',a.access?'Access permitted':'Signals locked until approved payment');
  put('#trial-deadline','Ends: '+clock(a.trialEndsAt));put('#paid-deadline',clock(a.accessUntil||a.paidUntil));
  put('#member-email',a.email);put('#member-state',a.status.toUpperCase());put('#trial-expires',clock(a.trialEndsAt));
- put('#membership-copy',a.status==='trial'?'Your 72-hour free access is running. After exactly 72 hours, the server will lock premium signals automatically.':a.status==='active'?'Access renewed for 30 days following independently verified payment approval.':a.status==='granted'?'Complimentary access granted until '+clock(a.manualEndsAt)+'.':a.status==='locked'?(a.trialStatus==='not_activated'?'Verify your phone to activate the 72-hour, three-signal trial.':a.trialStatus==='exhausted'?'All 3 trial signal unlocks have been used. Upgrade to continue.':a.trialStatus==='expired'?'Your trial has expired. Subscribe to continue.':'Premium signals are locked; free market charts remain available.'):'Admin access is independent of trials.');
+ put('#membership-copy',a.status==='trial'?'Your 72-hour free access is running. After exactly 72 hours, the server will lock premium signals automatically.':a.status==='active'?'Access renewed for 30 days following independently verified payment approval.':a.status==='granted'?'Complimentary access granted until '+clock(a.manualEndsAt)+'.':a.status==='locked'?(a.trialStatus==='not_activated'?'Confirm your email, then activate your 72-hour, three-signal trial in Account.':a.trialStatus==='exhausted'?'All 3 trial signal unlocks have been used. Upgrade to continue.':a.trialStatus==='expired'?'Your trial has expired. Subscribe to continue.':'Premium signals are locked; free market charts remain available.'):'Admin access is independent of trials.');
  updateClock(a);
  setInterval(async()=>{try{const latest=await fetchMember();startAccountNoInterval(latest);if(a.status==='trial'&&latest.account.status==='locked')showPopup('locked',latest.account)}catch(e){msg(e.message,true)}},30000);
  if(false&&!a.isAdmin&&a.status==='trial'){
@@ -84,14 +84,14 @@ function switchAuth(mode){
  $$('.v2-tabs button').forEach(btn=>btn.classList.toggle('active',btn.id===(mode==='signup'?'tab-signup':'tab-signin')));
  const form=document.createElement('form');form.className='v2-supabase-form';
  form.innerHTML='<label>Email address<input id="sb-email" type="email" required autocomplete="email" placeholder="name@example.com"></label><label>Password<input id="sb-password" type="password" required minlength="12" autocomplete="'+(mode==='signup'?'new-password':'current-password')+'" placeholder="Minimum 12 characters"></label><button class="v2-primary" type="submit">'+(mode==='signup'?'Create free account':'Sign in securely')+'</button>';
- const note=document.createElement('p');note.className='v2-note';note.textContent=mode==='signup'?'Verify your email to start the one-time 72-hour trial.':'Use your verified Supabase email and password.';form.append(note);
+ const note=document.createElement('p');note.className='v2-note';note.textContent=mode==='signup'?'Confirm your email, then activate your one-time 72-hour trial in Account.':'Use your verified Supabase email and password.';form.append(note);
  form.addEventListener('submit',async ev=>{
   ev.preventDefault();const email=form.querySelector('#sb-email').value.trim(),password=form.querySelector('#sb-password').value,submit=form.querySelector('button[type=submit]');submit.disabled=true;msg('');
   try{
    if(mode==='signup'){
      const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+'/account.html'}});
      if(error)throw error;
-     if(data?.session){const m=await fetchMember();startAccount(m);setupMemberChrome()}else msg('Check your inbox to verify your email, then sign in to start your 72-hour free trial.');
+     if(data?.session){const m=await fetchMember();startAccount(m);setupMemberChrome()}else msg('Check your inbox to verify your email, then sign in and activate your 72-hour free trial in Account.');
    }else{
      const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;
      const m=await fetchMember();startAccount(m);setupMemberChrome();if(m.account.isAdmin)show('#admin-link',true);
@@ -127,7 +127,7 @@ async function initForex(){
   $('#reload-forex-history')?.addEventListener('click',loadForexHistory);
  await initSupabase();if(!await signedIn()){show('#signals-locked',true);return}
  const data=await fetchMember();membership=data.account;setupMemberChrome();
- if(!data.account.access){show('#signals-area',false);show('#signals-locked',true);$('#signals-locked h2').textContent='Premium forex details require an active entitlement';$('#signals-locked p').textContent=data.account.trialStatus==='not_activated'?'Verify your phone to activate 72 hours and 3 unique crypto/forex unlocks.':'Your 72-hour trial has expired or its 3-signal allowance was exhausted. You may continue with an approved membership.';$('#signals-locked a').textContent='Review membership and renewal →';showPopup('locked',data.account);return}
+ if(!data.account.access){show('#signals-area',false);show('#signals-locked',true);$('#signals-locked h2').textContent='Premium forex details require an active entitlement';$('#signals-locked p').textContent=data.account.trialStatus==='not_activated'?'Confirm your email and activate the 72-hour trial in Account for 3 unique crypto/forex unlocks.':'Your 72-hour trial has expired or its 3-signal allowance was exhausted. You may continue with an approved membership.';$('#signals-locked a').textContent='Review membership and renewal →';showPopup('locked',data.account);return}
  show('#signals-locked',false);show('#signals-area',true);await scanForex();
  $('#scan-again').onclick=scanForex;
  setInterval(async()=>{try{const latest=await fetchMember();if(!latest.account.access){show('#signals-area',false);show('#signals-locked',true);showPopup('locked',latest.account);return}await scanForex()}catch(e){msg(e.message,true)}},60000);
