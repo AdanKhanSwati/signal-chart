@@ -3,9 +3,9 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const script=fs.readFileSync(path.join(__dirname,'..','sc-trial-ui.js'),'utf8');
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-async function fixture({memberVisible=false,trialEnabled=true,verifiedSession=true}={}){
+async function fixture({memberVisible=false,trialEnabled=true,verifiedSession=true,existingShared=false}={}){
  const browserPanel={hidden:true},memberArea={hidden:!memberVisible};
- const renders=[],observations=[],handlers={};
+ const renders=[],observations=[],handlers={};let clientCreations=0;
  const nodes={
   '#sc-trial-account':{},'#sc-turnstile':{id:'sc-turnstile'},
   '#member-area':memberArea,'#sc-browser-activation':browserPanel,
@@ -21,7 +21,7 @@ async function fixture({memberVisible=false,trialEnabled=true,verifiedSession=tr
   document:{querySelector:sel=>nodes[sel]||null,
    querySelectorAll:()=>[],
    createElement:()=>{throw Error('Unexpected script creation')}},
-  window:{supabase:{createClient:()=>({auth:account})},
+  window:{supabase:{createClient:()=>{clientCreations++;return {auth:account}}},
    turnstile:{render,getResponse:()=>'',reset(){}},
    addEventListener(name,handler){handlers[name]=handler}},
   MutationObserver:class{constructor(callback){this.callback=callback;observations.push(this)}observe(){}},
@@ -40,9 +40,12 @@ async function fixture({memberVisible=false,trialEnabled=true,verifiedSession=tr
   Date,Math,Promise,URL,Error,Event:class{},setTimeout:()=>{},
   location:{assign:()=>{throw Error('Should not navigate')}}
  };
+ if(existingShared)context.window.__scSupabaseAuthClient={
+  url:'https://qa.supabase.co',anonKey:'publishable-qa',promise:Promise.resolve({auth:account})
+ };
  vm.runInNewContext(script,context,{timeout:1800});
  for(let i=0;i<8;i++)await tick();
- return {nodes,renders,observations,handlers,browserPanel,memberArea,async settle(){for(let i=0;i<6;i++)await tick()}};
+ return {nodes,renders,observations,handlers,browserPanel,memberArea,clientCreations:()=>clientCreations,async settle(){for(let i=0;i<6;i++)await tick()}};
 }
 test('authenticated browser trial widget is not rendered into hidden account panel',async()=>{
  const q=await fixture();
@@ -71,4 +74,21 @@ test('signed-out account does not request a challenge on initial page load',asyn
  const q=await fixture({memberVisible:false,verifiedSession:false});
  assert.equal(q.renders.length,0);
  assert.equal(q.browserPanel.hidden,true);
+});
+
+test('trial UI reuses an existing account Supabase session instead of opening another',async()=>{
+ const q=await fixture({memberVisible:true,existingShared:true});
+ assert.equal(q.clientCreations(),0,'No competing Supabase Auth client should be created');
+ assert.equal(q.renders.length,1,'Shared auth session must still allow verified trial onboarding');
+});
+test('the Account and trial pages use an identical shared Supabase client helper',()=>{
+ const account=fs.readFileSync(path.join(__dirname,'..','candriva-v2.js'),'utf8');
+ const extract=(s)=>{
+  const begin=s.indexOf('async function sharedSupabaseClient(');
+  const end=s.indexOf('\n}\n',begin);
+  assert.ok(begin>0&&end>begin);
+  return s.slice(begin,end+3);
+ };
+ assert.equal(extract(account),extract(script),'Both pages must share exactly the same client-construction policy');
+ assert.ok(extract(script).includes('window.__scSupabaseAuthClient'));
 });
