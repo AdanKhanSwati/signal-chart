@@ -7,6 +7,35 @@ const accountRoot=$('#sc-trial-account'),signalsRoot=$('#sc-trial-signals');
 if(!accountRoot&&!signalsRoot)return;
 let auth=null,session=null,trial=null,serverOffset=0,selectedMarket='all',allSignals=[];
 let paidOverride=null,browserTrialEnabled=false,turnstileSiteKey=null,turnstileWidget=null,turnstileLoading=false;
+async function sharedSupabaseClient(url,anonKey){
+ // Account and trial code run concurrently. Share a single GoTrue client and
+ // one script-load Promise so refresh-token storage is never contended locally.
+ const slot=window.__scSupabaseAuthClient;
+ if(slot){
+  if(slot.url!==url||slot.anonKey!==anonKey)throw Error('Authentication project mismatch');
+  return await slot.promise;
+ }
+ const promise=(async()=>{
+  if(!window.supabase?.createClient)await new Promise((resolve,reject)=>{
+   const script=document.createElement('script');
+   script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+   script.async=true;script.crossOrigin='anonymous';
+   script.onload=resolve;script.onerror=()=>reject(Error('Unable to load sign-in library'));
+   document.head.appendChild(script);
+  });
+  if(!window.supabase?.createClient)throw Error('Supabase login unavailable');
+  return window.supabase.createClient(url,anonKey,{
+   auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}
+  });
+ })();
+ window.__scSupabaseAuthClient={url,anonKey,promise};
+ try{return await promise}
+ catch(error){
+  if(window.__scSupabaseAuthClient?.promise===promise)delete window.__scSupabaseAuthClient;
+  throw error;
+ }
+}
+
 const notify=(text,bad=false)=>{
  const node=$('#sc-trial-feedback');if(!node)return;
  node.textContent=String(text||'');node.dataset.error=bad?'true':'false'};
@@ -36,11 +65,7 @@ async function initializeClient(){
  browserTrialEnabled=c.emailDeviceTrialEnabled===true&&c.trialVerificationMethod==='verified_email_browser';
  turnstileSiteKey=typeof c.turnstileSiteKey==='string'?c.turnstileSiteKey:null;
  updateVerificationGuide(false);
- if(!window.supabase?.createClient)await new Promise((resolve,reject)=>{
-  const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-  script.onload=resolve;script.onerror=()=>reject(Error('Unable to load sign-in library'));document.head.append(script)});
- auth=window.supabase.createClient(c.supabaseUrl,c.supabaseAnonKey,{
-  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
+ auth=await sharedSupabaseClient(c.supabaseUrl,c.supabaseAnonKey);
 }
 async function token(){
  if(!auth)return null;
