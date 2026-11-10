@@ -65,7 +65,7 @@ async function main(){
  });
  let browser;
  try{
-  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+  browser=await chromium.launch({headless:true,channel:'chromium',args:['--no-sandbox']});
   for(const width of [390,1280]){
    const page=await browser.newPage({viewport:{width,height:844},isMobile:width<600});
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
