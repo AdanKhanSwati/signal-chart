@@ -43,7 +43,14 @@ async function request(path,body){const token=await currentToken();const opts=bo
  if(!response.ok)throw Error(data.error||'Request failed (HTTP '+response.status+')');return data}
 const memberAPI=(act,body)=>request('/api/member?action='+encodeURIComponent(act),body);
 async function initSupabase(){
- const response=await fetch('/api/config',{cache:'no-store'});if(!response.ok)throw Error('Authentication configuration unavailable');
+ // A transient network failure is not proof that Supabase is unconfigured.
+ // Retry only this read-only public configuration request once.
+ let response;
+ for(let attempt=0;attempt<2;attempt++){
+  try{response=await fetch('/api/config',{cache:'no-store',credentials:'same-origin'});break}
+  catch(error){if(attempt===1)throw Error('Cannot reach the SignalChart account service. Check your connection and retry.');}
+ }
+ if(!response.ok)throw Error('SignalChart account service returned HTTP '+response.status+'. Please retry.');
  config=await response.json();
  if(!config.authReady||!config.supabaseUrl||!config.supabaseAnonKey){show('#auth-off',page==='account');if(page==='forex')put('#signals-locked h2','Supabase project connection required');return null}
  sb=await sharedSupabaseClient(config.supabaseUrl,config.supabaseAnonKey);
@@ -210,7 +217,24 @@ async function initAdmin(){
 }
 async function boot(){
  try{if(page==='account')await initAccount();else if(page==='forex')await initForex();else if(page==='admin')await initAdmin()}
- catch(e){msg(e.message,true);if(page==='account')show('#auth-off',true);if(page==='admin')show('#admin-locked',true)}
+ catch(e){
+  msg(e.message||'Account could not be loaded.',true);
+  // Do not falsely claim the Supabase project is missing after a network,
+  // protected-preview or member-API failure.
+  if(page==='account'){
+   show('#auth-off',false);
+   const status=$('#v2-status');
+   if(status){
+    const note=document.createElement('p');
+    note.textContent='Your sign-in may still be valid. This page could not load the account details.';
+    const retry=document.createElement('button');
+    retry.type='button';retry.className='v2-outline';retry.textContent='Retry loading account';
+    retry.onclick=()=>location.reload();
+    status.append(note,retry);
+   }
+  }
+  if(page==='admin')show('#admin-locked',true);
+ }
 }
 boot();
 })();
