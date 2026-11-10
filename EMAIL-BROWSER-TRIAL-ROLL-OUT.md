@@ -61,3 +61,15 @@ To resolve this without overwriting current staging work, `scripts/recover-missi
 No complete originals have been recovered via that script in the connected workspace yet; **the original-source gate is intentionally still failing**. After full recovery, compare the original code with the 11 modern staging replacements, review the differences in auth, permissions, payment approval, and storage behavior, and re-run the full test suite before any launch. A test pass alone is not a substitute for that provenance review.
 
 The self-imposed Vercel budget remains **no more than five assistant-initiated deployments per rolling 24 hours across projects**; there were more than five recent deployments in the account, so this source audit did not initiate a new preview or production deploy. Trial activation remains disabled.
+
+
+## Security hardening — 2026-11-10 (additional staging commits)
+
+- Legacy phone/WhatsApp trial verification now fails closed whenever phone delivery is disabled or the new browser trial is active. Direct calls to the phone verification and already-verified-phone endpoints cannot bypass the new flow.
+- Turnstile is rendered **only after the signed-in trial panel is visible**, including asynchronous Account sign-in transitions. Avoids zero-width/hidden CAPTCHA widgets on mobile.
+- Cloudflare Siteverify must return success, action `trial_activate`, **and the exact hostname of the inbound trial request**. Rejections happen before the browser-claim SQL function is called. Official documentation: https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
+- Application code now recognizes **only** `SC_TURNSTILE_SITE_KEY` and `SC_TURNSTILE_SECRET_KEY`, not older misspelled aliases; both canonical keys were already created in staging Preview.
+- A missing signed browser cookie receives HTTP **428** rather than a generic 500.
+- Latest complete isolated suite before the canonical-key regression case: **161 passed / 0 failed**. Subsequent focused canonical-key regression checks: **17 passed / 0 failed**. Release integrity gate remains **93/104 original files verified, 11 unverified**.
+- No production changes, no live trial claims, and no Vercel deployments in this hardening step. `SC_EMAIL_DEVICE_TRIAL_ENABLED` stays `false`.
+
