@@ -55,3 +55,13 @@ test('responsive styling and hidden trial area remain intact',()=>{
  assert.ok(account.includes('id="sc-browser-activation" hidden'));
  assert.ok(account.includes('id="sc-activate-browser"')&&account.includes('disabled>Activate my free trial'));
 });
+
+test('Turnstile challenge is deferred until the authenticated trial panel is visible',()=>{
+ assert.ok(ui.includes("panel.hidden||member?.hidden"),'Hidden panel must not render the challenge');
+ assert.ok(ui.includes("turnstileWidget!==null||turnstileLoading"),'Challenge should render once');
+ assert.ok(ui.includes("new MutationObserver("),'Reveal of async-auth parent must activate challenge');
+ assert.ok(ui.includes("attributeFilter:['hidden']"));
+ assert.ok(ui.includes("await renderTurnstile();return value"),'Refreshing trial state must rerender if visible');
+ const boot=ui.slice(ui.indexOf("async function boot()"),ui.indexOf("setInterval("));
+ assert.ok(!boot.includes("   await renderTurnstile();"),'Do not render into hidden account area at boot');
+});
