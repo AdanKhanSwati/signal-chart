@@ -11,8 +11,9 @@
 import {createHash} from 'node:crypto';
 import {readFile,mkdir,writeFile,open} from 'node:fs/promises';
 import {join,resolve,dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
-const ROOT=resolve(import.meta.dirname,'..');
+const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const manifest=JSON.parse(await readFile(join(ROOT,'recovery-manifest.json'),'utf8'));
 const deployment=manifest.originalDeploymentId;
 const team=manifest.teamId;
