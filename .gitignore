@@ -7,3 +7,5 @@ node_modules/
 *.key
 *service-account*.json
 vercel-recovered/
+.cloudflare-dist/
+.wrangler/
