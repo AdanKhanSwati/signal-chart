@@ -58,6 +58,39 @@ const turnstileStub="window.__scQaTurnstileCount=0;window.turnstile={"+
  "window.__scQaTurnstileCount++;window.__scQaAction=opts.action;"+
  "node.textContent='Mock verification ready';return window.__scQaTurnstileCount;},"+
  "getResponse:function(){return '';},reset:function(){}};";
+async function checkResponsivePages(browser,origin){
+ const pages=['home.html','dashboard.html','signals.html','terminal.html',
+  'crypto.html','forex.html','billing.html','analytics.html','ops.html','watchlist.html'];
+ for(const width of [390,768,1280]){
+  const context=await browser.newContext({viewport:{width,height:840}});
+  try{
+   for(const filename of pages){
+    const page=await context.newPage();
+    await page.route('**/*',route=>{
+     const url=route.request().url();
+     if(url.startsWith(origin+'/'))return route.continue();
+     if(url.startsWith('https://cdn.jsdelivr.net/'))
+      return route.fulfill({status:200,contentType:'application/javascript',body:authStub});
+     if(url.startsWith('https://challenges.cloudflare.com/turnstile/'))
+      return route.fulfill({status:200,contentType:'application/javascript',body:turnstileStub});
+     return route.abort();
+    });
+    await page.goto(origin+'/'+filename,{waitUntil:'domcontentloaded',timeout:14000});
+    await page.waitForTimeout(180);
+    const dimensions=await page.evaluate(()=>({
+      scroll:document.documentElement.scrollWidth,
+      client:document.documentElement.clientWidth,
+      body:document.body?.scrollWidth||0
+    }));
+    assert.ok(dimensions.scroll<=dimensions.client+2,
+     filename+' horizontal document overflow at '+width+'px: '+
+      dimensions.scroll+' > '+dimensions.client);
+    console.log('PAGE_LAYOUT_PASS '+JSON.stringify({page:filename,width}));
+    await page.close();
+   }
+  }finally{await context.close()}
+ }
+}
 async function main(){
  const server=createServer();
  await new Promise((resolve,reject)=>{
@@ -100,6 +133,7 @@ async function main(){
     turnstileRenders:m.count,horizontalOverflow:false}));
    await page.close();
   }
+  await checkResponsivePages(browser,'http://127.0.0.1:'+server.address().port);
  }finally{
   if(browser)await browser.close();
   await new Promise(resolve=>server.close(resolve));
