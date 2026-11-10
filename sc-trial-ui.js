@@ -11,6 +11,30 @@ const notify=(text,bad=false)=>{
  const node=$('#sc-trial-feedback');if(!node)return;
  node.textContent=String(text||'');node.dataset.error=bad?'true':'false'};
 const safeTime=s=>s?new Date(s).toLocaleString():'—';
+function updateVerificationGuide(signedIn){
+ const available=phoneDeliveryEnabled;
+ const state=$('#sc-whatsapp-availability');
+ if(state){
+  state.textContent=available?'WhatsApp OTP available':'WhatsApp OTP setup pending';
+  state.dataset.available=available?'true':'false';
+ }
+ const link=$('#sc-whatsapp-guide-link');
+ if(link){
+  link.href=signedIn?'#sc-phone-verification':'#auth-area';
+  link.textContent=signedIn?'View phone verification':'Sign in to continue';
+ }
+ const signalNote=$('#sc-signal-phone-delivery');
+ if(signalNote)signalNote.textContent=available?
+  'WhatsApp OTP available after email sign-in':
+  'WhatsApp codes are not yet enabled. No OTP will be sent.';
+ const note=$('#sc-otp-delivery-note');
+ if(note)note.textContent=available?
+  'Request a one-time code through WhatsApp to verify this number.':
+  'WhatsApp delivery requires provider activation. No verification message is sent while unavailable.';
+ const send=$('#sc-send-otp');
+ if(send&&!available){send.disabled=true;send.textContent='WhatsApp verification unavailable'}
+}
+
 const expString=()=>{
  if(!trial?.expiresAt)return 'Not activated';
  const ms=Math.max(0,Date.parse(trial.expiresAt)-(Date.now()+serverOffset));
@@ -21,6 +45,7 @@ async function initializeClient(){
  const c=await fetch('/api/config',{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject(Error('Authentication unavailable')));
  if(!c.authReady||!c.supabaseUrl||!c.supabaseAnonKey)throw Error('Sign-in service unavailable');
  phoneDeliveryEnabled=c.phoneVerificationEnabled===true&&c.phoneVerificationChannel==='whatsapp';
+ updateVerificationGuide(false);
  if(!window.supabase?.createClient)await new Promise((resolve,reject)=>{
   const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
   script.onload=resolve;script.onerror=()=>reject(Error('Unable to load sign-in library'));document.head.append(script)});
@@ -79,7 +104,7 @@ async function refresh(){
    paidOverride=['active','granted','administrator'].includes(account?.status)?account:null;
   }else paidOverride=null;
  }catch{paidOverride=null}
- paintStatus();return value;
+ paintStatus();updateVerificationGuide(true);return value;
 }
 function riskHint(){
  // Random pseudonymous session indicator, not a hardware fingerprint or identity.
@@ -197,6 +222,7 @@ async function boot(){
   }
   await initializeClient();
   const t=await token();
+  updateVerificationGuide(!!t);
   if(accountRoot){
    $('#sc-phone-form')?.addEventListener('submit',startOTP);
    if(!phoneDeliveryEnabled){
@@ -217,7 +243,7 @@ async function boot(){
    const phone=$('#sc-phone-verification');if(phone)phone.hidden=true;
   }
   if(t)await activateKnownVerifiedPhoneHint();
- }catch(e){notify(e.message,true)}
+ }catch(e){notify(e.message,true);updateVerificationGuide(!!session)}
 }
 async function activateKnownVerifiedPhoneHint(){
  // Show optional no-SMS activation if Supabase already confirmed an account phone.
