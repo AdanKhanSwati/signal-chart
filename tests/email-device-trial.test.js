@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {createTrialGateway}=require('../lib/trial-gate');
 const UID='11111111-1111-4111-8111-111111111111',TOKEN='qa.jwt.token';
-function fixture({enabled=true,challengeValid=true,emailVerified=true,keys=true,legacy=false}={}){
+function fixture({enabled=true,challengeValid=true,emailVerified=true,keys=true,legacy=false,challengeHostname='signals.example.test'}={}){
  const calls=[];let issued=null;
  const env={SC_EMAIL_DEVICE_TRIAL_ENABLED:enabled?'true':'false',
   SUPABASE_SERVICE_ROLE_KEY:'eyJ'+'a'.repeat(105),
@@ -18,7 +18,7 @@ function fixture({enabled=true,challengeValid=true,emailVerified=true,keys=true,
    id:UID,email:'qa@example.test',email_confirmed_at:emailVerified?'2026-11-08T00:00:00Z':null,
    created_at:legacy?'2026-10-29T00:00:00Z':'2026-11-08T00:00:00Z'})};
   if(url.endsWith('turnstile/v0/siteverify'))
-   return {ok:true,status:200,json:async()=>({success:challengeValid,action:'trial_activate'})};
+   return {ok:true,status:200,json:async()=>({success:challengeValid,action:'trial_activate',hostname:challengeHostname})};
   if(url.endsWith('/rpc/sc_trial_state'))
    return {ok:true,status:200,json:async()=>({trialStatus:'not_activated'})};
   if(url.endsWith('/rpc/sc_activate_browser_trial'))
@@ -29,7 +29,7 @@ function fixture({enabled=true,challengeValid=true,emailVerified=true,keys=true,
  const core={authConfig:()=>({ready:true,url:'https://demo.supabase.co',key:'sb_publishable_sample'}),
   findMemberRecord:async()=>null};
  const gate=createTrialGateway(core,{fetchFn,env,clock:()=>Date.parse('2026-11-09T12:00:00Z')});
- const req={headers:{authorization:'Bearer '+TOKEN,'x-vercel-forwarded-for':'203.0.113.8'}};
+ const req={headers:{authorization:'Bearer '+TOKEN,host:'signals.example.test','x-vercel-forwarded-for':'203.0.113.8'}};
  const res={headers:{},setHeader(k,v){this.headers[k]=v}};
  return {gate,req,res,calls,env};
 }
@@ -102,4 +102,22 @@ test('missing browser cookie returns HTTP 428 instead of a generic HTTP 500',()=
  core.handleError(res,Object.assign(new Error('Initialize secure browser recognition'),{status:428}));
  assert.equal(res.statusCode,428);
  assert.match(res.payload.error,/Initialize secure browser recognition/);
+});
+
+test('Cloudflare challenge from another hostname cannot activate trial',async()=>{
+ const f=fixture({challengeHostname:'malicious.example.test'});
+ await f.gate.deviceStart(f.req,f.res);
+ f.req.headers.cookie=f.res.headers['Set-Cookie'].split(';')[0];
+ await assert.rejects(f.gate.activateBrowserTrial(f.req,'valid-turnstile-token-12345'),
+  e=>e.status===403);
+ assert.ok(!f.calls.some(x=>x.url.endsWith('/rpc/sc_activate_browser_trial')));
+});
+test('missing or malformed server request hostname fails closed',async()=>{
+ const f=fixture();
+ await f.gate.deviceStart(f.req,f.res);
+ f.req.headers.cookie=f.res.headers['Set-Cookie'].split(';')[0];
+ delete f.req.headers.host;
+ await assert.rejects(f.gate.activateBrowserTrial(f.req,'valid-turnstile-token-12345'),
+  e=>e.status===503);
+ assert.ok(!f.calls.some(x=>x.url.endsWith('/rpc/sc_activate_browser_trial')));
 });
