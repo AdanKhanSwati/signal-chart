@@ -16,6 +16,10 @@ alter table public.sc_trials
     or (proof_method='verified_email_browser' and phone_hash is null and phone_verified_at is null)
   );
 
+-- Expired IP/network risk data must actually be deleted, not merely marked expired.
+create index if not exists sc_trial_risk_expiration_idx
+ on public.sc_trial_risk_events(expires_at);
+
 create table if not exists public.sc_browser_trial_claims (
   device_hash text primary key check(device_hash ~ '^[0-9a-f]{64}$'),
   first_user_id uuid not null references auth.users(id) on delete restrict,
@@ -50,6 +54,11 @@ begin
  if not exists(select 1 from auth.users where id=p_user and email_confirmed_at is not null)
  then raise exception 'Confirmed email required' using errcode='22023';end if;
 
+ -- Prune a bounded batch of expired risk data on each legitimate activation attempt.
+ delete from public.sc_trial_risk_events where id in (
+  select id from public.sc_trial_risk_events
+  where expires_at<now() order by expires_at limit 250
+ );
  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(p_device_hash));
  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(p_user::text));
  select * into existing from public.sc_trials where user_id=p_user for update;
