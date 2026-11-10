@@ -6,7 +6,7 @@ const $=s=>document.querySelector(s),create=(tag,cls,text)=>{
 const accountRoot=$('#sc-trial-account'),signalsRoot=$('#sc-trial-signals');
 if(!accountRoot&&!signalsRoot)return;
 let auth=null,session=null,trial=null,serverOffset=0,selectedMarket='all',allSignals=[];
-let paidOverride=null,browserTrialEnabled=false,turnstileSiteKey=null,turnstileWidget=null;
+let paidOverride=null,browserTrialEnabled=false,turnstileSiteKey=null,turnstileWidget=null,turnstileLoading=false;
 const notify=(text,bad=false)=>{
  const node=$('#sc-trial-feedback');if(!node)return;
  node.textContent=String(text||'');node.dataset.error=bad?'true':'false'};
@@ -94,20 +94,33 @@ async function refresh(){
    paidOverride=['active','granted','administrator'].includes(account?.status)?account:null;
   }else paidOverride=null;
  }catch{paidOverride=null}
- paintStatus();updateVerificationGuide(true);return value;
+ paintStatus();updateVerificationGuide(true);
+ await renderTurnstile();return value;
 }
 async function renderTurnstile(){
- if(!accountRoot||!browserTrialEnabled||!turnstileSiteKey)return;
- if(!window.turnstile?.render)await new Promise((resolve,reject)=>{
-  const script=document.createElement('script');
-  script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-  script.async=true;script.onload=resolve;
-  script.onerror=()=>reject(Error('Unable to load the verification challenge'));
-  document.head.append(script);
- });
- const node=$('#sc-turnstile');
- if(node&&window.turnstile?.render)
-  turnstileWidget=window.turnstile.render(node,{sitekey:turnstileSiteKey,theme:'auto',action:'trial_activate'});
+ // Cloudflare's iframe must be rendered into a visible container. Rendering
+ // while #member-area is hidden produces an unusable/zero-width challenge.
+ const panel=$('#sc-browser-activation'),member=$('#member-area');
+ if(!accountRoot||!browserTrialEnabled||!turnstileSiteKey||!panel||
+    panel.hidden||member?.hidden||turnstileWidget!==null||turnstileLoading)return;
+ turnstileLoading=true;
+ try{
+  if(!window.turnstile?.render)await new Promise((resolve,reject)=>{
+   const script=document.createElement('script');
+   script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+   script.async=true;script.onload=resolve;
+   script.onerror=()=>reject(Error('Unable to load the verification challenge'));
+   document.head.append(script);
+  });
+  // Auth may have changed while the provider script was loading.
+  if(panel.hidden||member?.hidden)return;
+  const node=$('#sc-turnstile');
+  if(node&&window.turnstile?.render)
+   turnstileWidget=window.turnstile.render(node,{
+    sitekey:turnstileSiteKey,theme:'auto',action:'trial_activate'
+   });
+ }catch(e){notify(e.message||'Unable to load anti-bot verification',true)}
+ finally{turnstileLoading=false}
 }
 async function activateBrowser(){
  const button=$('#sc-activate-browser');
@@ -193,7 +206,12 @@ async function boot(){
   updateVerificationGuide(!!t);
   if(accountRoot){
    $('#sc-activate-browser')?.addEventListener('click',activateBrowser);
-   await renderTurnstile();
+   // The parent member panel is revealed by the main auth UI asynchronously.
+   // Observe both hidden attributes and render only after the pane is visible.
+   const observer=new MutationObserver(()=>{renderTurnstile().catch(e=>notify(e.message,true))});
+   for(const node of [$('#member-area'),$('#sc-browser-activation')]){
+    if(node)observer.observe(node,{attributes:true,attributeFilter:['hidden']});
+   }
   }
   if(signalsRoot){
    document.querySelectorAll('[data-sc-trial-market]').forEach(btn=>btn.onclick=()=>{
