@@ -49,6 +49,14 @@ Added `tests/member-storage-lifecycle.test.js`, exercising `core.member` through
 
 Added `scripts/member-blob-diagnostic.cjs` (opt-in, disposable QA member with cleanup) and `scripts/customer-session-smoke.cjs` (verified QA credentials from runtime environment only; no trial spending or payments). **The latter positive session script has not run**, because no dedicated verified QA identity/session was provided. An additional live member Blob retry test could not be executed via the available protected execution pathway, so do not claim this change is verified against real Blob propagation yet.
 
+### New protected Vercel staging preview — READY
+
+Deployment `dpl_6932UanTaNwBTXsVLZsWHMPRSc7V`, source commit `4d69040f8d59b3ac8636999b2647a26edd6a2dc6`, protected URL `https://candriva-signals-beta-b3yc5xjmf-adan-khan-swati-s-projects.vercel.app`. It is **preview**, not production, and uses the audited 12-function layout.
+
+HTTP response checks passed for `/api/config`, `/api/premium-signals?action=list`, `/api/research?mode=health`, and `/api/crypto`: trial=72 hours, limit=3; no published signals; payments, legacy signal publishing, WhatsApp OTP delivery and autonomous publishing all disabled.
+
+Positive authenticated customer E2E remains **NOT TESTED**, since no dedicated verified QA identity/password and protected-preview bypass credential is available to this execution path. `scripts/customer-session-smoke.cjs` is ready for such an account, and will only perform non-payable checks.
+
 ## Open issues
 
 1. **Real verified-user end-to-end flows not yet tested:** Sign-in, verification-channel delivery, customer session to membership API, premium unlock through the browser, payment submission and admin review require a dedicated verified test identity and secure browser access. Never use real customer accounts to impersonate, change subscriptions, or consume credits.
