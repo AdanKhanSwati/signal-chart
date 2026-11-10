@@ -33,7 +33,7 @@ const btn=q('#crypto-refresh');if(btn)btn.disabled=true;
 message('Scanning closed cryptocurrency candles…');
 try{
  const t=await token();if(!t){show('#crypto-locked',true);show('#crypto-scanner',false);message('Please sign in to access crypto research.');return}
- const response=await fetch('/api/crypto',{headers:{Authorization:'Bearer '+t},cache:'no-store',credentials:'omit'});
+ const response=await fetch('/api/crypto',{headers:{Authorization:'Bearer '+t},cache:'no-store',credentials:'same-origin'});
  const data=await response.json().catch(()=>({}));
  if(response.status===401||response.status===403){show('#crypto-locked',true);show('#crypto-scanner',false);message(data.error||'Your crypto research access is locked.',true);return}
  if(!response.ok)throw Error(data.error||'Scanner temporarily unavailable.');
