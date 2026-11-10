@@ -61,7 +61,7 @@ const turnstileStub="window.__scQaTurnstileCount=0;window.turnstile={"+
 async function checkResponsivePages(browser,origin){
  const pages=['home.html','dashboard.html','signals.html','terminal.html',
   'crypto.html','forex.html','billing.html','analytics.html','ops.html','watchlist.html'];
- for(const width of [390,768,1280]){
+ for(const width of [320,390,768,1280]){
   const context=await browser.newContext({viewport:{width,height:840}});
   try{
    for(const filename of pages){
@@ -99,7 +99,7 @@ async function main(){
  let browser;
  try{
   browser=await chromium.launch({headless:true,channel:'chromium',args:['--no-sandbox']});
-  for(const width of [390,1280]){
+  for(const width of [320,390,1280]){
    const page=await browser.newPage({viewport:{width,height:844},isMobile:width<600});
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.route('https://cdn.jsdelivr.net/**',route=>route.fulfill({
