@@ -31,6 +31,7 @@ test('client trial start requires enabled backend and Turnstile challenge',()=>{
  assert.ok(ui.includes("browserTrialEnabled=c.emailDeviceTrialEnabled===true"));
  assert.ok(ui.includes("turnstileSiteKey=typeof c.turnstileSiteKey==='string'"));
  assert.ok(ui.includes("api('device',undefined,'GET')"));
+ assert.ok(ui.slice(ui.indexOf('async function api('),ui.indexOf('async function unlock(')).includes("credentials:'same-origin'"),'Trial API must carry the signed HttpOnly browser cookie');
  assert.ok(ui.includes("api('activate_browser',{turnstileToken:challenge})"));
  assert.ok(ui.includes("window.turnstile.getResponse(turnstileWidget)"));
  assert.ok(ui.includes("if(!challenge)throw Error('Complete the anti-bot verification first')"));
