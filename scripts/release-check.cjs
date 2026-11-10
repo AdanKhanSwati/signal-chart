@@ -40,8 +40,8 @@ for(const file of ['20261109180000_sc_trial_foundation.sql','20261109180100_sc_t
 
 if(fs.existsSync(path.join(root,'api/config.js'))){
  const conf=fs.readFileSync(path.join(root,'api/config.js'),'utf8');
- if(!conf.includes('trialHours:72')||!conf.includes('trialSignalLimit:3')||!conf.includes('requiresVerifiedPhone:true'))
-  failures.push('API configuration does not specify 72 hours / 3 signals / verified phone');
+ if(!conf.includes('trialHours:72')||!conf.includes('trialSignalLimit:3')||!conf.includes('requiresVerifiedEmail:true')||!conf.includes('trialVerificationMethod:\'verified_email_browser\''))
+  failures.push('API configuration does not specify 72 hours / 3 signals / verified email browser');
 }
 if(fs.existsSync(path.join(root,'lib/subscription-rules.js'))){
  const rules=fs.readFileSync(path.join(root,'lib/subscription-rules.js'),'utf8');
