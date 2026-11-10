@@ -35,7 +35,7 @@ Verified that `anon` and `authenticated` roles have no EXECUTE access to ten pri
 
 ### Local-regression + optional external QA script — PASS
 
-Full latest isolated suite: **138 passed, 0 failed**. Verified `scripts/live-integration-smoke.cjs` syntax and live negative-Auth mode. The optional Blob mode is off by default, avoids secrets in output, writes only disposable test data, and cleans up files. The real Blob check was separately completed as noted above.
+Full latest isolated suite: **142 passed, 0 failed**. Verified `scripts/live-integration-smoke.cjs` syntax and live negative-Auth mode. The optional Blob mode is off by default, avoids secrets in output, writes only disposable test data, and cleans up files. The real Blob check was separately completed as noted above.
 
 ### Follow-up: member adapter unit behavior — PASS
 
@@ -45,7 +45,7 @@ Added `tests/member-storage-lifecycle.test.js`, exercising `core.member` through
 
 `lib/candriva-core.js` now retries the canonical private member record read (maximum three bounded attempts) after an acknowledged immutable write, rather than failing on a transient missing read. The guard verifies that the stored record UID matches the signed-in member; a persistently missing or mismatched record still fails closed.
 
-`tests/member-storage-eventual.test.js` adds three passing scenarios: temporary read-after-write lag, concurrent first-login races, and absent/mismatched persistence. The complete isolated suite passed **138 of 138 tests**.
+`tests/member-storage-eventual.test.js` adds three passing scenarios: temporary read-after-write lag, concurrent first-login races, and absent/mismatched persistence. The complete isolated suite passed **142 of 142 tests**.
 
 Added `scripts/member-blob-diagnostic.cjs` (opt-in, disposable QA member with cleanup) and `scripts/customer-session-smoke.cjs` (verified QA credentials from runtime environment only; no trial spending or payments). **The latter positive session script has not run**, because no dedicated verified QA identity/session was provided. An additional live member Blob retry test could not be executed via the available protected execution pathway, so do not claim this change is verified against real Blob propagation yet.
 
@@ -56,6 +56,20 @@ Deployment `dpl_6932UanTaNwBTXsVLZsWHMPRSc7V`, source commit `4d69040f8d59b3ac86
 HTTP response checks passed for `/api/config`, `/api/premium-signals?action=list`, `/api/research?mode=health`, and `/api/crypto`: trial=72 hours, limit=3; no published signals; payments, legacy signal publishing, WhatsApp OTP delivery and autonomous publishing all disabled.
 
 Positive authenticated customer E2E remains **NOT TESTED**, since no dedicated verified QA identity/password and protected-preview bypass credential is available to this execution path. `scripts/customer-session-smoke.cjs` is ready for such an account, and will only perform non-payable checks.
+
+### Protected preview access and dedicated email QA — verified/blocked boundary
+
+On November 10, 2026, read-only requests to the READY staging preview confirmed:
+- `GET /api/member?action=me`, `/api/trial?action=state`, `/api/cv-ops?action=me`, `/api/checkout?action=verify`, and `/api/admin-access?action=members` each rejected anonymous callers with HTTP **401**.
+- `GET /api/premium-signals?action=unlock` returned **405** (authenticated POST only).
+- Invalid `/api/compat?sc_route=../lib/candriva-core` returned **404**.
+- Public `/api/premium-signals?action=list` and `/api/config` stayed accessible, without private signal levels.
+
+The reusable `scripts/staging-smoke.cjs` now checks **16** read-only response contracts, including these authorization denials and staging's disabled payment, WhatsApp and automatic publication switches. `tests/staging-smoke-contract.test.js` adds four passing tests, including fail-closed behavior for leaked member data and premium stop-loss information. The complete isolated suite passed **142/142**.
+
+A dedicated Gmail QA alias successfully submitted a real Supabase Auth signup, and its confirmation email arrived. The available tools **blocked transferring its single-use confirmation URL into the testing environment**. No verified customer token was obtained and no customer-session E2E test was claimed. The unverified QA account was deleted with a strictly scoped cleanup query; a fresh Supabase query confirmed **zero remaining QA accounts**. No trial, phone claim, payment or signal publication was created.
+
+The customer-session smoke script was corrected to include the preview protection header when reading the public premium feed, and to assert that a fresh QA member has no privileged entitlement. Its positive-session path still requires a legitimately verified QA identity.
 
 ## Open issues
 
