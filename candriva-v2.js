@@ -7,6 +7,35 @@ const put=(id,v)=>{const el=$(id);if(el)el.textContent=v??'—'};
 const clock=s=>s?new Date(s).toLocaleString():'—';
 const fmt=(x,d=2)=>Number.isFinite(Number(x))?Number(x).toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d}):'—';
 let config=null,sb=null,membership=null,selectedPayment=null;
+async function sharedSupabaseClient(url,anonKey){
+ // Account and trial code run concurrently. Share a single GoTrue client and
+ // one script-load Promise so refresh-token storage is never contended locally.
+ const slot=window.__scSupabaseAuthClient;
+ if(slot){
+  if(slot.url!==url||slot.anonKey!==anonKey)throw Error('Authentication project mismatch');
+  return await slot.promise;
+ }
+ const promise=(async()=>{
+  if(!window.supabase?.createClient)await new Promise((resolve,reject)=>{
+   const script=document.createElement('script');
+   script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+   script.async=true;script.crossOrigin='anonymous';
+   script.onload=resolve;script.onerror=()=>reject(Error('Unable to load sign-in library'));
+   document.head.appendChild(script);
+  });
+  if(!window.supabase?.createClient)throw Error('Supabase login unavailable');
+  return window.supabase.createClient(url,anonKey,{
+   auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}
+  });
+ })();
+ window.__scSupabaseAuthClient={url,anonKey,promise};
+ try{return await promise}
+ catch(error){
+  if(window.__scSupabaseAuthClient?.promise===promise)delete window.__scSupabaseAuthClient;
+  throw error;
+ }
+}
+
 async function currentToken(){const {data,error}=await sb?.auth?.getSession()||{};if(error||!data?.session?.access_token)throw Error('Supabase session expired. Please sign in again.');return data.session.access_token}
 async function request(path,body){const token=await currentToken();const opts=body===undefined?{method:'GET'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
  opts.headers={...opts.headers,Authorization:'Bearer '+token};opts.cache='no-store';opts.credentials='omit';
@@ -17,9 +46,7 @@ async function initSupabase(){
  const response=await fetch('/api/config',{cache:'no-store'});if(!response.ok)throw Error('Authentication configuration unavailable');
  config=await response.json();
  if(!config.authReady||!config.supabaseUrl||!config.supabaseAnonKey){show('#auth-off',page==='account');if(page==='forex')put('#signals-locked h2','Supabase project connection required');return null}
- if(!window.supabase?.createClient){await new Promise((resolve,reject)=>{const el=document.createElement('script');el.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';el.crossOrigin='anonymous';el.onload=resolve;el.onerror=()=>reject(Error('Supabase authentication library could not load'));document.head.appendChild(el)})}
- if(!window.supabase?.createClient)throw Error('Supabase login unavailable');
- sb=window.supabase.createClient(config.supabaseUrl,config.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
+ sb=await sharedSupabaseClient(config.supabaseUrl,config.supabaseAnonKey);
  return sb;
 }
 async function signedIn(){if(!sb)return false;const {data,error}=await sb.auth.getSession();if(error)throw error;return !!data?.session?.access_token}
@@ -111,7 +138,7 @@ async function initAccount(){
  if(data?.session?.access_token){const m=await fetchMember();startAccount(m);setupMemberChrome();if(m.account.isAdmin)show('#admin-link',true)}
  else{show('#auth-area',true);const mode=new URL(location.href).searchParams.get('mode')==='signin'?'signin':'signup';switchAuth(mode);$('#tab-signup').onclick=()=>switchAuth('signup');$('#tab-signin').onclick=()=>switchAuth('signin')}
  sb.auth.onAuthStateChange((event)=>{
-  // The phone-trial panel uses its own Supabase client. Notify it after
+  // The browser-trial panel shares the same Supabase client. Notify it after
   // this callback returns so it can re-read the newly persisted session.
   if(['SIGNED_IN','SIGNED_OUT','USER_UPDATED'].includes(event))
    setTimeout(()=>window.dispatchEvent(new Event('signalchart:auth-changed')),0);
