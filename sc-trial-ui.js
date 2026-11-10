@@ -53,7 +53,7 @@ async function api(action,body,method='POST'){
  const response=await fetch('/api/trial?action='+encodeURIComponent(action),{
   method,headers:{Authorization:'Bearer '+t,...(method==='POST'?{'Content-Type':'application/json'}:{})},
   body:method==='POST'?JSON.stringify(body||{}):undefined,
-  cache:'no-store',credentials:'omit'});
+  cache:'no-store',credentials:'same-origin'});
  const value=await response.json().catch(()=>({}));
  if(!response.ok)throw Error(value.error||'Unable to verify trial status');
  return value;
