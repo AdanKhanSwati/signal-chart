@@ -1,5 +1,5 @@
 'use strict';
-/* Backend-only trial administration and SMS phone-change verification. */
+/* Backend-only email/browser trial, optional legacy phone administration. */
 function issue(status,message){return Object.assign(new Error(message),{status})}
 function createHandler(core,gate){
  return async function(req,res){
@@ -9,6 +9,13 @@ function createHandler(core,gate){
    const user=await core.identity(req),action=String(req.query?.action||'');
    if(req.method==='GET'&&action==='state'){
     return res.status(200).json(await gate.state(user.uid));
+   }
+   if(req.method==='GET'&&action==='device'){
+    return res.status(200).json(await gate.deviceStart(req,res));
+   }
+   if(req.method==='POST'&&action==='activate_browser'){
+    const body=core.securePost(req,5000);
+    return res.status(200).json(await gate.activateBrowserTrial(req,body.turnstileToken));
    }
    if(req.method==='POST'&&action==='otp_start'){
     const body=core.securePost(req,5000);
