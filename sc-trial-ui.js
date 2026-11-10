@@ -107,7 +107,7 @@ async function renderTurnstile(){
  });
  const node=$('#sc-turnstile');
  if(node&&window.turnstile?.render)
-  turnstileWidget=window.turnstile.render(node,{sitekey:turnstileSiteKey,theme:'auto'});
+  turnstileWidget=window.turnstile.render(node,{sitekey:turnstileSiteKey,theme:'auto',action:'trial_activate'});
 }
 async function activateBrowser(){
  const button=$('#sc-activate-browser');
