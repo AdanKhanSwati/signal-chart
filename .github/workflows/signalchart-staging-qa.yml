@@ -1,0 +1,63 @@
+name: SignalChart Staging QA (No Deploy)
+on:
+  push:
+    branches:
+      - signalchart-recovery-staging
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: signalchart-staging-browser-qa
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Isolated tests + real browser
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout staging source without retaining credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9b # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Install Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install pinned application dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+
+      - name: All API, SQL and security regressions
+        run: node --test tests/*.test.js tests/*.integration.mjs
+
+      - name: Confirm the production source recovery gate is not bypassed
+        run: |
+          node scripts/release-check.cjs > /tmp/signalchart-release-gate.json || :
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const r = JSON.parse(fs.readFileSync('/tmp/signalchart-release-gate.json', 'utf8'));
+          const unexplained = r.errors.filter(x => !x.startsWith('Unrecovered original source: '));
+          if (unexplained.length) {
+            console.error('Unexpected source integrity failures:', unexplained);
+            process.exit(1);
+          }
+          if (!r.pass) {
+            console.log('Staging may be tested; production release remains BLOCKED pending',
+              r.originalSourcesStillUnverified, 'original source files.');
+          } else {
+            console.log('Original source integrity verified; normal production QA remains required.');
+          }
+          NODE
+
+      - name: Install temporary Playwright test runner (no app dependency change)
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund --package-lock=false playwright@1.65.0
+
+      - name: Install Chromium and system libraries in isolated runner
+        run: npx playwright install --with-deps chromium
+
+      - name: Account login, Turnstile and responsive browser smoke
+        run: node scripts/browser-trial-local-smoke.cjs
