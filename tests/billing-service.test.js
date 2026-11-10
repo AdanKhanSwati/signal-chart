@@ -86,3 +86,43 @@ test('file format checks reject a false MIME header',async()=>{
  const spoofed='data:image/jpeg;base64,'+Buffer.from('89504e470d0a1a0a00000000','hex').toString('base64');
  await assert.rejects(()=>x.service.submit(person,{txid:TX2,receipt:spoofed}),/does not match/);
 });
+
+test('confirmed transfer to a noncanonical recipient in a historic payment record cannot be approved',async()=>{
+ const x=setup();await enabled(x);
+ const order=await x.service.submit(person,{txid:TX,receipt:png});
+ const stored='cv5/payments/'+order.id+'.json';
+ x.saved.set(stored,{...x.saved.get(stored),recipientWallet:'bc1attackercontrolledlegacydestinationxxxxxxxxxxxxxx'});
+ const payment=await x.service.paymentById(order.id);
+ const check=await x.service.verifyChain(payment);
+ assert.equal(check.verified,false);
+ assert.match(check.reason,/destination|quoted amount/i);
+ await assert.rejects(()=>x.service.review(admin,{
+   paymentId:order.id,decision:'approved',confirmedOnChain:true
+ }),/not verified/);
+});
+test('legacy payment without immutable server TXID reservation cannot grant new approval',async()=>{
+ const x=setup();await enabled(x);
+ const id='11111111-0000-4000-8000-000000000001';
+ x.saved.set('cv4/payments/'+id+'.json',{
+  id,memberId,txid:TX,priceBTC:0.0002,network:'BTC mainnet',
+  recipientWallet:WALLET,status:'pending',decision:null
+ });
+ const check=await x.service.verifyChain(await x.service.paymentById(id));
+ assert.equal(check.verified,false);
+ assert.match(check.reason,/reservation/i);
+ await assert.rejects(()=>x.service.review(admin,{
+  paymentId:id,decision:'approved',confirmedOnChain:true
+ }),/not verified/);
+});
+test('mismatched or missing transaction reservations prevent approval',async()=>{
+ const x=setup();await enabled(x);
+ const order=await x.service.submit(person,{txid:TX,receipt:png});
+ const reservation='cv5/txid-reservations/'+TX+'.json';
+ const original=x.saved.get(reservation);
+ for(const mutated of [undefined,{...original,paymentId:'bad'}, {...original,memberId:admin.uid}]){
+  if(mutated)x.saved.set(reservation,mutated);
+  else x.saved.delete(reservation);
+  const verified=await x.service.verifyChain(await x.service.paymentById(order.id));
+  assert.equal(verified.verified,false);
+ }
+});
