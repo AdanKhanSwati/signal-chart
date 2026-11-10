@@ -35,11 +35,19 @@ Verified that `anon` and `authenticated` roles have no EXECUTE access to ten pri
 
 ### Local-regression + optional external QA script — PASS
 
-Full latest isolated suite: **135 passed, 0 failed**. Verified `scripts/live-integration-smoke.cjs` syntax and live negative-Auth mode. The optional Blob mode is off by default, avoids secrets in output, writes only disposable test data, and cleans up files. The real Blob check was separately completed as noted above.
+Full latest isolated suite: **138 passed, 0 failed**. Verified `scripts/live-integration-smoke.cjs` syntax and live negative-Auth mode. The optional Blob mode is off by default, avoids secrets in output, writes only disposable test data, and cleans up files. The real Blob check was separately completed as noted above.
 
 ### Follow-up: member adapter unit behavior — PASS
 
 Added `tests/member-storage-lifecycle.test.js`, exercising `core.member` through an isolated mock Blob driver and synthetic UUID. It verifies persistence, immediate read-back, a second identical lookup without duplicate writes, default locked status and denial of admin privileges. The test passed, narrowing but **not yet resolving** the earlier actual-Blob member persistence assertion. A subsequent full test-suite command exited successfully.
+
+### Next QA milestone — member write/read propagation hardening
+
+`lib/candriva-core.js` now retries the canonical private member record read (maximum three bounded attempts) after an acknowledged immutable write, rather than failing on a transient missing read. The guard verifies that the stored record UID matches the signed-in member; a persistently missing or mismatched record still fails closed.
+
+`tests/member-storage-eventual.test.js` adds three passing scenarios: temporary read-after-write lag, concurrent first-login races, and absent/mismatched persistence. The complete isolated suite passed **138 of 138 tests**.
+
+Added `scripts/member-blob-diagnostic.cjs` (opt-in, disposable QA member with cleanup) and `scripts/customer-session-smoke.cjs` (verified QA credentials from runtime environment only; no trial spending or payments). **The latter positive session script has not run**, because no dedicated verified QA identity/session was provided. An additional live member Blob retry test could not be executed via the available protected execution pathway, so do not claim this change is verified against real Blob propagation yet.
 
 ## Open issues
 
