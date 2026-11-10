@@ -38,8 +38,16 @@ async function sharedSupabaseClient(url,anonKey){
 
 async function currentToken(){const {data,error}=await sb?.auth?.getSession()||{};if(error||!data?.session?.access_token)throw Error('Supabase session expired. Please sign in again.');return data.session.access_token}
 async function request(path,body){const token=await currentToken();const opts=body===undefined?{method:'GET'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
- opts.headers={...opts.headers,Authorization:'Bearer '+token};opts.cache='no-store';opts.credentials='omit';
- const response=await fetch(path,opts);const data=await response.json().catch(()=>({}));
+ opts.headers={...opts.headers,Authorization:'Bearer '+token};opts.cache='no-store';opts.credentials='same-origin';
+ // Same-origin cookies are required by Vercel protected staging; the Supabase
+ // bearer token still independently authenticates and authorizes the user.
+ let response;
+ try{response=await fetch(path,opts)}
+ catch{throw Error('Could not reach SignalChart account API. If testing a protected preview, open its access link in this browser, then retry.')}
+ const type=response.headers?.get?.('content-type')||'';
+ if(type&&!type.includes('application/json'))
+  throw Error('Account API returned a webpage instead of JSON. Check access to the protected preview and retry.');
+ const data=await response.json().catch(()=>({}));
  if(!response.ok)throw Error(data.error||'Request failed (HTTP '+response.status+')');return data}
 const memberAPI=(act,body)=>request('/api/member?action='+encodeURIComponent(act),body);
 async function initSupabase(){
