@@ -1,53 +1,56 @@
 'use strict';
-const test=require('node:test');
-const assert=require('node:assert/strict');
-const fs=require('node:fs');
-const path=require('node:path');
+const test=require('node:test'),assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const account=read('account.html'),signals=read('signals.html'),
  ui=read('sc-trial-ui.js'),css=read('sc-trial-ui.css'),
- config=read('api/config.js'),gate=read('lib/trial-gate.js');
-
-test('WhatsApp onboarding is visible on Account before a member session',()=>{
- const intro=account.indexOf('id="sc-whatsapp-guide"');
- const login=account.indexOf('id="auth-area"');
- const hiddenMember=account.indexOf('id="member-area" hidden');
- assert.ok(intro>0&&intro<login&&login<hiddenMember,'Visible guide should not be inside a hidden section');
- assert.ok(account.includes('id="sc-whatsapp-availability"'));
- assert.ok(/id="sc-whatsapp-guide-link"[^>]*href="#auth-area"/.test(account));
+ config=read('api/config.js'),gate=read('lib/trial-gate.js'),
+ endpoint=read('api/trial.js');
+test('verified email browser trial guide appears on Account before sign-in',()=>{
+ const intro=account.indexOf('id="sc-browser-guide"'),
+  auth=account.indexOf('id="auth-area"'),member=account.indexOf('id="member-area" hidden');
+ assert.ok(intro>0&&intro<auth&&auth<member);
+ assert.ok(account.includes('id="sc-browser-availability"'));
+ assert.ok(account.includes('id="sc-browser-guide-link"'));
+ assert.ok(account.includes('No WhatsApp, phone number or personal contact is required.'));
 });
-test('Account retains phone input and code form for signed-in members',()=>{
- for(const id of ['sc-phone-verification','sc-phone-form','sc-send-otp','sc-otp-form','sc-confirm-otp','sc-existing-phone'])
-  assert.ok(account.includes('id="'+id+'"'),'Missing phone control '+id);
- assert.ok(account.includes('pattern="\\+[1-9][0-9]{7,14}"'));
- assert.ok(account.includes('WhatsApp delivery requires provider')||account.includes('WhatsApp code delivery is not available'));
+test('signed-in account offers browser trial and Turnstile, not a phone-number form',()=>{
+ for(const id of ['sc-browser-activation','sc-activate-browser','sc-turnstile','sc-browser-delivery-note'])
+  assert.ok(account.includes('id="'+id+'"'),'Missing trial control '+id);
+ assert.ok(!account.includes('id="sc-phone"'));
+ assert.ok(!account.includes('id="sc-send-otp"'));
+ assert.ok(!account.includes('id="sc-otp-form"'));
+ assert.ok(account.includes('Shared Wi-Fi does not automatically disqualify you.'));
 });
-test('Trading Signals has discoverable link to Account verification',()=>{
- assert.ok(signals.includes('id="sc-trial-phone-cta"'));
- assert.ok(signals.includes('href="/account.html#sc-phone-verification"'));
- assert.ok(signals.includes('id="sc-signal-phone-delivery"'));
+test('Trading Signals page leads to Account browser trial activation',()=>{
+ assert.ok(signals.includes('id="sc-trial-browser-cta"'));
+ assert.ok(signals.includes('href="/account.html#sc-browser-activation"'));
+ assert.ok(signals.includes('id="sc-signal-browser-status"'));
 });
-test('frontend never claims OTP can be sent while backend delivery is disabled',()=>{
- assert.ok(ui.includes("phoneDeliveryEnabled=c.phoneVerificationEnabled===true&&c.phoneVerificationChannel==='whatsapp'"));
- assert.ok(ui.includes('updateVerificationGuide(!!t)'));
- assert.ok(ui.includes("send.disabled=true;send.textContent='WhatsApp verification unavailable'"));
- assert.ok(ui.includes('No verification message is sent while unavailable.'));
- assert.ok(ui.includes('updateVerificationGuide(false)'));
- assert.ok(config.includes("phoneVerificationEnabled:process.env.SC_TRIAL_PHONE_DELIVERY_ENABLED==='true'"));
- assert.ok(gate.includes("if(env.SC_TRIAL_PHONE_DELIVERY_ENABLED!=='true')"));
- assert.ok(!gate.includes('Enter the OTP code from your SMS'));
+test('client trial start requires enabled backend and Turnstile challenge',()=>{
+ assert.ok(ui.includes("browserTrialEnabled=c.emailDeviceTrialEnabled===true"));
+ assert.ok(ui.includes("turnstileSiteKey=typeof c.turnstileSiteKey==='string'"));
+ assert.ok(ui.includes("api('device',undefined,'GET')"));
+ assert.ok(ui.includes("api('activate_browser',{turnstileToken:challenge})"));
+ assert.ok(ui.includes("window.turnstile.getResponse(turnstileWidget)"));
+ assert.ok(ui.includes("if(!challenge)throw Error('Complete the anti-bot verification first')"));
+ assert.ok(ui.includes("btn.disabled=!ready"));
+ assert.ok(config.includes("requiresVerifiedEmail:true"));
+ assert.ok(config.includes("trialVerificationMethod:'verified_email_browser'"));
+ assert.ok(config.includes("phoneVerificationEnabled:false"));
+ assert.ok(gate.includes("if(env.SC_EMAIL_DEVICE_TRIAL_ENABLED!=='true')"));
+ assert.ok(endpoint.includes("action==='activate_browser'"));
 });
-test('signing in on Account refreshes the phone verification panel without a reload',()=>{
- const authPage=read('candriva-v2.js');
- assert.ok(authPage.includes("window.dispatchEvent(new Event('signalchart:auth-changed'))"));
+test('same-page login and logout refresh the trial area without a reload',()=>{
+ const accountJs=read('candriva-v2.js');
+ assert.ok(accountJs.includes("window.dispatchEvent(new Event('signalchart:auth-changed'))"));
  assert.ok(ui.includes("window.addEventListener('signalchart:auth-changed'"));
- assert.ok(ui.includes('updateVerificationGuide(!!t);'));
- assert.ok(ui.includes("if(t){await refresh();await activateKnownVerifiedPhoneHint()}"));
- assert.ok(ui.includes("if(phone)phone.hidden=true;"));
+ assert.ok(ui.includes("if(t){await refresh()}"));
+ assert.ok(ui.includes("const activation=$('#sc-browser-activation');if(activation)activation.hidden=true;"));
 });
-test('WhatsApp setup guide is compact on smaller screens and preserves hidden form behavior',()=>{
- assert.ok(css.includes('.sc-whatsapp-guide,.sc-whatsapp-signal-cta'));
- assert.ok(css.includes('@media(max-width:650px)'));
+test('responsive styling and hidden trial area remain intact',()=>{
  assert.ok(css.includes('.sc-trial-box[hidden],.sc-trial-box *[hidden]'));
- assert.ok(ui.includes("if(phone)phone.hidden=!!paidOverride||trial.trialStatus!=='not_activated';"));
+ assert.ok(css.includes('@media(max-width:650px)'));
+ assert.ok(account.includes('id="sc-browser-activation" hidden'));
+ assert.ok(account.includes('id="sc-activate-browser"')&&account.includes('disabled>Activate my free trial'));
 });
