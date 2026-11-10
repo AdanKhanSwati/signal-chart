@@ -21,7 +21,7 @@ test('original recovery script verifies full SHA1 before writing outside applica
  assert.match(script,/join\(dir,f\.path\)/);
  assert.match(script,/vercel-recovered/);
  assert.match(script,/open\(output,'wx'\)/);
- assert.match(script,/source tree SHA1 differs/);
+ assert.match(script,/Source tree SHA1 differs/);
  assert.ok(!script.includes('createHash("sha256").update(bytes)'), 'Never replace SHA1 source-byte evidence');
  const ignored=fs.readFileSync(path.join(root,'.gitignore'),'utf8');
  assert.match(ignored,/vercel-recovered\//);
