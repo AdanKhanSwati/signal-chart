@@ -18,7 +18,7 @@ function fixture({enabled=true,challengeValid=true,emailVerified=true,keys=true,
    id:UID,email:'qa@example.test',email_confirmed_at:emailVerified?'2026-11-08T00:00:00Z':null,
    created_at:legacy?'2026-10-29T00:00:00Z':'2026-11-08T00:00:00Z'})};
   if(url.endsWith('turnstile/v0/siteverify'))
-   return {ok:true,status:200,json:async()=>({success:challengeValid})};
+   return {ok:true,status:200,json:async()=>({success:challengeValid,action:'trial_activate'})};
   if(url.endsWith('/rpc/sc_trial_state'))
    return {ok:true,status:200,json:async()=>({trialStatus:'not_activated'})};
   if(url.endsWith('/rpc/sc_activate_browser_trial'))
