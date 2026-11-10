@@ -14,7 +14,7 @@ test('WhatsApp onboarding is visible on Account before a member session',()=>{
  const hiddenMember=account.indexOf('id="member-area" hidden');
  assert.ok(intro>0&&intro<login&&login<hiddenMember,'Visible guide should not be inside a hidden section');
  assert.ok(account.includes('id="sc-whatsapp-availability"'));
- assert.ok(account.includes('id="sc-whatsapp-guide-link" href="#auth-area"'));
+ assert.ok(/id="sc-whatsapp-guide-link"[^>]*href="#auth-area"/.test(account));
 });
 test('Account retains phone input and code form for signed-in members',()=>{
  for(const id of ['sc-phone-verification','sc-phone-form','sc-send-otp','sc-otp-form','sc-confirm-otp','sc-existing-phone'])
