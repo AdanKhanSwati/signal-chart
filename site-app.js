@@ -25,7 +25,7 @@ async function initializeAuth(){
 async function call(action,method='GET',payload){
  const data=await sb.auth.getSession();const token=data.data.session?.access_token;
  if(!token)throw Error('Sign in again to continue.');
- const opts={method,headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit'};
+ const opts={method,headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'same-origin'};
  if(method==='POST'){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(payload||{})}
  const r=await fetch(('/api/cv-ops?action='+encodeURIComponent(action.split('&')[0])+(action.includes('&')?'&'+action.slice(action.indexOf('&')+1):'')),opts);
  const obj=await r.json().catch(()=>({}));
@@ -135,7 +135,7 @@ async function accessRequest(action,method='GET',payload,params={}){
  const token=(await sb.auth.getSession()).data?.session?.access_token;
  if(!token)throw Error('Sign in as Super Admin to manage access.');
  const qs=new URLSearchParams({action,...params});
- const opts={method,headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit'};
+ const opts={method,headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'same-origin'};
  if(method==='POST'){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(payload||{})}
  const resp=await fetch('/api/admin-access?'+qs.toString(),opts);
  const data=await resp.json().catch(()=>({}));
@@ -278,7 +278,7 @@ async function trialOpsRequest(action,method='GET',body,params={}){
  const token=(await sb.auth.getSession()).data?.session?.access_token;
  if(!token)throw Error('Sign in as Super Admin');
  const query=new URLSearchParams({action,...params});
- const opts={method,cache:'no-store',credentials:'omit',headers:{Authorization:'Bearer '+token}};
+ const opts={method,cache:'no-store',credentials:'same-origin',headers:{Authorization:'Bearer '+token}};
  if(method==='POST'){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body||{})}
  const response=await fetch('/api/trial?'+query.toString(),opts);
  const result=await response.json().catch(()=>({}));
