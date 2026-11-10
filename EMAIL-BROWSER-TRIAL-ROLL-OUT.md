@@ -51,3 +51,13 @@ Staging branch Vercel env **SC_EMAIL_DEVICE_TRIAL_ENABLED=false**, set explicitl
 - Full isolated test run: **153 passed, 0 failed**. Release integrity gate: **93 restored original files, 11 original files unverified**.
 - Security advisor: 15 information-level no-policy findings on intentionally private server-only tables, plus a pre-existing warning for Auth leaked-password protection. Ref: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy and https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
 - **Zero** deployments were initiated for the migration and QA. The existing preview does not yet contain the newly implemented browser trial UI.
+
+## Source provenance blocker — recovery tool added 2026-11-10
+
+The original Vercel CLI-uploaded deployment `dpl_7V8tjUnDnMNAmW1xAwBZUYvMRfzD` exposes the hashes of all **104 original source files**, but the connected source-file reader truncates each of the **11 missing files** to approximately 2,000 base64 characters. A partial prefix is **not** enough to reproduce or authenticate original bytes. The previously reconstructed 11 modules must not be marked as original and must not be substituted for evidence.
+
+To resolve this without overwriting current staging work, `scripts/recover-missing-originals.mjs` uses the full Vercel Source API (read only), requires a **locally configured** `VERCEL_TOKEN`, and SHA1-validates each complete file against the untouched `recovery-manifest.json`. It stores verified originals under the existing Git-ignored `vercel-recovered/original-missing/` directory, never alters application routes, and never commits credentials. Do not paste API tokens in a chat or commit these originals before security review. GitHub file: https://github.com/AdanKhanSwati/signal-chart/blob/signalchart-recovery-staging/scripts/recover-missing-originals.mjs
+
+No complete originals have been recovered via that script in the connected workspace yet; **the original-source gate is intentionally still failing**. After full recovery, compare the original code with the 11 modern staging replacements, review the differences in auth, permissions, payment approval, and storage behavior, and re-run the full test suite before any launch. A test pass alone is not a substitute for that provenance review.
+
+The self-imposed Vercel budget remains **no more than five assistant-initiated deployments per rolling 24 hours across projects**; there were more than five recent deployments in the account, so this source audit did not initiate a new preview or production deploy. Trial activation remains disabled.
