@@ -95,13 +95,24 @@ async function unlock(signalKey){
 }
 function paintStatus(){
  if(!trial)return;
- const active=trial.trialStatus==='active',termOpen=active||trial.trialStatus==='exhausted',count=Math.max(0,Math.min(3,Number(trial.signalsUsed)||0));
- const remaining=Math.max(0,Math.min(3,Number(trial.signalsRemaining)||0));
+ // The UI must stop claiming an active trial at the exact server-issued expiry,
+ // even when a customer leaves this page open without refreshing.
+ // Backend trial/entitlement RPCs remain the only authority for signal access.
+ const expiry=Date.parse(String(trial.expiresAt||''));
+ const offset=Number.isFinite(serverOffset)?serverOffset:0;
+ const expiredByTime=Number.isFinite(expiry)&&expiry<=Date.now()+offset;
+ const ended=expiredByTime&&['active','exhausted','expired'].includes(trial.trialStatus);
+ const active=trial.trialStatus==='active'&&!ended;
+ const exhausted=trial.trialStatus==='exhausted'&&!ended;
+ const termOpen=active||exhausted;
+ const count=Math.max(0,Math.min(3,Number(trial.signalsUsed)||0));
+ const remaining=ended||trial.trialStatus==='revoked'?0:
+  Math.max(0,Math.min(3,Number(trial.signalsRemaining)||0));
  const label=$('#sc-trial-state'),clock=$('#sc-trial-clock'),counter=$('#sc-trial-credits'),bar=$('#sc-trial-progress');
  if(label)label.textContent=paidOverride?'Active paid / complimentary access':trial.trialStatus==='not_activated'?'Activate your verified-email free trial':
-   active?'Free trial active':trial.trialStatus==='exhausted'?'3/3 unlocked · Reopen until expiry':
+   ended?'Free trial expired':active?'Free trial active':exhausted?'3/3 unlocked · Reopen until expiry':
    trial.trialStatus==='expired'?'Free trial expired':trial.trialStatus==='revoked'?'Trial unavailable':'Trial pending';
- if(clock)clock.textContent=paidOverride?paidOverride.accessUntil?safeTime(paidOverride.accessUntil):'Authorized':termOpen?expString():trial.expiresAt?safeTime(trial.expiresAt):'Not started';
+ if(clock)clock.textContent=paidOverride?paidOverride.accessUntil?safeTime(paidOverride.accessUntil):'Authorized':ended?'Expired '+safeTime(trial.expiresAt):termOpen?expString():trial.expiresAt?safeTime(trial.expiresAt):'Not started';
  if(counter)counter.textContent=paidOverride?'Membership access':remaining+' of 3 remaining';
  if(bar){bar.max=3;bar.value=count}
  const activation=$('#sc-browser-activation');
