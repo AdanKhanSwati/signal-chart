@@ -32,7 +32,7 @@ function createHandler(core,gate){
     if(!result.allowed){
      return res.status(result.reason==='not_found'?404:403).json({
       error:result.reason==='trial_exhausted'?'All 3 trial signals have been used. Upgrade to continue.':
-       result.reason==='phone_verification_required'?'Verify your phone to activate your trial.':
+       result.reason==='phone_verification_required'?'Verify your email and activate your free trial in Account.':
        result.reason==='trial_expired'?'Trial expired. Upgrade to continue.':'Premium access requires an active membership.',
       reason:result.reason,signalsUsed:result.signalsUsed,signalsRemaining:result.signalsRemaining});
     }
