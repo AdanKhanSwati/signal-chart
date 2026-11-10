@@ -111,6 +111,10 @@ async function initAccount(){
  if(data?.session?.access_token){const m=await fetchMember();startAccount(m);setupMemberChrome();if(m.account.isAdmin)show('#admin-link',true)}
  else{show('#auth-area',true);const mode=new URL(location.href).searchParams.get('mode')==='signin'?'signin':'signup';switchAuth(mode);$('#tab-signup').onclick=()=>switchAuth('signup');$('#tab-signin').onclick=()=>switchAuth('signin')}
  sb.auth.onAuthStateChange((event)=>{
+  // The phone-trial panel uses its own Supabase client. Notify it after
+  // this callback returns so it can re-read the newly persisted session.
+  if(['SIGNED_IN','SIGNED_OUT','USER_UPDATED'].includes(event))
+   setTimeout(()=>window.dispatchEvent(new Event('signalchart:auth-changed')),0);
   if(event!=='PASSWORD_RECOVERY')return;
   show('#auth-area',true);const root=$('#clerk-root');if(!root)return;root.replaceChildren();
   const form=document.createElement('form');form.innerHTML='<label>New password<input id="sb-new-password" type="password" minlength="12" autocomplete="new-password" required></label><button class="v2-primary" type="submit">Save new password</button>';
