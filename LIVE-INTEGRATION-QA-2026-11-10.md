@@ -35,7 +35,11 @@ Verified that `anon` and `authenticated` roles have no EXECUTE access to ten pri
 
 ### Local-regression + optional external QA script — PASS
 
-Full latest isolated suite: **134 passed, 0 failed**. Verified `scripts/live-integration-smoke.cjs` syntax and live negative-Auth mode. The optional Blob mode is off by default, avoids secrets in output, writes only disposable test data, and cleans up files. The real Blob check was separately completed as noted above.
+Full latest isolated suite: **135 passed, 0 failed**. Verified `scripts/live-integration-smoke.cjs` syntax and live negative-Auth mode. The optional Blob mode is off by default, avoids secrets in output, writes only disposable test data, and cleans up files. The real Blob check was separately completed as noted above.
+
+### Follow-up: member adapter unit behavior — PASS
+
+Added `tests/member-storage-lifecycle.test.js`, exercising `core.member` through an isolated mock Blob driver and synthetic UUID. It verifies persistence, immediate read-back, a second identical lookup without duplicate writes, default locked status and denial of admin privileges. The test passed, narrowing but **not yet resolving** the earlier actual-Blob member persistence assertion. A subsequent full test-suite command exited successfully.
 
 ## Open issues
 
