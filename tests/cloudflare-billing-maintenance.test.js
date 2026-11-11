@@ -25,6 +25,7 @@ function mock(calls){
    trialStatus:'active',signalsUsed:1,signalsRemaining:2,
    activatedAt:'2026-11-11T00:00:00Z',expiresAt:iso});
   if(p==='/rest/v1/sc_paid_access')return good([]);
+  if(p==='/rest/v1/sc_support_tickets')return good([]);
   throw Error('Unexpected remote call '+p);
  };
 }
@@ -50,7 +51,8 @@ test('verified customer can see read-only membership with no wallet or fabricate
  assert.equal(data.migration.legacyHistoryPending,true);
  assert.ok(!JSON.stringify(data).includes('sb_secret'));
  assert.ok(calls.every(x=>['/auth/v1/user','/rest/v1/sc_member_profiles',
-  '/rest/v1/rpc/sc_trial_state','/rest/v1/sc_paid_access'].includes(x.p)));
+  '/rest/v1/rpc/sc_trial_state','/rest/v1/sc_paid_access',
+  '/rest/v1/sc_support_tickets'].includes(x.p)));
 });
 test('billing read denies anonymous requests',async()=>{
  const {createWorker}=await modulePromise,calls=[];
@@ -62,7 +64,7 @@ test('billing submission, administrative review, ticket writes and receipt reads
  const {createWorker}=await modulePromise,calls=[];
  const worker=createWorker({fetchFn:mock(calls)});
  for(const [method,action] of [['POST','submit_payment'],['POST','review_payment'],
-  ['GET','admin'],['GET','receipt'],['POST','new_ticket'],['POST','reply'],['GET','messages']]){
+  ['GET','admin'],['GET','receipt'],['POST','save_billing']]){
   const response=await worker.fetch(req(method,action),env);
   assert.equal(response.status,503,action);
  }
