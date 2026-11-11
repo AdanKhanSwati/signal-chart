@@ -127,7 +127,7 @@ function clearChart(){
 function renderWithLibrary(lib,bars){
  const area=$('mc-chart');const chart=lib.createChart(area,{
   width:Math.max(270,area.clientWidth),height:Math.max(220,area.clientHeight),
-  layout:{background:{type:'solid',color:'#11141d'},textColor:'#c4b5bf',fontSize:10,fontFamily:'-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif'},
+  layout:{background:{type:'solid',color:'#11141d'},textColor:'#e1dce5',fontSize:12,fontFamily:'Manrope,-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif'},
   grid:{vertLines:{color:'#292e3a'},horzLines:{color:'#292e3a'}},
   crosshair:{mode:lib.CrosshairMode.Normal,vertLine:{labelBackgroundColor:'#463328'},horzLine:{labelBackgroundColor:'#463328'}},
   rightPriceScale:{borderColor:'#343743',scaleMargins:{top:.11,bottom:.2}},
@@ -150,7 +150,7 @@ function renderFallback(bars){
  canvas.style.cssText='display:block;width:100%;height:100%;touch-action:none';
  canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Interactive candlestick market chart');
  root.append(canvas);state.canvas=canvas;
- state.chartEngine=window.SignalChartInteractive?.create(canvas,{ohlcTarget:$('mc-hover-info')});
+ state.chartEngine=window.SignalChartInteractive?.create(canvas,{ohlcTarget:$('mc-hover-info'),axisFontSize:12});
  if(!state.chartEngine)throw Error('Interactive chart unavailable');
  state.chartDraw=()=>state.chartEngine?.setData(state.bars,{symbol:state.symbol,timeframe:state.interval,digits:current().d});state.chartDraw();
 }
