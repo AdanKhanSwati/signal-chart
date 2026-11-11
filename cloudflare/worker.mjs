@@ -45,7 +45,8 @@ function identityFromUser(user){
  const email=String(user?.email||'').trim().toLowerCase();
  if(!UUID.test(uid)||!email||email.length>254||!user?.email_confirmed_at)
   throw issue(401,'Verified email session required');
- return {uid,email,name:String(user?.user_metadata?.full_name||'').slice(0,100)};
+ return {uid,email,name:String(user?.user_metadata?.full_name||'').slice(0,100),
+  createdAt:String(user?.created_at||'')};
 }
 async function remote(fetchFn,url,options,message){
  let response;
@@ -217,11 +218,7 @@ async function activateBrowser(request,env,fetchFn){
  // The previously deployed Vercel Blob record store is suspended, therefore
  // an account created before the original trial rollout cannot be cleared here.
  // Existing accounts require independent manual historical eligibility review.
- const authData=await remote(fetchFn,publicConfig(env).url+'/auth/v1/user',{
-  method:'GET',headers:{apikey:publicConfig(env).key,
-   Authorization:request.headers.get('Authorization')},role:'auth'
- },'Authentication service temporarily unavailable');
- const created=Date.parse(String(authData.created_at||''));
+ const created=Date.parse(person.createdAt);
  const cutoff=Date.parse(String(env.SC_TRIAL_ROLLOUT_AT||''));
  if(!Number.isFinite(created)||!Number.isFinite(cutoff))
   throw issue(503,'Historical trial eligibility is unavailable');
