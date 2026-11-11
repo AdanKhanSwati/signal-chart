@@ -74,7 +74,7 @@ test('source outage fails closed without fabricated events or verified coverage'
  assert.equal(data.providers.bls.status,'UNAVAILABLE');
 });
 test('a single BLS source is partial coverage, not a cleared global calendar',async()=>{
- const h=await handler({map:new Map([[...upstream.keys()][0],bls]])});
+ const h=await handler({map:new Map([['https://www.bls.gov/schedule/news_release/bls.ics',bls]])});
  const data=await (await h(req())).json();
  assert.equal(data.coverage,'PARTIAL_US');
  assert.equal(data.assessment.blocked,true);
