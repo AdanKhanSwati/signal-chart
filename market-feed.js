@@ -20,8 +20,12 @@ function subscribe(stream,handle,notify){
 function start(){
  if(!('WebSocket'in window)||document.hidden)return;
  state.tickClose?.();
- let queue={},timer=null;
+ let queue={},timer=null,lastProcessed=0;
  state.tickClose=subscribe('!miniTicker@arr',p=>{
+  // Binance bulk ticker bursts contain hundreds of symbols. Skip redundant
+  // bursts on the mobile terminal before mapping and allocating every row.
+  if(document.body?.dataset?.unified==='terminal'&&Date.now()-lastProcessed<2200)return;
+  lastProcessed=Date.now();
   const rows=Array.isArray(p)?p:[p];
   for(const q of rows){
    if(!q?.s||!q.s.endsWith('USDT')||q.st===2)continue;
