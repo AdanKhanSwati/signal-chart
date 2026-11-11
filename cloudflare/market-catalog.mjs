@@ -58,7 +58,7 @@ export async function listMarkets({fetchFn=globalThis.fetch,now=Date.now}={}){
   // Public Binance Spot market-data-only endpoint is a different instrument
   // from futures. Explicitly identify it rather than mislabel spot as futures.
   try{
-   crypto=await providerListing(fetchFn,'https://data-api.binance.vision/api/v3/exchangeInfo',8000000,true);
+   crypto=await providerListing(fetchFn,'https://data-api.binance.vision/api/v3/exchangeInfo?symbolStatus=TRADING&showPermissionSets=false',8000000,true);
    source='Binance Spot (USD-M futures catalog unavailable)';
    instrument='spot';
   }catch{
