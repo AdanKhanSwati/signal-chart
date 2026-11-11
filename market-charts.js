@@ -245,7 +245,10 @@ async function loadCandles(){
   catch{if(id!==state.loadId)return;renderFallback(unique)}
   state.chartKey=key;}
   if(id!==state.loadId)return;
-  $('mc-chart-updated').textContent=(data.instrument==='spot_reference'?'USD spot reference · ':data.instrument==='spot'?'Spot OHLC · ':'Candle ')+safeTime(unique.at(-1).time*1000);
+  const at=new Date(unique.at(-1).time*1000);
+  $('mc-chart-updated').textContent=data.historicalOnly?
+   'Historical FX · '+at.toLocaleDateString()+' (broker-clock reference)':
+   (data.instrument==='spot_reference'?'USD spot reference · ':data.instrument==='spot'?'Spot OHLC · ':'Candle ')+safeTime(unique.at(-1).time*1000);
   $('mc-chart-loading').hidden=true;
  }catch(e){if(e.name==='AbortError'||id!==state.loadId)return;
   clearChart();$('mc-chart-loading').hidden=false;
