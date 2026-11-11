@@ -36,3 +36,5 @@ jobs:
           test ! -e .cloudflare-dist/lib
           test ! -e .cloudflare-dist/.env
           test ! -e .cloudflare-dist/setup.html
+      - name: Compile Cloudflare Worker and assets without deploying
+        run: npx --yes wrangler@4 deploy --dry-run --config cloudflare/wrangler.staging.json --outdir /tmp/signalchart-worker-dryrun
