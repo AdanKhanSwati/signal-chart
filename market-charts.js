@@ -59,10 +59,22 @@ function renderTable(){
  }
  $('mc-overview-updated').textContent='Prices refresh automatically';
 }
+let lastPaintedSymbol=null;
 function renderQuote(){
  const p=current(),quote=state.quotes[p.s],s=status(p,quote);
- $('mc-pair-icon').replaceChildren(logoAsset(p));$('mc-pair-icon').classList.toggle('fx',p.type==='forex');
- $('mc-pair-title').textContent=p.label;$('mc-pair-market').textContent=p.type.toUpperCase();
+ // Only rebuild the selected icon/title when the symbol changes. Refreshing
+ // image DOM every three-second market tick was expensive on mobile.
+ if(lastPaintedSymbol!==p.s){
+  $('mc-pair-icon').replaceChildren(logoAsset(p));
+  $('mc-pair-icon').classList.toggle('fx',p.type==='forex');
+  $('mc-pair-title').textContent=p.label;
+  $('mc-pair-market').textContent=p.type.toUpperCase();
+  $('mc-next-title').textContent=p.type==='crypto'?'Explore crypto signals':'Explore forex signals';
+  const link=$('mc-next-link');
+  link.href=p.type==='crypto'?'/crypto.html':'/forex.html';
+  link.textContent='View '+(p.type==='crypto'?'Crypto':'Forex')+' Signals ↗';
+  lastPaintedSymbol=p.s;
+ }
  $('mc-pair-source').textContent=state.candleSource?.symbol===p.s?state.candleSource.source:source(p);
  $('mc-price').textContent=fmt(quote?.price,p.d);
  $('mc-quote-asof').textContent=quote?(quote.reference?'Daily reference · '+quote.referenceDate:(s==='UPDATED'?'Latest quote · ':'Delayed quote · ')+safeTime(quote.asof)):'Awaiting market quote';
@@ -70,9 +82,7 @@ function renderQuote(){
  const hasFxReference=pairs.some(asset=>state.quotes[asset.s]?.reference===true);
  $('mc-market-connect').querySelector('i').classList.toggle('stale',!isUp);
  $('mc-market-connect').lastChild.textContent=isUp?' Quotes connected':hasFxReference?' Daily FX references available':' Market feed delayed';
- $('mc-next-title').textContent=p.type==='crypto'?'Explore crypto signals':'Explore forex signals';
- const link=$('mc-next-link');link.href=p.type==='crypto'?'/crypto.html':'/forex.html';link.firstChild?.nodeType;
- link.textContent='View '+(p.type==='crypto'?'Crypto':'Forex')+' Signals ↗';
+
 }
 async function loadQuotes(){
  // A single low-frequency reference snapshot, not a live broker quote feed.
