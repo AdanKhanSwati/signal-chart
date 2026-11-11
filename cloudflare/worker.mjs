@@ -1,4 +1,5 @@
 import {listMarkets} from './market-catalog.mjs';
+import {getCandles} from './market-candles.mjs';
 
 /**
  * SignalChart Cloudflare Workers Free migration adapter.
@@ -326,6 +327,8 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
         (url.pathname==='/api/candles'&&url.searchParams.get('action')==='markets'))&&
         request.method==='GET')
      return await listMarkets({fetchFn});
+    if(url.pathname==='/api/candles')
+     return await getCandles(request,{fetchFn});
     if(url.pathname.startsWith('/api/'))
      throw issue(503,'This API route is not yet migrated');
     if(!env.ASSETS?.fetch)throw issue(503,'Static assets are not configured');
