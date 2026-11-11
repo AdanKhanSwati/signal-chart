@@ -52,6 +52,7 @@ create index if not exists sc_legacy_recovery_item_user_hint_idx
 
 alter table public.sc_legacy_recovery_items enable row level security;
 revoke all on table public.sc_legacy_recovery_items from PUBLIC, anon, authenticated;
+revoke all on table public.sc_legacy_recovery_items from service_role;
 grant select,insert,update on table public.sc_legacy_recovery_items to service_role;
 
 comment on table public.sc_legacy_recovery_items is
@@ -78,6 +79,7 @@ create index if not exists sc_legacy_recovery_events_item_idx
   on public.sc_legacy_recovery_events(item_id,recorded_at);
 alter table public.sc_legacy_recovery_events enable row level security;
 revoke all on table public.sc_legacy_recovery_events from PUBLIC, anon, authenticated;
+revoke all on table public.sc_legacy_recovery_events from service_role;
 grant select,insert on table public.sc_legacy_recovery_events to service_role;
 grant usage,select on sequence public.sc_legacy_recovery_events_id_seq to service_role;
 comment on table public.sc_legacy_recovery_events is
