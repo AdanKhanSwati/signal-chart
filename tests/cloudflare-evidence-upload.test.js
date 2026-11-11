@@ -176,3 +176,98 @@ test('Dry-run CLI reads private files without requiring credentials or making ne
 test('CLI cannot write without preflight files and an explicit --write flag',async()=>{
  await assert.rejects(cli(['--dry-run'],config),/Required/);
 });
+
+
+test('Only independently approved server operator can link verified evidence to ledger',async()=>{
+ const calls=[];
+ await assert.rejects(uploadVerifiedObjects([{...item(),sourceKey}],{
+  env:{...config,SC_SUPER_ADMIN_UID:'e29aafda-2cc8-4e11-a587-c983dd3f9113'},
+  recordEvidence:true,fetchFn:storageMock({calls})
+ }),/approved/);
+ assert.equal(calls.length,0);
+});
+test('Successful verified readback is required before append-only evidence linkage',async()=>{
+ const requests=[];
+ const uid='e29aafda-2cc8-4e11-a587-c983dd3f9113';
+ const env={...config,SC_RECOVERY_LINK_APPROVED:'true',SC_SUPER_ADMIN_UID:uid};
+ const payload={...item(),sourceKey};
+ const mock=async(url,opts)=>{
+  requests.push({url,opts});
+  if(url.includes('/storage/v1/object/')){
+   if(opts.method==='POST')return new Response(null,{status:200});
+   if(opts.method==='GET')return new Response(data);
+  }
+  if(url.endsWith('/rest/v1/rpc/sc_recovery_link_evidence'))
+   return new Response(JSON.stringify({status:'evidence_staged',
+    accessGranted:false,paymentVerified:false}));
+  throw Error('Unexpected URL');
+ };
+ const result=await uploadVerifiedObjects([payload],{env,recordEvidence:true,fetchFn:mock});
+ assert.equal(result.ledgerEvidenceLinksRecorded,1);
+ assert.equal(result.paymentEntitlementsGranted,0);
+ assert.equal(result.trialRecordsChanged,0);
+ assert.deepEqual(requests.map(x=>x.opts.method),['POST','GET','POST']);
+ const rpc=JSON.parse(requests[2].opts.body);
+ assert.deepEqual(rpc,{p_actor:uid,p_source_key:sourceKey,p_digest:digest,
+  p_storage_path:item().key,p_size:data.length});
+ assert.ok(!requests.some(x=>x.url.includes('/sc_paid_access')||
+  x.url.includes('/sc_trials')));
+});
+test('Linking evidence does not trust a missing or forged source key',async()=>{
+ const calls=[];
+ const env={...config,SC_RECOVERY_LINK_APPROVED:'true',
+  SC_SUPER_ADMIN_UID:'e29aafda-2cc8-4e11-a587-c983dd3f9113'};
+ await assert.rejects(uploadVerifiedObjects([item()],{
+  env,recordEvidence:true,fetchFn:storageMock({calls})
+ }),/Source inventory identity/);
+ assert.equal(calls.length,0);
+});
+test('Database response must explicitly confirm that no payment or access was granted',async()=>{
+ const uid='e29aafda-2cc8-4e11-a587-c983dd3f9113';
+ const env={...config,SC_RECOVERY_LINK_APPROVED:'true',SC_SUPER_ADMIN_UID:uid};
+ for(const reply of [{status:'evidence_staged',accessGranted:true,paymentVerified:false},
+  {status:'evidence_staged',accessGranted:false,paymentVerified:true},
+  {status:'source_size_mismatch',accessGranted:false,paymentVerified:false}]){
+  const mock=async(url,opts)=>{
+   if(url.includes('/storage/v1/object/'))
+    return opts.method==='GET'?new Response(data):new Response(null,{status:200});
+   return new Response(JSON.stringify(reply));
+  };
+  await assert.rejects(uploadVerifiedObjects([{...item(),sourceKey}],{
+   env,recordEvidence:true,fetchFn:mock
+  }),/not verified/);
+ }
+});
+test('Identical hashes from distinct source paths are verified once but linked independently',async()=>{
+ const uid='e29aafda-2cc8-4e11-a587-c983dd3f9113';
+ const env={...config,SC_RECOVERY_LINK_APPROVED:'true',SC_SUPER_ADMIN_UID:uid};
+ const calls=[];
+ const mock=async(url,opts)=>{
+  calls.push({url,opts});
+  if(url.includes('/storage/v1/object/'))
+   return opts.method==='GET'?new Response(data):new Response(null,{status:200});
+  return new Response(JSON.stringify({status:'already_recorded',
+   accessGranted:false,paymentVerified:false}));
+ };
+ const result=await uploadVerifiedObjects([
+  {...item(),sourceKey},{...item(),sourceKey:'cv2/members/member-other.json'}
+ ],{env,recordEvidence:true,fetchFn:mock});
+ assert.equal(result.objectsVerifiedInPrivateStorage,1);
+ assert.equal(result.ledgerEvidenceLinksRecorded,2);
+ assert.equal(calls.filter(x=>x.url.includes('/storage/v1/object/')).length,2);
+ assert.equal(calls.filter(x=>x.url.includes('rpc/sc_recovery_link_evidence')).length,2);
+});
+test('Bad stored object hash blocks all evidence linkage writes',async()=>{
+ const uid='e29aafda-2cc8-4e11-a587-c983dd3f9113';
+ const env={...config,SC_RECOVERY_LINK_APPROVED:'true',SC_SUPER_ADMIN_UID:uid};
+ const calls=[];
+ await assert.rejects(uploadVerifiedObjects([{...item(),sourceKey}],{
+  env,recordEvidence:true,
+  fetchFn:async(url,opts)=>{
+   calls.push(url);
+   if(opts.method==='GET')return new Response(Buffer.from('wrong content'));
+   return new Response(null,{status:200});
+  }
+ }),/hash mismatch/);
+ assert.equal(calls.some(x=>x.includes('rpc/sc_recovery_link_evidence')),false);
+});
