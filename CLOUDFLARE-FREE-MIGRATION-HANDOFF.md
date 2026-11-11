@@ -168,3 +168,10 @@ NEXT engineering priorities: 1) inspect latest GitHub Actions run for successful
 - No paid access, trial, real evidence, invoice, or review decisions were created by this continuation.
 
 NEXT: 1) recover the real source inventory and encrypted/private files from old suspended Vercel Blob through authorized access; 2) stage evidence using private preflight then upload then PREFERRED copy index (no inventory status escalation); 3) verify original historical membership/payment source and define independently reviewed entitlement grants; 4) connect actual Cloudflare workers.dev staging session and secrets, run E2E; 5) finish outstanding billing/admin and automated signals before production approval. $0 monthly infrastructure target remains.
+
+
+### November 11 release QA safeguard
+
+- Added GET /api/ready for explicit fail-closed launch readiness (always HTTP 503 while historical Blob records, admin billing, provider reliability and signed-in staging tests are not verified), distinct from GET /api/health HTTP 200 liveness. No credentials or personal data are returned. Automated tests cover configured and unconfigured Workers.
+- GitHub Actions latest verified run 42968423826, commit dc39374406b1eec4c5165c1bed827360224ade6e: **334 tests passed, zero failed**, 78 allowlisted public assets exported, Wrangler dry-run successful. This is source/build QA only, NOT live Cloudflare verification. No production DNS, payment state, trials or user entitlements were changed.
+- The private recovery uploader can optionally link evidence into recovery inventory after independent approval, but the PREFERRED path is the separate append-only evidence copy indexer, which leaves source retrieval/review state unchanged until full original Vercel provenance is independently verified. Historical Blob store is still suspended and source data remains inaccessible.
