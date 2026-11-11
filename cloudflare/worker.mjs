@@ -516,8 +516,9 @@ async function recoveryStatus(request,env,fetchFn){
  return reply({
   source:'vercel_blob',
   status:rows.length===0?'inventory_not_imported':
-    totals.awaitingReviewCount>0?'reconciliation_pending':'review_complete',
+    totals.awaitingReviewCount>0?'reconciliation_pending':'items_reviewed_source_completeness_unverified',
   ...totals,
+  sourceInventoryCompletenessVerified:false,
   entitlementChangesMade:false,
   paymentsEnabled:false,
   note:'Recovery records are quarantined evidence; they never authorize access or payments.'
