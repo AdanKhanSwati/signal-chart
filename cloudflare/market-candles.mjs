@@ -83,6 +83,20 @@ function params(request){
  if(!['crypto','forex'].includes(market))return {error:'Unsupported market'};
  return {market,symbol,interval};
 }
+const COINBASE_BASES=new Set('BTC ETH SOL XRP DOGE ADA AVAX LINK LTC BCH UNI'.split(' '));
+const COINBASE_INTERVALS={'1m':60,'5m':300,'15m':900,'1h':3600,'1d':86400};
+async function coinbaseSpot(fetchFn,symbol,interval){
+ const base=symbol.replace(/(?:USDT|USDC)$/,'');
+ const granularity=COINBASE_INTERVALS[interval];
+ if(!COINBASE_BASES.has(base)||!granularity)return null;
+ const raw=await provider(fetchFn,'https://api.exchange.coinbase.com/products/'+
+  encodeURIComponent(base)+'-USD/candles?granularity='+granularity);
+ if(!Array.isArray(raw)||raw.length>500)throw Error('Invalid Coinbase data');
+ const bars=cleanBars(raw.map(v=>({time:v?.[0],low:v?.[1],high:v?.[2],
+  open:v?.[3],close:v?.[4],volume:v?.[5]})));
+ return bars.length>=5?bars:null;
+}
+
 export async function getCandles(request,{fetchFn=globalThis.fetch,now=Date.now}={}){
  if(request.method!=='GET')return response({error:'GET only'},405);
  const input=params(request);
@@ -91,15 +105,41 @@ export async function getCandles(request,{fetchFn=globalThis.fetch,now=Date.now}
  const key=market+':'+symbol+':'+interval;
  const saved=CACHE.get(key);
  if(saved&&saved.expires>now())return response(saved.data);
- let bars=[],source='';
+ let bars=[],source='',instrument='indicative_fx',quoteCurrency=null,aliasOnly=false;
  try{
   if(market==='crypto'){
-   const raw=await provider(fetchFn,'https://fapi.binance.com/fapi/v1/klines?symbol='+
-    encodeURIComponent(symbol)+'&interval='+encodeURIComponent(interval)+'&limit=240');
-   if(!Array.isArray(raw)||raw.length>500)throw Error('Invalid crypto candles');
-   bars=cleanBars(raw.map(v=>({time:Math.floor(Number(v[0])/1000),
-    open:v[1],high:v[2],low:v[3],close:v[4],volume:v[5]})));
-   source='Binance USD-M Futures';
+   const exchangeRows=raw=>{
+    if(!Array.isArray(raw)||raw.length>500)throw Error('Invalid crypto candles');
+    return cleanBars(raw.map(v=>({time:Math.floor(Number(v[0])/1000),
+     open:v[1],high:v[2],low:v[3],close:v[4],volume:v[5]})));
+   };
+   // Try exact USD-M perpetuals first. A blocked provider must not result
+   // in an empty chart when a genuine, clearly labeled spot chart is available.
+   try{
+    bars=exchangeRows(await provider(fetchFn,'https://fapi.binance.com/fapi/v1/klines?symbol='+
+     encodeURIComponent(symbol)+'&interval='+encodeURIComponent(interval)+'&limit=240'));
+    if(bars.length<5)throw Error('Empty futures candle feed');
+    source='Binance USD-M perpetual futures';
+    instrument='perpetual';
+   }catch{
+    try{
+     bars=exchangeRows(await provider(fetchFn,
+      'https://data-api.binance.vision/api/v3/klines?symbol='+
+      encodeURIComponent(symbol)+'&interval='+encodeURIComponent(interval)+'&limit=240'));
+     if(bars.length<5)throw Error('Empty spot candle feed');
+     source='Binance Spot price history (NOT futures)';
+     instrument='spot';
+    }catch{
+     // Coinbase uses USD, NOT USDT/USDC. Explicitly disclose the reference
+     // currency and alias status; never imply this is exchange futures OHLC.
+     bars=await coinbaseSpot(fetchFn,symbol,interval)||[];
+     if(bars.length<5)throw Error('No verified chart provider available');
+     source='Coinbase Exchange USD spot reference (NOT USDT/USDC futures)';
+     instrument='spot_reference';
+     quoteCurrency='USD';
+     aliasOnly=true;
+    }
+   }
   }else{
    const o=INTERVALS[interval],code=encodeURIComponent(FX[symbol]);
    for(const host of ['query1.finance.yahoo.com','query2.finance.yahoo.com']){
@@ -123,8 +163,13 @@ export async function getCandles(request,{fetchFn=globalThis.fetch,now=Date.now}
   }
   if(bars.length<5)throw Error('Insufficient candles');
   const result={
-   market,symbol,interval,source,
-   quoteBasis:market==='forex'?'Indicative OHLC; not broker-executable':'Futures traded-market OHLC',
+   market,symbol,interval,source,instrument,
+   quoteCurrency:quoteCurrency||(market==='crypto'?symbol.endsWith('USDC')?'USDC':'USDT':null),
+   quoteBasis:market==='forex'?'Indicative OHLC; not broker-executable':
+    instrument==='perpetual'?'Futures traded-market OHLC':
+    instrument==='spot'?'Spot exchange OHLC — not futures':
+    'USD spot reference only — not executable USDT or USDC futures',
+   aliasOnly,
    candles:bars.slice(-240),asof:new Date(now()).toISOString()
   };
   if(CACHE.size>=100)CACHE.clear();
