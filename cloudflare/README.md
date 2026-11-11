@@ -135,3 +135,10 @@ After evidence review and with server-only Supabase credentials configured, stag
 This importer inserts only inventory_only/pending records, with conflict-ignore semantics. It never reads Blob contents, approves payments, grants access, issues trials or marks evidence reconciled. It prints category totals, not personal identifiers, source paths or secrets. Keep JSON manifests and secret keys outside Git.
 
 Still BLOCKED: A verified complete source inventory and readable historical Blob contents have NOT been recovered. Metadata is insufficient to restore historical paid entitlements or receipts.
+
+
+### Recovery evidence storage
+
+Supabase migration sc_legacy_evidence_bucket created the private bucket sc-legacy-evidence on the Free project. It is public=false, accepts application/json, image/png and image/jpeg, and limits each file to 3 MiB. Live verification found ZERO files and ZERO Storage object policies. No customer can download or upload evidence via the public frontend; server credentials must never be embedded in JavaScript.
+
+The bucket is a destination ONLY. Historical Blob bodies and receipts have NOT yet been recovered, hashed, uploaded or reconciled. Quarantined inventory rows never activate subscriptions or reset trials.
