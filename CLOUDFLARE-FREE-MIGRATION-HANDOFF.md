@@ -181,3 +181,19 @@ NEXT: 1) recover the real source inventory and encrypted/private files from old 
 - Added `tests/cloudflare-release-gates.test.js` on the migration branch (commit `e916c90c730b79bb8978be4782dcbc4364beb5b2`). It tests fail-closed readiness without secrets, query-string approval spoofing, disabled unmigrated payment/admin/signal routes, and rejection of readiness mutations.
 - These tests do not deploy a Worker, grant access or recover Blob records. Verify the new commit's GitHub Actions result before treating them as passing; prior verified run 42968553076 passed 334 tests.
 - Still blocked on authorized Cloudflare staging session and complete legitimate read-only Blob recovery. No production DNS, payments or trial flags should change.
+
+## 2026-11-11 — Android Market Terminal restoration (awaiting live Cloudflare browser test)
+
+User screenshot of signal-chart.auxwork3.workers.dev/terminal.html showed BTCUSDT quote with unavailable candles, eight watchlist entries and green-tinted styling inconsistent with approved orange/charcoal brand.
+
+Changes on signalchart-cloudflare-free-migration:
+- market-charts.js uses the actual Cloudflare GET /api/markets endpoint (not retired /api/quotes?mode=catalog), validates imported symbols, searches across all pairs, displays a dynamic count and progressively reveals more symbols. Includes 50+ FX metadata symbols and many crypto markets when Binance is available.
+- cloudflare/market-catalog.mjs first requests real Binance perpetual futures; on upstream restriction it requests the documented Binance Spot market-data-only exchangeInfo with symbolStatus=TRADING and showPermissionSets=false. Spot contracts are transparently labeled as Spot, not as USD-M futures. Final bounded static fallback is acknowledged if both endpoints fail.
+- cloudflare/market-candles.mjs requests genuine Binance USD-M perpetual candles first; if unavailable tries real Binance Spot OHLC; finally tries genuine Coinbase USD spot reference OHLC for supported symbols/timeframes. No fabricated candles. Each successful result includes provider source, instrument type, quoteCurrency and aliasOnly for USD-vs-USDT conversion. Provider timeout shortened to 5s.
+- market-charts.js uses the actual returned chart source and charcoal-neutral chart grids, orange EMA, and truthful source/error messages. User-visible terminal label no longer advertises a fixed eight markets.
+- signalchart-terminal-brand.css provides a scoped responsive charcoal/graphite/orange terminal UI, without replacing or altering SignalChart original wordmark/logo. Added to terminal.html and 79-file asset allowlist.
+- Added tests/cloudflare-terminal-restoration.test.js and expanded backend market/catalog regression coverage. CI passed 346/346 tests in run 43009039393; follow-up timeout/provider source changes passed GitHub Actions run 43009426141 with Wrangler dry-run.
+
+Important: CI tests mock upstream providers, and no live browser/HTTP verification of the Cloudflare deployment has yet occurred. Do not claim all charts now work live. The live signal-chart Worker still needs to automatically deploy these commits and be retested on Android.
+
+Next acceptance steps: GET /api/markets -> check source and market counts; GET /api/candles?market=crypto&symbol=BTCUSDT&interval=1m -> require HTTP 200 and real OHLC bars with source; open /terminal.html on Android and verify 1m/15m chart and full searchable catalog including EURJPY, BTC, ADA; inspect Cloudflare upstream logs if provider blocks persist. Keep payments/trials disabled and signalchart.pro DNS unchanged.
