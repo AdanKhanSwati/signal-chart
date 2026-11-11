@@ -18,7 +18,7 @@ function subscribe(stream,handle,notify){
  return()=>{stopped=true;try{sock?.close()}catch{}};
 }
 function start(){
- if(!('WebSocket'in window))return;
+ if(!('WebSocket'in window)||document.hidden)return;
  state.tickClose?.();
  let queue={},timer=null;
  state.tickClose=subscribe('!miniTicker@arr',p=>{
@@ -29,14 +29,20 @@ function start(){
    const data={price,asof:new Date(Number(q.E)||Date.now()).toISOString(),received_at:new Date().toISOString(),source:'Binance Futures streaming ticker',stale:false,indicative:false,changePercent:start>0?(price/start-1)*100:null,high:Number(q.h),low:Number(q.l),volume:Number(q.q)};
    state.latest[q.s]=data;queue[q.s]=data;
   }
-  if(timer===null){timer=setTimeout(()=>{const updates=queue;queue={};timer=null;emit('signalchart:tick',{updates,connected:state.connected})},350)}
+  if(timer===null){timer=setTimeout(()=>{const updates=queue;queue={};timer=null;emit('signalchart:tick',{updates,connected:state.connected})},document.body?.dataset?.unified==='terminal'?3000:350)}
  },connected=>{state.connected=connected;emit('signalchart:feed-status',{connected,asof:new Date().toISOString()})});
 }
 function select(symbol,tf){
  const interval=['1m','5m','15m','1h','4h','1d','1w'].includes(tf)?tf:'1d';
  if(state.selected===symbol&&state.interval===interval&&state.klineClose)return;
  state.klineClose?.();state.klineClose=null;state.selected=symbol;state.interval=interval;
- if(!/^[A-Z0-9]{3,20}USDT$/.test(symbol||''))return;
+ if(!/^[A-Z0-9]{3,20}USDT$/.test(symbol||'')){
+  if(document.body?.dataset?.unified==='terminal'){
+   state.tickClose?.();state.tickClose=null;state.connected=false;
+  }
+  return;
+ }
+ if(!state.tickClose&&!document.hidden)start();
  const generation=++state.seq;
  state.klineClose=subscribe(symbol.toLowerCase()+'@kline_'+interval,d=>{
   const k=d.k;if(!k||generation!==state.seq||String(d.s).toUpperCase()!==state.selected)return;
@@ -47,5 +53,13 @@ function select(symbol,tf){
 }
 window.SignalChartFeed={start,select,state};
 start();
+addEventListener('visibilitychange',()=>{
+ if(document.hidden){state.tickClose?.();state.tickClose=null;
+  state.klineClose?.();state.klineClose=null;state.connected=false;return}
+ if(/^[A-Z0-9]{3,20}USDT$/.test(state.selected)){
+  const pair=state.selected,interval=state.interval;
+  state.selected='';select(pair,interval);
+ }
+});
 addEventListener('pagehide',()=>{state.tickClose?.();state.klineClose?.()},{once:true});
 })();
