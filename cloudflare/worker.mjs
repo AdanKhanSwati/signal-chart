@@ -1,5 +1,6 @@
 import {listMarkets} from './market-catalog.mjs';
 import {getCandles} from './market-candles.mjs';
+import {createResearch} from './research.mjs';
 
 /**
  * SignalChart Cloudflare Workers Free migration adapter.
@@ -477,10 +478,12 @@ function safeError(error){
  return reply({error:status===500?'The service is temporarily unavailable':error.message},status);
 }
 export function createWorker({fetchFn=globalThis.fetch}={}){
+ const research=createResearch({fetchFn});
  return {
   async fetch(request,env){
    try{
     const url=new URL(request.url);
+    if(url.pathname==='/api/research')return await research(request);
     if(url.pathname==='/api/config'){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
      return reply(apiConfig(env));

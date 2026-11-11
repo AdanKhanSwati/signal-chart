@@ -86,3 +86,11 @@ Worker request.
 - GitHub Actions run `42954286299` passed **255/255 tests**, with a successful Wrangler 4 dry-run compiling the Worker and 78 static assets. No actual Cloudflare staging or production deployment has occurred.
 
 Next: migrate **administrator billing, historical payment/receipt reconciliation, signal analysis and news/calendar backend**, then connect Cloudflare staging credentials and run live customer/admin E2E QA before production domain cutover. Never deploy `signalchart.pro` as a paid site before these checks.
+
+## Read-only economic research (November 11 continuation)
+
+- `GET /api/research?mode=health` reports that unattended signal publishing is disabled.
+- `GET /api/research?mode=news` retrieves bounded, dated RSS/Atom headlines from the Federal Reserve and U.S. BLS. Links are restricted to those official source domains; malformed links fall back to the official source page.
+- `GET /api/research?mode=calendar&symbol=EURUSD` merges bounded official BLS release-calendar entries and attributed Forex Factory weekly events, includes current news, and fails closed with UNKNOWN or PARTIAL_US coverage when sources are unavailable/stale. The calendar never asserts a safe trading window from missing data.
+- `GET /api/research?mode=backtest` remains HTTP 503: paid research simulation has not been safely ported to the free Worker runtime. No premium signal generation or automated publishing was enabled.
+- The feeds use fixed HTTPS origins, 350 KB per-response caps, short timeouts, isolated 2–15 minute caches and no user-controlled upstream URL. Real provider reachability and browser QA remain unverified until a staging deployment exists.

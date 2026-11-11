@@ -98,3 +98,10 @@ Success means verified users can securely log in on Cloudflare staging and see c
 - Updated `cloudflare/README.md` with new routes and integration flags.
 
 **Remaining**: actual Cloudflare account integration and workers.dev staging URL, live browser E2E sign-in/testing, payment and receipt migration from suspended Vercel Blob, administrator billing/review backend, automated and backtested research/signals, news/calendar and final production readiness. Do not change signalchart.pro or accept live payments until these are verified. Mandatory hosting target remains $0/month.
+
+## November 11 continuation — read-only news/calendar port
+
+- Added `cloudflare/research.mjs` and `tests/cloudflare-research.test.js` for `/api/research` health, news and calendar modes. News uses source-attributed Federal Reserve/BLS RSS/Atom feeds with official-domain link validation; the calendar uses official BLS ICS and attributed Forex Factory weekly JSON. Fixed upstream hosts, 350 KB body limits, short timeouts, bounded parsing and in-isolate caching prevent arbitrary URL fetches or invented event data.
+- Calendar event coverage fails closed: FULL_WEEK requires both current sources; PARTIAL_US requires current BLS only; otherwise UNKNOWN, and assessment remains blocked. The UI receives its existing `events`, `news`, `providers` and `assessment` contract.
+- Paid historical backtesting is intentionally HTTP 503, not a misleading stub. No payments, signal publishing, entitlement grants or DNS changes.
+- Next: check CI for the commit that added this section, confirm live provider parsing and news links on a Cloudflare staging deployment, then address historical Blob reconciliation, billing/admin data, and remaining market APIs. No production readiness claim.
