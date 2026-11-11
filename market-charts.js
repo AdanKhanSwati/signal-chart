@@ -132,6 +132,62 @@ function renderFallback(bars){
  if(!state.chartEngine)throw Error('Interactive chart unavailable');
  state.chartDraw=()=>state.chartEngine?.setData(state.bars,{symbol:state.symbol,timeframe:state.interval,digits:current().d});state.chartDraw();
 }
+// Hosted provider charts are last-resort visual references, not inputs for
+// SignalChart's own technical indicators, signals, backtests or order decisions.
+let hostedChartModule=null;
+function hostedChartLibrary(){
+ if(window.customElements?.get('tv-advanced-chart'))return Promise.resolve();
+ if(hostedChartModule)return hostedChartModule;
+ hostedChartModule=new Promise((resolve,reject)=>{
+  const script=document.createElement('script');
+  script.type='module';
+  script.src='https://widgets.tradingview-widget.com/w/en/tv-advanced-chart.js';
+  script.onload=()=>{
+   if(!window.customElements?.whenDefined){resolve();return}
+   Promise.race([
+    window.customElements.whenDefined('tv-advanced-chart'),
+    new Promise((_,fail)=>setTimeout(()=>fail(Error('Hosted chart unavailable')),6000))
+   ]).then(resolve,reject);
+  };
+  script.onerror=()=>reject(Error('Hosted chart unavailable'));
+  document.head.append(script);
+ }).catch(e=>{hostedChartModule=null;throw e});
+ return hostedChartModule;
+}
+const TV_INTERVALS={'1m':'1','3m':'3','5m':'5','15m':'15','30m':'30',
+ '1h':'60','4h':'240','1d':'1D','1w':'1W'};
+async function renderHostedChart(p,interval,id){
+ $('mc-chart-loading').textContent='Checking an alternative hosted chart…';
+ try{
+  await hostedChartLibrary();
+  if(id!==state.loadId)return;
+  clearChart();
+  const root=$('mc-chart'),widget=document.createElement('tv-advanced-chart');
+  const symbol=(p.type==='forex'?'FX:':'BINANCE:')+p.s;
+  widget.setAttribute('symbol',symbol);
+  widget.setAttribute('interval',TV_INTERVALS[interval]||'15');
+  widget.setAttribute('theme','dark');
+  widget.setAttribute('timezone','Etc/UTC');
+  widget.setAttribute('hide-volume','true');
+  widget.style.cssText='display:block;width:100%;height:100%;min-height:250px';
+  root.append(widget);
+  state.chartKey='hosted|'+symbol+'|'+interval;
+  state.candleSource={
+   symbol:p.s,source:p.type==='forex'?
+    'TradingView hosted FX chart · separate indicative provider':
+    'TradingView hosted Binance spot chart · not futures',
+   instrument:'hosted_reference'
+  };
+  $('mc-chart-updated').textContent='TradingView hosted · internal indicators unavailable';
+  renderQuote();
+  $('mc-chart-loading').hidden=true;
+ }catch{
+  if(id!==state.loadId)return;
+  $('mc-chart-loading').textContent='No historical chart provider is available for this pair. Try another market.';
+  $('mc-chart-updated').textContent='All chart feeds unavailable';
+ }
+}
+
 async function loadCandles(){
  const symbol=state.symbol,interval=state.interval,p=lookup[symbol],id=++state.loadId;
  state.abort?.abort();state.abort=new AbortController();
@@ -167,7 +223,10 @@ async function loadCandles(){
   $('mc-chart-updated').textContent=(data.instrument==='spot_reference'?'USD spot reference · ':data.instrument==='spot'?'Spot OHLC · ':'Candle ')+safeTime(unique.at(-1).time*1000);
   $('mc-chart-loading').hidden=true;
  }catch(e){if(e.name==='AbortError'||id!==state.loadId)return;
-  clearChart();$('mc-chart-loading').hidden=false;$('mc-chart-loading').textContent=e.message||'Chart unavailable';$('mc-chart-updated').textContent='Source not available';showIndicators();
+  clearChart();$('mc-chart-loading').hidden=false;
+  $('mc-chart-loading').textContent=e.message||'Chart unavailable';
+  $('mc-chart-updated').textContent='Direct OHLC source unavailable';showIndicators();
+  await renderHostedChart(p,interval,id);
  }
 }
 function select(s){
