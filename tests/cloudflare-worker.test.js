@@ -174,3 +174,150 @@ test('unexpected trial status and credit counts cannot grant trial',async()=>{
  const res=await createWorker({fetchFn:stub({trialData:{...trial,signalsUsed:99}})}).fetch(get('/api/member?action=me'),env);
  assert.equal(res.status,503);
 });
+
+
+const browserEnv={...env,
+ SC_EMAIL_DEVICE_TRIAL_ENABLED:'true',
+ SC_TRIAL_HMAC_SECRET:'synthetic_browser_hmac_secret_for_test_only_123456789',
+ SC_TRIAL_ROLLOUT_AT:'2026-11-01T00:00:00Z',
+ SC_TURNSTILE_SITE_KEY:'test-site-key-not-real',
+ SC_TURNSTILE_SECRET_KEY:'test-secret-key-not-real-and-long'
+};
+const recentAuth={...user,created_at:'2026-11-10T08:00:00Z'};
+const trialToken='test-turnstile-token-value-long-enough';
+function trialFetch({authUser=recentAuth,trialData=trial,collect=[],hostname='staging.example.test',action='trial_activate'}={}){
+ const base=stub({authUser,trialData,collect});
+ return async (url,opts={})=>{
+  const u=String(url);
+  if(u.includes('/turnstile/v0/siteverify')){
+   collect.push({pathname:'/turnstile/v0/siteverify',method:opts.method,body:opts.body});
+   return ok({success:true,hostname,action});
+  }
+  if(u.includes('/rpc/sc_activate_browser_trial')){
+   collect.push({pathname:'/rest/v1/rpc/sc_activate_browser_trial',method:opts.method,body:opts.body});
+   return ok({result:'activated',trial:trialData});
+  }
+  return base(url,opts);
+ };
+}
+test('browser trial activation remains disabled without all secrets and rollout configuration',async()=>{
+ const {createWorker}=await workerImport;
+ const w=createWorker({fetchFn:trialFetch()});
+ const config=await (await w.fetch(get('/api/config',false),env)).json();
+ assert.equal(config.emailDeviceTrialEnabled,false);
+ assert.equal(config.turnstileSiteKey,null);
+ assert.equal((await w.fetch(get('/api/trial?action=device'),env)).status,503);
+ assert.equal((await w.fetch(new Request('https://staging.example.test/api/trial?action=activate_browser',{
+  method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+  body:JSON.stringify({turnstileToken:trialToken})
+ }),env)).status,503);
+});
+test('verified member creates secure HttpOnly browser recognition cookie',async()=>{
+ const {createWorker}=await workerImport;
+ const w=createWorker({fetchFn:trialFetch()});
+ const config=await (await w.fetch(get('/api/config',false),browserEnv)).json();
+ assert.equal(config.emailDeviceTrialEnabled,true);
+ assert.equal(config.turnstileSiteKey,browserEnv.SC_TURNSTILE_SITE_KEY);
+ const res=await w.fetch(get('/api/trial?action=device'),browserEnv);
+ assert.equal(res.status,200);
+ const cookie=res.headers.get('Set-Cookie');
+ assert.match(cookie,/^__Host-sc_trial_device=[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43};/);
+ assert.match(cookie,/Secure; HttpOnly; SameSite=Lax/);
+ const data=await res.json();
+ assert.equal(data.ready,true);
+ assert.equal(data.newCookie,true);
+});
+test('browser-trial device endpoint denies anonymous sessions without generating a cookie',async()=>{
+ const {createWorker}=await workerImport;
+ const w=createWorker({fetchFn:trialFetch()});
+ const res=await w.fetch(get('/api/trial?action=device',false),browserEnv);
+ assert.equal(res.status,401);
+ assert.equal(res.headers.get('Set-Cookie'),null);
+});
+test('verified new member and valid Turnstile can request atomic SQL trial activation',async()=>{
+ const {createWorker}=await workerImport;
+ const calls=[];
+ const w=createWorker({fetchFn:trialFetch({collect:calls,trialData:{...trial,trialStatus:'not_activated',signalsRemaining:0,signalsUsed:0,expiresAt:null,activatedAt:null}})});
+ const cookie=(await w.fetch(get('/api/trial?action=device'),browserEnv)).headers.get('Set-Cookie').split(';')[0];
+ const result=await w.fetch(new Request('https://staging.example.test/api/trial?action=activate_browser',{
+  method:'POST',headers:{Authorization:'Bearer '+token,Cookie:cookie,
+   'CF-Connecting-IP':'203.0.113.101','Content-Type':'application/json'},
+  body:JSON.stringify({turnstileToken:trialToken})
+ }),browserEnv);
+ assert.equal(result.status,200);
+ const data=await result.json();
+ assert.equal(data.status,'activated');
+ const activate=calls.find(x=>x.pathname==='/rest/v1/rpc/sc_activate_browser_trial');
+ assert.ok(activate,'transactional SQL RPC must be invoked');
+ const params=JSON.parse(activate.body);
+ assert.equal(params.p_user,uid);
+ assert.match(params.p_device_hash,/^[a-f0-9]{64}$/);
+ assert.match(params.p_network_hash,/^[a-f0-9]{64}$/);
+ assert.ok(calls.some(x=>x.pathname==='/turnstile/v0/siteverify'));
+});
+test('missing browser cookie blocks trial activation before the Turnstile request',async()=>{
+ const {createWorker}=await workerImport;
+ const calls=[];
+ const w=createWorker({fetchFn:trialFetch({collect:calls,trialData:{...trial,trialStatus:'not_activated',signalsRemaining:0,signalsUsed:0}})});
+ const res=await w.fetch(new Request('https://staging.example.test/api/trial?action=activate_browser',{
+  method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+  body:JSON.stringify({turnstileToken:trialToken})
+ }),browserEnv);
+ assert.equal(res.status,428);
+ assert.equal(calls.some(x=>x.pathname==='/turnstile/v0/siteverify'),false);
+ assert.equal(calls.some(x=>x.pathname==='/rest/v1/rpc/sc_activate_browser_trial'),false);
+});
+test('historical accounts cannot receive a new trial without manual history review',async()=>{
+ const {createWorker}=await workerImport;
+ const calls=[];
+ const oldAuth={...recentAuth,created_at:'2026-10-01T08:00:00Z'};
+ const w=createWorker({fetchFn:trialFetch({authUser:oldAuth,collect:calls,trialData:{...trial,trialStatus:'not_activated',signalsRemaining:0,signalsUsed:0}})});
+ const res=await w.fetch(new Request('https://staging.example.test/api/trial?action=activate_browser',{
+  method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+  body:JSON.stringify({turnstileToken:trialToken})
+ }),browserEnv);
+ assert.equal(res.status,409);
+ assert.equal(calls.some(x=>x.pathname==='/rest/v1/rpc/sc_activate_browser_trial'),false);
+});
+test('Turnstile hostname or action mismatch blocks SQL claim',async()=>{
+ const {createWorker}=await workerImport;
+ for(const bad of [{hostname:'attacker.example.test'},{action:'login'}]){
+  const calls=[];
+  const initial={...trial,trialStatus:'not_activated',signalsRemaining:0,signalsUsed:0};
+  const w=createWorker({fetchFn:trialFetch({...bad,collect:calls,trialData:initial})});
+  const cookie=(await w.fetch(get('/api/trial?action=device'),browserEnv)).headers.get('Set-Cookie').split(';')[0];
+  const res=await w.fetch(new Request('https://staging.example.test/api/trial?action=activate_browser',{
+   method:'POST',headers:{Authorization:'Bearer '+token,Cookie:cookie,'Content-Type':'application/json'},
+   body:JSON.stringify({turnstileToken:trialToken})
+  }),browserEnv);
+  assert.equal(res.status,403);
+  assert.equal(calls.some(x=>x.pathname==='/rest/v1/rpc/sc_activate_browser_trial'),false);
+ }
+});
+test('tampered signed recognition cookies are rejected before calling Turnstile',async()=>{
+ const {createWorker}=await workerImport;
+ const initial={...trial,trialStatus:'not_activated',signalsRemaining:0,signalsUsed:0};
+ const calls=[];
+ const w=createWorker({fetchFn:trialFetch({collect:calls,trialData:initial})});
+ const raw=(await w.fetch(get('/api/trial?action=device'),browserEnv)).headers.get('Set-Cookie').split(';')[0];
+ const cookie=raw.slice(0,-1)+(raw.endsWith('A')?'B':'A');
+ const res=await w.fetch(new Request('https://staging.example.test/api/trial?action=activate_browser',{
+  method:'POST',headers:{Authorization:'Bearer '+token,Cookie:cookie,'Content-Type':'application/json'},
+  body:JSON.stringify({turnstileToken:trialToken})
+ }),browserEnv);
+ assert.equal(res.status,428);
+ assert.equal(calls.some(x=>x.pathname==='/rest/v1/rpc/sc_activate_browser_trial'),false);
+});
+test('already-used verified trials return existing history without creating a new claim',async()=>{
+ const {createWorker}=await workerImport;
+ const calls=[];
+ const w=createWorker({fetchFn:trialFetch({collect:calls,trialData:trial})});
+ const res=await w.fetch(new Request('https://staging.example.test/api/trial?action=activate_browser',{
+  method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+  body:JSON.stringify({turnstileToken:trialToken})
+ }),browserEnv);
+ assert.equal(res.status,200);
+ const result=await res.json();
+ assert.equal(result.status,'existing_trial');
+ assert.equal(calls.some(x=>x.pathname==='/rest/v1/rpc/sc_activate_browser_trial'),false);
+});
