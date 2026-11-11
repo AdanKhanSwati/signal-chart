@@ -104,3 +104,59 @@ test('Cloudflare Worker forwards GET candle requests without requiring sign in',
  assert.equal(data.market,'crypto');
  assert.equal(data.candles.length,12);
 });
+
+
+test('Geo-blocked Binance perpetual candles fall back to genuine Binance Spot OHLC with clear provenance',async()=>{
+ const {getCandles}=await mod,calls=[];
+ const res=await getCandles(request('market=crypto&symbol=ADAUSDT&interval=15m'),{
+  now:()=>21000,
+  fetchFn:async url=>{
+   calls.push(url);
+   if(url.includes('fapi.binance.com'))return new Response('restricted',{status:451});
+   if(url.includes('data-api.binance.vision'))return json(bars);
+   throw Error('Unexpected provider');
+  }
+ });
+ assert.equal(res.status,200);
+ const result=await res.json();
+ assert.deepEqual(calls.length,2);
+ assert.match(calls[1],/data-api\.binance\.vision\/api\/v3\/klines/);
+ assert.equal(result.instrument,'spot');
+ assert.equal(result.quoteCurrency,'USDT');
+ assert.equal(result.aliasOnly,false);
+ assert.match(result.quoteBasis,/Spot exchange OHLC — not futures/);
+ assert.match(result.source,/NOT futures/);
+ assert.equal(result.candles.length,12);
+});
+test('When exchange futures and spot providers fail, Coinbase USD spot reference is clearly disclaimed',async()=>{
+ const {getCandles}=await mod,calls=[];
+ const coinbase=Array.from({length:20},(_,i)=>[1700000000+i*300,95,105,100,102,120]);
+ const res=await getCandles(request('market=crypto&symbol=BCHUSDT&interval=5m'),{
+  now:()=>22000,
+  fetchFn:async url=>{
+   calls.push(url);
+   if(url.includes('fapi.binance.com')||url.includes('data-api.binance.vision'))
+    return new Response('restricted',{status:451});
+   if(url.includes('api.exchange.coinbase.com/products/BCH-USD/candles'))
+    return json(coinbase);
+   throw Error('Unknown provider');
+  }
+ });
+ assert.equal(res.status,200);
+ const result=await res.json();
+ assert.equal(calls.length,3);
+ assert.equal(result.instrument,'spot_reference');
+ assert.equal(result.quoteCurrency,'USD');
+ assert.equal(result.aliasOnly,true);
+ assert.match(result.source,/USD spot reference/);
+ assert.match(result.quoteBasis,/not executable USDT or USDC futures/);
+ assert.ok(result.candles.every(x=>x.low<=x.open&&x.high>=x.close));
+});
+test('Insufficient or invalid spot/coinbase data never produces fabricated history',async()=>{
+ const {getCandles}=await mod;
+ const res=await getCandles(request('market=crypto&symbol=INJUSDT&interval=4h'),{
+  now:()=>23000,fetchFn:async()=>new Response('no data',{status:404})
+ });
+ assert.equal(res.status,502);
+ assert.equal((await res.json()).error,'Market candles temporarily unavailable');
+});
