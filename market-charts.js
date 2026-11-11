@@ -13,7 +13,7 @@ const state={symbol:'BTCUSDT',interval:'1m',filter:'all',search:'',quotes:{},bar
 const q=new URL(location.href).searchParams.get('pair');if(lookup[q])state.symbol=q;
 const n=v=>Number(v),valid=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v));
 const fmt=(v,d)=>valid(v)?n(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
-const current=()=>lookup[state.symbol],status=(p,q)=>{if(!q||!valid(q.price))return 'UNAVAILABLE';const age=Date.now()-Date.parse(q.asof||'');const maxAge=p.type==='forex'?20*60*1000:3*60*1000;return q.stale||!Number.isFinite(age)||age>maxAge?'DELAYED':'UPDATED'};
+const current=()=>lookup[state.symbol],status=(p,q)=>{if(!q||!valid(q.price))return 'UNAVAILABLE';if(q.reference===true)return 'REFERENCE';const age=Date.now()-Date.parse(q.asof||'');const maxAge=p.type==='forex'?20*60*1000:3*60*1000;return q.stale||!Number.isFinite(age)||age>maxAge?'DELAYED':'UPDATED'};
 const safeTime=stamp=>{const d=new Date(stamp);return Number.isNaN(d.getTime())?'—':d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})};
 const source=p=>p.type==='forex'?'Indicative FX pricing':p.instrument==='spot'?'Binance Spot · reference chart':p.instrument==='perpetual'?'Binance USD-M Futures':'Crypto candles · checking data source';
 function child(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
@@ -65,18 +65,30 @@ function renderQuote(){
  $('mc-pair-title').textContent=p.label;$('mc-pair-market').textContent=p.type.toUpperCase();
  $('mc-pair-source').textContent=state.candleSource?.symbol===p.s?state.candleSource.source:source(p);
  $('mc-price').textContent=fmt(quote?.price,p.d);
- $('mc-quote-asof').textContent=quote?(s==='UPDATED'?'Latest quote · ':'Delayed quote · ')+safeTime(quote.asof):'Awaiting market quote';
+ $('mc-quote-asof').textContent=quote?(quote.reference?'Daily reference · '+quote.referenceDate:(s==='UPDATED'?'Latest quote · ':'Delayed quote · ')+safeTime(quote.asof)):'Awaiting market quote';
  const isUp=pairs.some(asset=>status(asset,state.quotes[asset.s])==='UPDATED');
+ const hasFxReference=pairs.some(asset=>state.quotes[asset.s]?.reference===true);
  $('mc-market-connect').querySelector('i').classList.toggle('stale',!isUp);
- $('mc-market-connect').lastChild.textContent=isUp?' Quotes connected':' Market feed delayed';
+ $('mc-market-connect').lastChild.textContent=isUp?' Quotes connected':hasFxReference?' Daily FX references available':' Market feed delayed';
  $('mc-next-title').textContent=p.type==='crypto'?'Explore crypto signals':'Explore forex signals';
  const link=$('mc-next-link');link.href=p.type==='crypto'?'/crypto.html':'/forex.html';link.firstChild?.nodeType;
  link.textContent='View '+(p.type==='crypto'?'Crypto':'Forex')+' Signals ↗';
 }
-function loadQuotes(){
- // During Cloudflare migration /api/quotes is unported (HTTP 503). Use
- // authenticated exchange kline ticks and real OHLC closes, not a polling
- // loop that performs two guaranteed-failing requests every 30 seconds.
+async function loadQuotes(){
+ // A single low-frequency reference snapshot, not a live broker quote feed.
+ // Crypto prices continue to come from actual exchange candles/WebSockets.
+ try{
+  const r=await fetch('/api/quotes?market=forex',{cache:'no-store'});
+  if(!r.ok)throw Error('Daily forex reference unavailable');
+  const data=await r.json();
+  if(data.referenceOnly!==true||!data.quotes)return;
+  for(const [symbol,value]of Object.entries(data.quotes)){
+   if(!lookup[symbol]||lookup[symbol].type!=='forex'||
+      value?.reference!==true||!valid(value.price)||Number(value.price)<=0)continue;
+   const previous=state.quotes[symbol];
+   if(!previous||previous.reference||previous.stale)state.quotes[symbol]=value;
+  }
+ }catch{/* Never fabricate missing reference prices. */}
  renderWatch();renderTable();renderQuote();
 }
 function ema(bars,period){const k=2/(period+1);let value=bars[0]?.close||0;return bars.map((b,i)=>{value=i===0?b.close:k*b.close+(1-k)*value;return{time:b.time,value}})}
@@ -205,8 +217,11 @@ async function loadCandles(){
   const range=state.chart?.timeScale?.().getVisibleLogicalRange?.()||null,follow=range?range.to>=state.bars.length-7:true;
   state.bars=unique;state.candleSource={symbol,source:data.source,instrument:data.instrument||null};
    const latest=unique.at(-1),latestAt=new Date(latest.time*1000).toISOString();
-   state.quotes[symbol]={price:latest.close,asof:latestAt,source:data.source,
-    stale:!!data.historicalOnly||Date.now()-latest.time*1000>180000};
+   const existing=state.quotes[symbol];
+   if(!(p.type==='forex'&&existing?.reference===true&&
+        (data.historicalOnly||Date.parse(existing.asof)>=latest.time*1000)))
+    state.quotes[symbol]={price:latest.close,asof:latestAt,source:data.source,
+     stale:!!data.historicalOnly||Date.now()-latest.time*1000>180000};
    showIndicators();renderQuote();
   if(same&&state.chart&&state.candleSeries){
    state.candleSeries.setData(unique.map(({time,open,high,low,close})=>({time,open,high,low,close})));
@@ -306,6 +321,7 @@ window.addEventListener('signalchart:kline',e=>{
 bind();select(state.symbol);expandCatalog();loadQuotes();
 // Do not continually re-request expired FX/provider errors or repaint an
 // 80-row table; true history is refreshed only when visible and selected.
+setInterval(()=>{if(!document.hidden)loadQuotes()},900000);
 setInterval(()=>{if(!document.hidden&&state.bars.length&&
  (lookup[state.symbol].type==='forex'||!window.SignalChartFeed?.state.connected))loadCandles()},180000);
 })();
