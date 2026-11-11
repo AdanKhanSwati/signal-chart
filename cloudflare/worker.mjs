@@ -310,7 +310,7 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
       return reply(await trialState(fetchFn,secretConfig(env),user.uid));
      }
      if(request.method==='GET'&&action==='device')
-      return browserDeviceStart(request,env,fetchFn);
+      return await browserDeviceStart(request,env,fetchFn);
      if(request.method==='POST'&&action==='activate_browser')
       return reply(await activateBrowser(request,env,fetchFn));
      throw issue(503,'This trial operation is unavailable during migration');
