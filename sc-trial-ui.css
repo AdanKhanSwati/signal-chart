@@ -52,6 +52,7 @@
 .sc-whatsapp-signal-cta strong{font-size:14px}
 @media(max-width:650px){
  .sc-whatsapp-guide,.sc-whatsapp-signal-cta{flex-direction:column;align-items:stretch;padding:13px}
+ .sc-whatsapp-guide-copy,.sc-whatsapp-signal-cta>div{flex:0 1 auto;min-height:0}
  .sc-whatsapp-guide-action{justify-items:stretch;gap:8px}
  .sc-whatsapp-guide .sc-trial-button,.sc-whatsapp-signal-cta .sc-trial-button{width:100%}
 }
