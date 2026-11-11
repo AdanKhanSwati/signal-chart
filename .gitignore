@@ -9,3 +9,5 @@ node_modules/
 vercel-recovered/
 .cloudflare-dist/
 .wrangler/
+.dev.vars
+.dev.vars.*
