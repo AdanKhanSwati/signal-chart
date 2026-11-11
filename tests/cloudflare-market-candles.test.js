@@ -73,8 +73,9 @@ test('historical FX data is indicative and can fail over between two Yahoo hosts
  const data=await res.json();
  assert.equal(data.candles.length,12);
  assert.match(data.quoteBasis,/not broker-executable/);
- assert.equal(calls.length,2);
- assert.ok(calls.every(x=>x.startsWith('https://query')));
+ assert.equal(calls.length,3,'Dedicated broker source is tried before two Yahoo fallbacks');
+ assert.match(calls[0],/^https:\/\/www\.algospecial\.com\/api\/ohlc\.php/);
+ assert.ok(calls.slice(1).every(x=>x.startsWith('https://query')));
 });
 test('provider failures explicitly return 502 instead of fabricated price history',async()=>{
  const {getCandles}=await mod;
@@ -159,4 +160,62 @@ test('Insufficient or invalid spot/coinbase data never produces fabricated histo
  });
  assert.equal(res.status,502);
  assert.equal((await res.json()).error,'Market candles temporarily unavailable');
+});
+
+
+test('AlgoSpecial broker FX OHLC works without Yahoo, explicitly labels unknown server-time zone',async()=>{
+ const {getCandles}=await mod,calls=[];
+ const data=Array.from({length:18},(_,i)=>({
+  Timestamp:'2026.11.10 '+String(Math.floor(i/4)).padStart(2,'0')+':'+String((i%4)*15).padStart(2,'0')+':00',
+  Open:1.2+i*.001,High:1.206+i*.001,Low:1.198+i*.001,
+  Close:1.203+i*.001,TickVolume:0,Spread:0
+ }));
+ const res=await getCandles(request('market=forex&symbol=GBPJPY&interval=15m'),{
+  now:()=>Date.parse('2026-11-11T11:00:00Z'),
+  fetchFn:async url=>{
+   calls.push(url);
+   assert.match(url,/algospecial\.com\/api\/ohlc\.php/);
+   assert.match(url,/symbol=GBPJPY/);
+   assert.match(url,/tf=M15/);
+   return json({symbol:'GBPJPY',timeframe:'M15',rows:data.length,data});
+  }
+ });
+ assert.equal(res.status,200);
+ const body=await res.json();
+ assert.equal(calls.length,1);
+ assert.equal(body.instrument,'historical_fx');
+ assert.equal(body.historicalOnly,true);
+ assert.match(body.timeBasis,/Broker server wall time/);
+ assert.match(body.source,/AlgoSpecial/);
+ assert.match(body.quoteBasis,/not broker-executable/i);
+ assert.equal(body.candles.length,18);
+ assert.ok(body.candles.every(x=>x.high>=x.open&&x.low<=x.close));
+ assert.equal(body.candles[0].time,Date.parse('2026-11-10T00:00:00Z')/1000);
+});
+test('Broken broker rows and invalid source timestamps are never accepted as valid candles',async()=>{
+ const {getCandles}=await mod;
+ const res=await getCandles(request('market=forex&symbol=NZDCHF&interval=4h'),{
+  now:()=>Date.parse('2026-11-12T00:00:00Z'),
+  fetchFn:async url=>{
+   if(url.includes('algospecial.com'))return json({symbol:'NZDCHF',data:[
+    {Timestamp:'2026.02.31 03:00:00',Open:1,High:2,Low:.5,Close:1.5},
+    {Timestamp:'2026.11.10 03:00:00',Open:1,High:.8,Low:.5,Close:1.5}
+   ]});
+   return new Response('Unavailable',{status:502});
+  }
+ });
+ assert.equal(res.status,502);
+});
+test('Failed FX provider calls are short-term cached to avoid mobile retry storms',async()=>{
+ const {getCandles}=await mod;
+ const q=request('market=forex&symbol=AUDCHF&interval=30m');
+ let calls=0;
+ const dep={now:()=>Date.parse('2026-11-11T10:00:00Z'),
+  fetchFn:async()=>{calls++;return new Response('Rate limited',{status:429})}};
+ const first=await getCandles(q,dep);
+ assert.equal(first.status,502);
+ assert.equal(calls,3);
+ const second=await getCandles(q,{...dep,now:()=>Date.parse('2026-11-11T10:00:20Z')});
+ assert.equal(second.status,502);
+ assert.equal(calls,3);
 });
