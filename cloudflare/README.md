@@ -176,3 +176,53 @@ Optionally write a **private local-only** JSON report with computed SHA-256 hash
 The output file must be new and outside the current Git working directory; it is created with restrictive 0600 permissions. The CLI prints aggregate counts only and suppresses private identifiers in errors. It refuses incomplete source inventories, unexpected/duplicate keys, symlink/traversal paths, mismatched byte lengths, invalid file formats, and wrong digests. The optional digest is only as trustworthy as its independent source.
 
 **Important:** This is a local integrity preflight, NOT proof that files came from the suspended Blob store, that any payment cleared, or that a user owns an entitlement. It makes NO Supabase/Storage writes, does NOT mark evidence as verified_read/reconciled, and never grants access. Actual provenance verification, private evidence upload, audited human review and legacy payment/trial reconciliation remain separate blocked steps.
+
+
+### Separate append-only evidence copy index (November 11)
+
+A conservative alternative to modifying an inventory row is now available:
+\`database/sc-legacy-evidence-copy-index.sql\` was applied to Supabase as
+\`sc_legacy_evidence_copy_index\`. The private table
+\`sc_legacy_evidence_copies\` stores **local copy metadata only**. It has RLS,
+no client policies, and no service-role DELETE permission. The
+\`sc_recovery_record_local_copy\` RPC is callable by service_role only and
+requires an existing source-inventory row, a confirmed operator, a private
+content-addressed object with matching storage size and MIME, and an exact
+SHA-256-shaped object name. It appends an audit event for new links, but **does
+not update the source inventory's retrieval/review status**, authenticate
+historical provenance, verify any transaction, or grant access.
+
+Use the private offline preflight and upload procedures above first. After
+the full source inventory has been independently recovered, the source bytes
+have been copied privately and the private object hashes verified, the
+following optional command can index the copies:
+
+    node scripts/index-blob-evidence.cjs \
+      --inventory /private/blob-inventory.json \
+      --evidence /private/recovered-evidence.json \
+      --evidence-dir /private/recovered-files --dry-run
+
+    SC_EVIDENCE_INDEX_APPROVED=true \
+    SC_RECOVERY_OPERATOR_UID=<verified-auth-user-uuid> \
+    node scripts/index-blob-evidence.cjs \
+      --inventory /private/blob-inventory.json \
+      --evidence /private/recovered-evidence.json \
+      --evidence-dir /private/recovered-files --write
+
+For the write, server-only \`SUPABASE_URL\` and \`SUPABASE_SECRET_KEY\`
+must also be available **only in the private operator environment**. The
+indexer reads the stored bytes back and hashes them again before calling the
+RPC. It prints only aggregate results. If a source inventory row or private
+object is missing, it stops rather than inventing a record.
+
+The separate \`scripts/upload-blob-evidence.cjs --write --link-ledger\`
+path (if used) changes inventory retrieval status to \`verified_read\` and
+requires \`SC_RECOVERY_LINK_APPROVED=true\` and a configured
+\`SC_SUPER_ADMIN_UID\`. For the most conservative provenance workflow, prefer
+the standalone append-only indexer above and leave inventory/review status
+unchanged until an authorized manual reconciliation. Neither path authorizes
+payments or premium/trial access.
+
+As of November 11, no historical source inventory, private evidence objects,
+or linked copy rows have been recovered. **Do not set any write-approval flag
+until the full private source inventory and actual files are available.**
