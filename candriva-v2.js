@@ -42,8 +42,16 @@ async function request(path,body){const token=await currentToken();const opts=bo
  // Same-origin cookies are required by Vercel protected staging; the Supabase
  // bearer token still independently authenticates and authorizes the user.
  let response;
- try{response=await fetch(path,opts)}
- catch{throw Error('Could not reach SignalChart account API. If testing a protected preview, open its access link in this browser, then retry.')}
+ // Retry read-only account requests once after a transient mobile-network
+ // failure. A write request (payment or admin) is never retried automatically.
+ for(let attempt=0;attempt<(body===undefined?2:1);attempt++){
+  try{response=await fetch(path,opts);break}
+  catch{
+   if(body!==undefined||attempt===1)
+    throw Error('Network connection to SignalChart was interrupted. Your session was preserved. Retry your account request or sign in again.');
+   await new Promise(resolve=>setTimeout(resolve,500));
+  }
+ }
  const type=response.headers?.get?.('content-type')||'';
  if(type&&!type.includes('application/json'))
   throw Error('Account API returned a webpage instead of JSON. Check access to the protected preview and retry.');
@@ -231,14 +239,38 @@ async function boot(){
   // protected-preview or member-API failure.
   if(page==='account'){
    show('#auth-off',false);
+   // An unavailable membership endpoint is not a reason to hide sign-in.
+   // Do not clear a stored session without an explicit user action.
+   if(sb){
+    show('#auth-area',true);
+    switchAuth('signin');
+    $('#tab-signup').onclick=()=>switchAuth('signup');
+    $('#tab-signin').onclick=()=>switchAuth('signin');
+   }
    const status=$('#v2-status');
    if(status){
     const note=document.createElement('p');
-    note.textContent='Your sign-in may still be valid. This page could not load the account details.';
+    note.textContent='Your sign-in may still be valid. Account details did not load; no trial or payment was changed.';
     const retry=document.createElement('button');
-    retry.type='button';retry.className='v2-outline';retry.textContent='Retry loading account';
-    retry.onclick=()=>location.reload();
+    retry.type='button';retry.className='v2-outline';retry.textContent='Retry account connection';
+    retry.onclick=async()=>{
+     retry.disabled=true;msg('Checking your account connection…');
+     try{const data=await fetchMember();startAccount(data);setupMemberChrome();msg('')}
+     catch(err){msg(err.message||'Account is still unavailable.',true)}
+     finally{retry.disabled=false}
+    };
     status.append(note,retry);
+    if(sb){
+     const signout=document.createElement('button');
+     signout.type='button';signout.className='v2-outline';
+     signout.textContent='Sign out and use another account';
+     signout.onclick=async()=>{
+      signout.disabled=true;
+      try{await sb.auth.signOut();location.assign('/account.html?mode=signin')}
+      catch(err){msg(err.message||'Sign-out could not be completed.',true);signout.disabled=false}
+     };
+     status.append(signout);
+    }
    }
   }
   if(page==='admin')show('#admin-locked',true);
