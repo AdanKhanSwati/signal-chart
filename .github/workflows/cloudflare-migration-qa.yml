@@ -23,6 +23,8 @@ jobs:
       - name: Syntax-check Worker and account tests
         run: |
           node --check cloudflare/worker.mjs
+          node --check cloudflare/research.mjs
+          node --check tests/cloudflare-research.test.js
           node --check tests/cloudflare-worker.test.js
       - name: Run all regression tests
         run: node --test tests/*.test.js
