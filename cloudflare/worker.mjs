@@ -290,8 +290,99 @@ async function getMember(request,env,fetchFn){
   billingAvailable:false,signalsAvailable:false
  }};
 }
+
+const SIGNAL_KEY=/^[a-zA-Z0-9][a-zA-Z0-9:_.-]{2,139}$/;
+function premiumConfigured(env){
+ // Deliberately disabled until old Blob entitlements have been reconciled.
+ return env.SC_PREMIUM_UNLOCK_ENABLED==='true';
+}
+async function premiumList(url,env,fetchFn){
+ if(!premiumConfigured(env))return reply({signals:[]});
+ const market=url.searchParams.get('market');
+ if(market!==null&&market!=='crypto'&&market!=='forex')
+  throw issue(400,'Invalid market');
+ const signals=await rest(fetchFn,secretConfig(env),'POST','rpc/sc_signal_public_list',{
+  p_market:market||null,p_limit:50
+ });
+ if(!Array.isArray(signals))throw issue(503,'Signal catalog is unavailable');
+ // Explicit response allowlist: no premium_data, entries, strategies, targets,
+ // stops, position sizing or provider-private fields in public GET.
+ const publicSignals=signals.filter(s=>
+  s&&typeof s.signalKey==='string'&&SIGNAL_KEY.test(s.signalKey)&&
+  ['crypto','forex'].includes(s.market)&&typeof s.asset==='string'&&
+  s.asset.length>0&&s.asset.length<=64)
+ .slice(0,50)
+ .map(s=>({signalKey:s.signalKey,market:s.market,asset:s.asset,
+  publishedAt:s.publishedAt||null}));
+ return reply({signals:publicSignals});
+}
+async function premiumUnlock(request,env,fetchFn){
+ if(!premiumConfigured(env))
+  throw issue(503,'Premium signals are disabled during migration');
+ if(!String(request.headers.get('Content-Type')||'').toLowerCase().startsWith('application/json'))
+  throw issue(415,'Expected JSON request');
+ const length=Number(request.headers.get('Content-Length')||0);
+ if(!Number.isFinite(length)||length<0||length>5000)
+  throw issue(413,'Premium request is too large');
+ const user=await verifyUser(request,fetchFn,env);
+ let body;
+ try{
+  const raw=await request.text();
+  if(raw.length>5000)throw Error('Request too large');
+  body=JSON.parse(raw);
+ }catch{throw issue(400,'Invalid premium request')}
+ const signalKey=body?.signalKey;
+ if(typeof signalKey!=='string'||!SIGNAL_KEY.test(signalKey))
+  throw issue(400,'Invalid premium signal reference');
+ const config=secretConfig(env);
+ // Payment and membership claims are never read from the browser.
+ // For paid members, SQL verifies an active, unrevoked verified grant;
+ // for trial members, sc_unlock_trial itself is transactional and prevents a
+ // fourth unique signal across concurrent devices while permitting reopen.
+ const paidUntil=await sqlPaid(fetchFn,config,user.uid);
+ let result;
+ if(paidUntil){
+  const detail=await rest(fetchFn,config,'POST','rpc/sc_signal_detail_server',{
+   p_signal_key:signalKey
+  });
+  result=detail?.found===true?
+   {allowed:true,reason:'membership',signal:detail.data,signalKey}:
+   {allowed:false,reason:'not_found'};
+ }else{
+  const claim=await rest(fetchFn,config,'POST','rpc/sc_unlock_trial',{
+   p_user:user.uid,p_signal_key:signalKey
+  });
+  if(!claim||typeof claim!=='object'||typeof claim.allowed!=='boolean')
+   throw issue(503,'Premium entitlement service is unavailable');
+  result={allowed:claim.allowed,reason:claim.reason||'denied',
+   signal:claim.allowed?claim.data:null,signalKey,
+   signalsUsed:claim.signalsUsed??null,
+   signalsRemaining:claim.signalsRemaining??null,
+   trialExhausted:claim.trialExhausted===true};
+ }
+ if(!result.allowed){
+  const reason=result.reason;
+  return reply({
+   error:reason==='trial_exhausted'?
+    'All 3 trial signals have been used. Upgrade to continue.':
+    reason==='phone_verification_required'?
+    'Verify your email and activate your free trial in Account.':
+    reason==='trial_expired'?'Trial expired. Upgrade to continue.':
+    reason==='not_found'?'Signal not found':
+    'Premium access requires an active membership.',
+   reason,signalsUsed:result.signalsUsed??null,
+   signalsRemaining:result.signalsRemaining??null
+  },reason==='not_found'?404:403);
+ }
+ if(result.signal===null||typeof result.signal!=='object'||
+    Array.isArray(result.signal))
+  throw issue(503,'Premium signal payload is unavailable');
+ // Private no-store reply. Never cache entitlement-bearing signal data.
+ return reply(result);
+}
+
 function safeError(error){
- const status=[400,401,403,404,405,409,413,428,429,503].includes(error?.status)?error.status:500;
+ const status=[400,401,403,404,405,409,413,415,428,429,503].includes(error?.status)?error.status:500;
  return reply({error:status===500?'The service is temporarily unavailable':error.message},status);
 }
 export function createWorker({fetchFn=globalThis.fetch}={}){
@@ -318,6 +409,14 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
      if(request.method==='POST'&&action==='activate_browser')
       return reply(await activateBrowser(request,env,fetchFn));
      throw issue(503,'This trial operation is unavailable during migration');
+    }
+    if(url.pathname==='/api/premium-signals'){
+     const action=url.searchParams.get('action');
+     if(request.method==='GET'&&action==='list')
+      return await premiumList(url,env,fetchFn);
+     if(request.method==='POST'&&action==='unlock')
+      return await premiumUnlock(request,env,fetchFn);
+     throw issue(405,'Unlock premium signals using an authenticated POST request');
     }
     if(url.pathname==='/api/member'){
      if(request.method!=='GET'||url.searchParams.get('action')!=='me')
