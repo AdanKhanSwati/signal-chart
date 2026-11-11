@@ -559,6 +559,42 @@ async function recoveryReviewNote(request,env,fetchFn){
   entitlementChanged:false,paymentApproved:false},200);
 }
 
+
+function readiness(env){
+ const auth=publicConfig(env);
+ const secret=String(env.SUPABASE_SECRET_KEY||'');
+ const legacy=String(env.SUPABASE_SERVICE_ROLE_KEY||'');
+ const privilegedConfigured=
+  /^sb_secret_[\w-]{20,}$/.test(secret)||/^eyJ[\w.-]{80,}$/.test(legacy);
+ // Readiness is deliberately not inferred from environment values or a green
+ // build. Historical payments, receipts, protected signals and signed-in
+ // browser QA need real independent verification before production cutover.
+ return reply({
+  status:'migration_incomplete',ready:false,productionReady:false,
+  runtime:'cloudflare_worker_staging',
+  checks:{
+   staticAssetsBindingPresent:typeof env.ASSETS?.fetch==='function',
+   publicSupabaseConfigPresent:auth.ready,
+   privateSupabaseCredentialPresent:privilegedConfigured,
+   browserTrialConfigured:browserTrialConfig(env).enabled,
+   premiumUnlockFlagEnabled:premiumConfigured(env),
+   historicalBlobReconciliationVerified:false,
+   adminBillingMigrationVerified:false,
+   signedInStagingBrowserQAVerified:false,
+   productionDnsCutoverApproved:false
+  },
+  blockedBy:[
+   'historical_blob_recovery',
+   'admin_billing_and_payment_history',
+   'real_signal_generation_and_live_provider_qa',
+   'cloudflare_staging_browser_end_to_end',
+   'final_production_approval'
+  ],
+  customerPaymentCollectionAvailable:false,
+  note:'This endpoint reports launch readiness, not HTTP liveness. An active DNS zone and green CI are insufficient to go live.'
+ },503);
+}
+
 function safeError(error){
  const status=[400,401,403,404,405,409,413,415,428,429,503].includes(error?.status)?error.status:500;
  return reply({error:status===500?'The service is temporarily unavailable':error.message},status);
@@ -574,9 +610,13 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
      return reply(apiConfig(env));
     }
+    if(url.pathname==='/api/ready'){
+     if(request.method!=='GET')throw issue(405,'Method not allowed');
+     return readiness(env);
+    }
     if(url.pathname==='/api/health'){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
-     return reply({ok:true,brand:'SignalChart',phase:'cloudflare-staging'});
+     return reply({ok:true,brand:'SignalChart',phase:'cloudflare-staging',productionReady:false});
     }
     if(url.pathname==='/api/trial'){
      const action=url.searchParams.get('action');
