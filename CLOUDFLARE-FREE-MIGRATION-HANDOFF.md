@@ -105,3 +105,5 @@ Success means verified users can securely log in on Cloudflare staging and see c
 - Calendar event coverage fails closed: FULL_WEEK requires both current sources; PARTIAL_US requires current BLS only; otherwise UNKNOWN, and assessment remains blocked. The UI receives its existing `events`, `news`, `providers` and `assessment` contract.
 - Paid historical backtesting is intentionally HTTP 503, not a misleading stub. No payments, signal publishing, entitlement grants or DNS changes.
 - Next: check CI for the commit that added this section, confirm live provider parsing and news links on a Cloudflare staging deployment, then address historical Blob reconciliation, billing/admin data, and remaining market APIs. No production readiness claim.
+
+- Additional conservative calendar safeguard: a Forex Factory feed with only historical weekly entries cannot certify FULL_WEEK coverage. It must include an upcoming event (within eight days), otherwise coverage remains partial/unknown. Added a dedicated regression test.

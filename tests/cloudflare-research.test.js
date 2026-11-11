@@ -134,3 +134,15 @@ test('Cloudflare Worker routes public research and rejects premium backtest with
  const backtest=await worker.fetch(req('backtest'),{});
  assert.equal(backtest.status,503);
 });
+
+test('expired weekly Forex Factory entries never certify FULL_WEEK coverage',async()=>{
+ const stale=JSON.stringify([{title:'Old rate release',country:'EUR',impact:'High',
+  date:'2026-11-06T12:00:00Z'}]);
+ const map=new Map(upstream);
+ map.set('https://nfs.faireconomy.media/ff_calendar_thisweek.json',stale);
+ const h=await handler({map});
+ const data=await (await h(req())).json();
+ assert.equal(data.coverage,'PARTIAL_US');
+ assert.equal(data.assessment.decision,'UNKNOWN');
+ assert.equal(data.providers.forex.status,'STALE_OR_EMPTY');
+});

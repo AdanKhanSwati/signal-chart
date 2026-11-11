@@ -173,7 +173,7 @@ export function createResearch({fetchFn=globalThis.fetch,now=Date.now}={}){
    const upcoming=items.filter(e=>Date.parse(e.scheduledAt)>=t-3*DAY&&
     Date.parse(e.scheduledAt)<=t+35*DAY);
    const current=input.id==='forex'
-    ?items.some(e=>Date.parse(e.scheduledAt)>=t-7*DAY&&Date.parse(e.scheduledAt)<=t+8*DAY)
+    ?items.some(e=>Date.parse(e.scheduledAt)>=t-2*HOUR&&Date.parse(e.scheduledAt)<=t+8*DAY)
     :upcoming.length>0;
    const status=failure?'UNAVAILABLE':current?'CURRENT':'STALE_OR_EMPTY';
    providers[input.id]={status,count:items.length,upcoming:upcoming.length,url:input.url};

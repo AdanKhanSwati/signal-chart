@@ -17,9 +17,11 @@ signalchart.pro DNS zone until the complete launch checks have passed.
   - `GET /api/markets` and `GET /api/candles?action=markets` (public forex/crypto discovery, bounded public Binance query and fallback)
   - `GET /api/candles?market=crypto&symbol=BTCUSDT&interval=15m` (public Binance futures OHLC)
   - `GET /api/candles?market=forex&symbol=EURUSD&interval=15m` (Yahoo indicative FX candles; never assert these are broker-executable).
-- All OTHER `/api/` routes fail closed with HTTP 503. Payment collection,
-  administrative payment decisions, live signal publishing, premium unlock,
-  billing reviews and existing support operations have **not** been ported.
+  - `GET /api/research?mode=health|news|calendar` (source-attributed, bounded, fail-closed public economic research; paid backtests remain unavailable).
+- Unported `/api/` routes fail closed with HTTP 503. Payment collection,
+  administrative payment decisions, live signal publishing and historical
+  paid backtests have **not** been ported. Premium unlock exists behind a
+  default-off reconciliation flag; private customer support has been ported.
 
 ## Safe checks (no Cloudflare account required)
 
@@ -62,9 +64,9 @@ without deploying anywhere. The migration branch MUST NOT trigger Vercel.
 1. Historical private Vercel Blob store `candriva-private-accounts` remains suspended.
    Recover/reconcile existing entitlements, manual payment requests and receipts
    without granting unwarranted premium or repeating old free trials.
-2. Premium signal preview/unlock, admin, billing, support and automation APIs
-   are not yet ported. Never claim production readiness based on public charts
-   alone.
+2. Admin billing/review, receipt migration, historical premium reconciliation,
+   automated research and paid backtesting are not yet ported or validated.
+   Existing support and gated premium unlock do not establish production readiness.
 3. Perform a browser-based signed-in E2E smoke test on the Cloudflare staging
    URL, including trial action, 3 unique unlocks, expired trial, failed
    payment path, admin restrictions, signup email and mobile layout.
