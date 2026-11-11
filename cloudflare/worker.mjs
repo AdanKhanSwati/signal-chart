@@ -381,6 +381,97 @@ async function premiumUnlock(request,env,fetchFn){
  return reply(result);
 }
 
+
+const SUPPORT_CATEGORIES=new Set(['general','billing','technical','complaint']);
+async function memberTickets(fetchFn,config,uid){
+ const query='sc_support_tickets?user_id=eq.'+encodeURIComponent(uid)+
+  '&select=id,user_id,subject,category,status,updated_at&order=updated_at.desc&limit=50';
+ const rows=await rest(fetchFn,config,'GET',query);
+ if(!Array.isArray(rows))throw issue(503,'Support inbox is unavailable');
+ return rows.map(row=>{
+  if(row?.user_id!==uid||!UUID.test(row.id))throw issue(503,'Support inbox identity mismatch');
+  return {ticketId:row.id,uid:row.user_id,subject:row.subject,
+   category:row.category,status:row.status,lastAt:row.updated_at};
+ });
+}
+function supportAdmin(user,env){
+ const target=String(env.SC_SUPER_ADMIN_UID||'').toLowerCase();
+ return UUID.test(target)&&target===user.uid;
+}
+async function supportTicket(fetchFn,config,ticketId,user,env){
+ if(!UUID.test(ticketId||''))throw issue(400,'Invalid support conversation reference');
+ const query='sc_support_tickets?id=eq.'+encodeURIComponent(ticketId)+
+  '&select=id,user_id,subject,category,status,updated_at&limit=1';
+ const rows=await rest(fetchFn,config,'GET',query);
+ if(!Array.isArray(rows))throw issue(503,'Support conversation unavailable');
+ const row=rows[0];
+ // Other users' ticket existence is never disclosed.
+ if(!row||row.id!==ticketId)return null;
+ if(row.user_id!==user.uid&&!supportAdmin(user,env))return null;
+ return {ticketId:row.id,uid:row.user_id,subject:row.subject,
+  category:row.category,status:row.status,lastAt:row.updated_at};
+}
+async function supportMessages(fetchFn,config,ticket){
+ const query='sc_support_messages?ticket_id=eq.'+encodeURIComponent(ticket.ticketId)+
+  '&select=ticket_id,sender_type,message,created_at&order=created_at.asc&limit=200';
+ const rows=await rest(fetchFn,config,'GET',query);
+ if(!Array.isArray(rows))throw issue(503,'Support messages unavailable');
+ return rows.map(row=>{
+  if(row?.ticket_id!==ticket.ticketId)throw issue(503,'Support message identity mismatch');
+  return {from:row.sender_type==='admin'?'admin':'customer',
+   text:row.message,at:row.created_at};
+ });
+}
+async function supportRequest(request,action,env,fetchFn,url){
+ const user=await verifyUser(request,fetchFn,env);
+ const config=secretConfig(env);
+ if(request.method==='GET'&&action==='messages'){
+  const ticket=await supportTicket(fetchFn,config,url.searchParams.get('ticketId'),user,env);
+  if(!ticket)throw issue(404,'Support conversation not found');
+  return reply({ticket,messages:await supportMessages(fetchFn,config,ticket)});
+ }
+ if(request.method!=='POST'||!['new_ticket','reply','close_ticket'].includes(action))
+  throw issue(503,'This support operation is unavailable');
+ const length=Number(request.headers.get('Content-Length')||0);
+ if(!Number.isFinite(length)||length<0||length>5000)throw issue(413,'Support request is too large');
+ if(!String(request.headers.get('Content-Type')||'').toLowerCase().startsWith('application/json'))
+  throw issue(415,'Expected JSON request');
+ let body;
+ try{const text=await request.text();if(text.length>5000)throw Error('large');body=JSON.parse(text)}
+ catch{throw issue(400,'Invalid support request')}
+ if(action==='new_ticket'){
+  const subject=body?.subject,category=body?.category,message=body?.message;
+  if(typeof subject!=='string'||subject.trim().length<4||subject.trim().length>140||
+     !SUPPORT_CATEGORIES.has(category)||typeof message!=='string'||
+     message.trim().length<1||message.trim().length>2000)
+   throw issue(400,'Invalid support ticket details');
+  const outcome=await rest(fetchFn,config,'POST','rpc/sc_support_create',{
+   p_actor:user.uid,p_subject:subject.trim(),p_category:category,p_message:message.trim()
+  });
+  if(!UUID.test(outcome?.ticketId||''))throw issue(503,'Support ticket could not be confirmed');
+  return reply({ticketId:outcome.ticketId,status:'open'},201);
+ }
+ const ticketId=body?.ticketId;
+ const ticket=await supportTicket(fetchFn,config,ticketId,user,env);
+ if(!ticket)throw issue(404,'Support conversation not found');
+ const admin=supportAdmin(user,env);
+ const params={p_actor:user.uid,p_ticket:ticketId,p_admin:admin};
+ if(action==='reply'){
+  const message=body?.message;
+  if(typeof message!=='string'||!message.trim()||message.trim().length>2000)
+   throw issue(400,'Invalid support reply');
+  params.p_message=message.trim();
+ }
+ const procedure=action==='reply'?'sc_support_reply':'sc_support_close';
+ const outcome=await rest(fetchFn,config,'POST','rpc/'+procedure,params);
+ if(outcome?.status==='forbidden')throw issue(403,'You cannot access this conversation');
+ if(outcome?.status==='not_found')throw issue(404,'Support conversation not found');
+ if(outcome?.status==='rate_limited')throw issue(429,'Support messages are temporarily rate-limited');
+ if(outcome?.status==='closed'&&action==='reply')throw issue(409,'This conversation is closed');
+ if(!['sent','closed'].includes(outcome?.status))throw issue(503,'Support operation was not confirmed');
+ return reply({ticketId,status:outcome.status});
+}
+
 function safeError(error){
  const status=[400,401,403,404,405,409,413,415,428,429,503].includes(error?.status)?error.status:500;
  return reply({error:status===500?'The service is temporarily unavailable':error.message},status);
@@ -419,17 +510,19 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
      throw issue(405,'Unlock premium signals using an authenticated POST request');
     }
     if(url.pathname==='/api/cv-ops'){
-     if(request.method==='GET'&&url.searchParams.get('action')==='me'){
+     const action=url.searchParams.get('action');
+     if(request.method==='GET'&&action==='me'){
       const member=await getMember(request,env,fetchFn);
-      // Only a read-only snapshot of verified membership is available until
-      // legacy Blob billing and invoice records can be reconciled. Never
-      // return a payable wallet address or a fabricated payment history.
+      const tickets=await memberTickets(fetchFn,secretConfig(env),member.account.uid);
+      // Payment collection and historical ledger reads remain unavailable.
       return reply({account:member.account,
        checkout:{enabled:false,priceUSD:20,btcMonthly:null,network:'BTC mainnet',
         wallet:null},
-       payments:[],tickets:[],migration:member.migration});
+       payments:[],tickets,migration:member.migration});
      }
-     throw issue(503,'Billing, payment review and support operations are temporarily unavailable');
+     if(['messages','new_ticket','reply','close_ticket'].includes(action))
+      return await supportRequest(request,action,env,fetchFn,url);
+     throw issue(503,'Billing and administrative payment operations are temporarily unavailable');
     }
     if(url.pathname==='/api/member'){
      if(request.method!=='GET'||url.searchParams.get('action')!=='me')
