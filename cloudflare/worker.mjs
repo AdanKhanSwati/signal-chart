@@ -127,14 +127,133 @@ function trialAllows(state){
  if(state.trialStatus==='exhausted')return state.signalsUsed===3;
  return false;
 }
+
+/** Free-tier browser trial registration; disabled until ALL secrets and cutoff
+ * are configured. Records are granted only by the pre-existing transactional
+ * Supabase RPC. Browser/IP hints never grant membership by themselves. */
+const COOKIE_NAME='__Host-sc_trial_device';
+const COOKIE_TOKEN=/^[A-Za-z0-9_-]{43}$/;
+const HEX=/^[0-9a-f]{64}$/;
+function browserTrialConfig(env){
+ const enabled=env.SC_EMAIL_DEVICE_TRIAL_ENABLED==='true'&&
+  typeof env.SC_TRIAL_HMAC_SECRET==='string'&&env.SC_TRIAL_HMAC_SECRET.length>=32&&
+  typeof env.SC_TURNSTILE_SITE_KEY==='string'&&env.SC_TURNSTILE_SITE_KEY.length>5&&
+  typeof env.SC_TURNSTILE_SECRET_KEY==='string'&&env.SC_TURNSTILE_SECRET_KEY.length>=20&&
+  Number.isFinite(Date.parse(String(env.SC_TRIAL_ROLLOUT_AT||'')))&&
+  !!(env.SUPABASE_SECRET_KEY||env.SUPABASE_SERVICE_ROLE_KEY)&&
+  publicConfig(env).ready;
+ return {enabled,siteKey:enabled?env.SC_TURNSTILE_SITE_KEY:null};
+}
+function urlSafe(bytes){
+ return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function rawBytes(base64url){
+ if(!COOKIE_TOKEN.test(base64url||''))return null;
+ try{
+  const arr=Uint8Array.from(atob(base64url.replace(/-/g,'+').replace(/_/g,'/')+'='),x=>x.charCodeAt(0));
+  return arr.length===32?arr:null;
+ }catch{return null}
+}
+async function browserKey(env){
+ const secret=String(env.SC_TRIAL_HMAC_SECRET||'');
+ if(secret.length<32)throw issue(503,'Browser trial signing is not configured');
+ return crypto.subtle.importKey('raw',new TextEncoder().encode(secret),
+  {name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+}
+async function hmac(key,value){
+ const bytes=new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(value)));
+ return bytes;
+}
+async function browserCookie(request,env){
+ const line=request.headers.get('Cookie')||'';
+ const part=line.split(';').map(x=>x.trim()).find(x=>x.startsWith(COOKIE_NAME+'='));
+ if(!part)return null;
+ const [id,signature,...extra]=part.slice(COOKIE_NAME.length+1).split('.');
+ if(extra.length||!COOKIE_TOKEN.test(id||'')||!COOKIE_TOKEN.test(signature||''))return null;
+ const mac=rawBytes(signature);
+ if(!mac)return null;
+ const key=await browserKey(env);
+ const valid=await crypto.subtle.verify('HMAC',key,mac,new TextEncoder().encode('sc-v1-browser:'+id));
+ return valid?id:null;
+}
+async function browserDeviceStart(request,env,fetchFn){
+ if(!browserTrialConfig(env).enabled)throw issue(503,'Secure browser trial activation is not configured');
+ await verifyUser(request,fetchFn,env);
+ let id=await browserCookie(request,env),fresh=false;
+ if(!id){id=urlSafe(crypto.getRandomValues(new Uint8Array(32)));fresh=true}
+ const key=await browserKey(env);
+ const signature=urlSafe(await hmac(key,'sc-v1-browser:'+id));
+ const response=reply({ready:true,newCookie:fresh,
+  message:'Secure browser recognition is ready; shared networks do not automatically block a trial.'});
+ if(fresh)response.headers.set('Set-Cookie',COOKIE_NAME+'='+id+'.'+signature+
+  '; Path=/; Max-Age=31536000; Secure; HttpOnly; SameSite=Lax');
+ return response;
+}
+async function confirmTurnstile(fetchFn,request,env,token){
+ if(typeof token!=='string'||token.length<12||token.length>2048)
+  throw issue(400,'Complete the anti-bot challenge');
+ const expectedHost=new URL(request.url).hostname.toLowerCase();
+ const params=new URLSearchParams({secret:env.SC_TURNSTILE_SECRET_KEY,response:token});
+ let response;
+ try{
+  response=await fetchFn('https://challenges.cloudflare.com/turnstile/v0/siteverify',{
+   method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+   body:params.toString(),signal:AbortSignal.timeout(8000),cache:'no-store'
+  });
+ }catch{throw issue(503,'Anti-bot verification is unavailable')}
+ if(!response.ok)throw issue(503,'Anti-bot verification is unavailable');
+ let result;try{result=await response.json()}catch{throw issue(503,'Anti-bot verification is unavailable')}
+ if(result?.success!==true||result.action!=='trial_activate'||
+    String(result.hostname||'').toLowerCase()!==expectedHost)
+  throw issue(403,'Anti-bot verification failed');
+}
+async function activateBrowser(request,env,fetchFn){
+ if(!browserTrialConfig(env).enabled)throw issue(503,'Secure browser trial activation is not configured');
+ const person=await verifyUser(request,fetchFn,env);
+ const config=secretConfig(env);
+ const current=await trialState(fetchFn,config,person.uid);
+ if(current.trialStatus!=='not_activated')
+  return {status:'existing_trial',trial:current};
+ // The previously deployed Vercel Blob record store is suspended, therefore
+ // an account created before the original trial rollout cannot be cleared here.
+ // Existing accounts require independent manual historical eligibility review.
+ const authData=await remote(fetchFn,publicConfig(env).url+'/auth/v1/user',{
+  method:'GET',headers:{apikey:publicConfig(env).key,
+   Authorization:request.headers.get('Authorization')},role:'auth'
+ },'Authentication service temporarily unavailable');
+ const created=Date.parse(String(authData.created_at||''));
+ const cutoff=Date.parse(String(env.SC_TRIAL_ROLLOUT_AT||''));
+ if(!Number.isFinite(created)||!Number.isFinite(cutoff))
+  throw issue(503,'Historical trial eligibility is unavailable');
+ if(created<cutoff)throw issue(409,'Existing accounts need a historical trial eligibility review');
+ const id=await browserCookie(request,env);
+ if(!id)throw issue(428,'Initialize secure browser recognition and keep cookies enabled');
+ let body;
+ const len=Number(request.headers.get('content-length')||0);
+ if(!Number.isFinite(len)||len>5000)throw issue(413,'Trial activation request is too large');
+ try{body=await request.text();if(body.length>5000)throw Error('too large');body=JSON.parse(body)}
+ catch{throw issue(400,'Invalid trial activation request')}
+ await confirmTurnstile(fetchFn,request,env,body.turnstileToken);
+ const key=await browserKey(env);
+ const fingerprint=async value=>Array.from(await hmac(key,value),v=>v.toString(16).padStart(2,'0')).join('');
+ const ip=String(request.headers.get('CF-Connecting-IP')||'').slice(0,70);
+ const result=await rest(fetchFn,config,'POST','rpc/sc_activate_browser_trial',{
+  p_user:person.uid,
+  p_device_hash:await fingerprint('browser-cookie:'+id),
+  p_network_hash:ip?await fingerprint('net:'+ip):null
+ });
+ if(!result||typeof result.result!=='string')throw issue(503,'Trial activation response invalid');
+ return {status:result.result,trial:result.trial||null,message:result.message||null};
+}
+
 function apiConfig(env){
- const config=publicConfig(env);
+ const config=publicConfig(env),trialCfg=browserTrialConfig(env);
  return {
   brand:'SignalChart',authProvider:'supabase',authReady:config.ready,
   supabaseUrl:config.url,supabaseAnonKey:config.key,
   trialHours:72,trialSignalLimit:3,requiresVerifiedPhone:false,
   requiresVerifiedEmail:true,trialVerificationMethod:'verified_email_browser',
-  emailDeviceTrialEnabled:false,turnstileSiteKey:null,
+  emailDeviceTrialEnabled:trialCfg.enabled,turnstileSiteKey:trialCfg.siteKey,
   phoneVerificationChannel:'disabled',phoneVerificationEnabled:false,
   renewalDays:30,monthlyUSD:20,priceCurrency:'USD',
   walletNetwork:'BTC mainnet',
@@ -188,11 +307,16 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
      return reply({ok:true,brand:'SignalChart',phase:'cloudflare-staging'});
     }
     if(url.pathname==='/api/trial'){
-     if(request.method!=='GET'||url.searchParams.get('action')!=='state')
-      throw issue(503,'Trial activation is unavailable during migration');
-     const user=await verifyUser(request,fetchFn,env);
-     const state=await trialState(fetchFn,secretConfig(env),user.uid);
-     return reply(state);
+     const action=url.searchParams.get('action');
+     if(request.method==='GET'&&action==='state'){
+      const user=await verifyUser(request,fetchFn,env);
+      return reply(await trialState(fetchFn,secretConfig(env),user.uid));
+     }
+     if(request.method==='GET'&&action==='device')
+      return browserDeviceStart(request,env,fetchFn);
+     if(request.method==='POST'&&action==='activate_browser')
+      return reply(await activateBrowser(request,env,fetchFn));
+     throw issue(503,'This trial operation is unavailable during migration');
     }
     if(url.pathname==='/api/member'){
      if(request.method!=='GET'||url.searchParams.get('action')!=='me')
