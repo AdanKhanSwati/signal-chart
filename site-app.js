@@ -67,6 +67,7 @@ async function loadBilling(){
  if(c.enabled&&c.wallet!==WALLET)throw Error('Receiving wallet mismatch. Payment submissions are disabled.');
  const walletSection=$('#cand-wallet')?.closest('section');
  if(walletSection)walletSection.hidden=!c.enabled;
+ txt('#cand-wallet',c.enabled?c.wallet:'—');
  const copy=$('#cand-copy');if(copy)copy.disabled=!c.enabled;
  show('#billing-main',true);
  txt('#cand-email',u.email);txt('#cand-plan',u.status==='administrator'?'Administrator':u.status==='active'?'Active subscription':u.status==='granted'?'Complimentary access':u.status==='trial'?'Free trial':'Expired / renew to unlock');
