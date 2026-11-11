@@ -1,0 +1,87 @@
+/* SignalChart approved charcoal/orange terminal palette — scoped to Markets.
+ * Preserves the original wordmark, icons, layout and accessible chart controls.
+ * No green-tinted trading UI; chart candle up/down colors still convey direction.
+ */
+body.cx-market-page{
+ --cx-text:#f4f1f3;--cx-muted:#a7a6b2;--cx-font:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+ background:radial-gradient(ellipse 65% 35% at 92% 5%,rgba(243,113,49,.09),transparent 75%),#0e1018!important;
+ color:#f4f1f3!important;
+}
+body.cx-market-page .mc-container{color:#f4f1f3}
+body.cx-market-page :is(.mc-instruments,.mc-chart-panel,.mc-insights-panel,.mc-next-panel,.mc-market-overview){
+ background:linear-gradient(140deg,rgba(31,32,43,.87),rgba(17,19,27,.93) 77%)!important;
+ border:1px solid rgba(206,184,181,.19)!important;
+ border-radius:15px!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 12px 34px rgba(0,0,0,.13);
+}
+body.cx-market-page :is(.mc-panel-heading,.mc-chart-title,.mc-chart-toolbar,.mc-chart-foot,.mc-watch-bottom){
+ border-color:rgba(221,186,171,.14)!important;
+}
+body.cx-market-page .mc-panel-heading strong{color:#f3f0f2}
+body.cx-market-page :is(.mc-panel-heading small,.mc-watch-left small,.mc-chart-pair p,.mc-chart-quote span,.mc-chart-foot,.mc-insights-grid span,.mc-market-overview .mc-panel-heading>span){color:#a6a5b0}
+body.cx-market-page :is(.mc-heading-mark,.mc-watch-group,.mc-table th){color:#ffa46f}
+body.cx-market-page .mc-watch-search{background:rgba(10,12,20,.8)!important;border-color:rgba(208,193,193,.22)!important;border-radius:10px}
+body.cx-market-page .mc-watch-search svg{stroke:#ff985a}
+body.cx-market-page .mc-watch-search input{color:#f7f1f0}
+body.cx-market-page .mc-watch-search input::placeholder{color:#858693}
+body.cx-market-page .mc-watch-tabs{background:#11141f!important;border-color:rgba(223,189,176,.17)!important;border-radius:10px}
+body.cx-market-page .mc-watch-tabs button{color:#aaaab5;border-radius:8px}
+body.cx-market-page .mc-watch-tabs button.active{background:rgba(255,129,66,.2)!important;color:#ffc39d!important;box-shadow:inset 0 0 0 1px rgba(255,145,77,.21)}
+body.cx-market-page .mc-watch-row{color:#f3f1f3;border-radius:10px}
+body.cx-market-page .mc-watch-row:hover{background:rgba(255,139,68,.09)!important}
+body.cx-market-page .mc-watch-row.active{background:rgba(255,131,63,.16)!important;border-color:rgba(255,156,92,.48)!important}
+body.cx-market-page .mc-watch-row.active .mc-watch-right small{color:#ffbb87}
+body.cx-market-page .mc-watch-right small{color:#a2abb0}
+body.cx-market-page .mc-watch-more{
+ display:flex;align-items:center;justify-content:center;flex:1 0 100%;
+ min-height:36px;margin:5px 4px 9px;padding:9px 12px;
+ background:rgba(255,136,67,.09);border:1px dashed rgba(255,155,91,.46);
+ border-radius:9px;color:#ffc39d;font:700 11px inherit;cursor:pointer;
+}
+body.cx-market-page .mc-watch-more:hover{background:rgba(255,136,67,.19)}
+body.cx-market-page .mc-watch-bottom{color:#b3b0b7}
+body.cx-market-page .mc-watch-bottom a{color:#ffb77d}
+body.cx-market-page .mc-signal-shortcut{background:rgba(255,137,75,.11)!important;border-color:rgba(255,137,75,.35)!important;color:#ffd3b1!important}
+body.cx-market-page .mc-signal-shortcut:hover{background:rgba(255,137,75,.2)!important}
+body.cx-market-page .mc-signal-shortcut svg{stroke:#ffa269}
+body.cx-market-page .mc-pair-icon{background:rgba(255,152,79,.09)!important;color:#ffb277}
+body.cx-market-page .mc-pair-icon.fx{background:rgba(255,152,79,.09)!important}
+body.cx-market-page .mc-pair-market{background:rgba(255,135,64,.15)!important;border-color:rgba(255,153,94,.34)!important;color:#ffc49b}
+body.cx-market-page .mc-chart-quote strong{color:#f7f2f5}
+body.cx-market-page .mc-intervals button{color:#a6a5b0}
+body.cx-market-page .mc-intervals button:hover{color:#fff}
+body.cx-market-page .mc-intervals button.active{background:rgba(255,135,67,.18)!important;color:#ffd2af!important}
+body.cx-market-page .mc-chart-toggle{background:#222632!important;border-color:#41414a!important;color:#dfdce2}
+body.cx-market-page .mc-chart-toggle.active{background:rgba(251,133,62,.13)!important;border-color:rgba(252,151,87,.32)!important;color:#ffcaa7}
+body.cx-market-page .mc-refresh{background:#1a1e2a!important;border-color:#45414b!important;color:#f3c5a7}
+body.cx-market-page .mc-refresh:hover{background:#292632!important}
+body.cx-market-page .mc-chart-area{background:#11141d!important}
+body.cx-market-page .mc-chart-loading{background:rgba(17,20,29,.97)!important;color:#b8b5c1}
+body.cx-market-page .mc-chart-legend i{background:#ff9b59}
+body.cx-market-page .mc-chart-legend span:nth-child(2) i{background:#a99fd3}
+body.cx-market-page .mc-chart-legend span:nth-child(3) i{background:#585b70}
+body.cx-market-page .mc-insights-grid>div{border-color:rgba(221,186,171,.13)!important}
+body.cx-market-page .mc-next-panel{background:linear-gradient(130deg,rgba(255,136,67,.11),rgba(23,24,35,.93))!important}
+body.cx-market-page .mc-next-panel p{color:#bcb3b6}
+body.cx-market-page .mc-next-panel a{border-color:rgba(255,151,86,.35)!important;background:rgba(255,145,70,.14)!important;color:#ffca9b!important}
+body.cx-market-page .mc-next-panel a:hover{background:rgba(255,145,70,.25)!important}
+body.cx-market-page .mc-table th{background:#171922!important;border-color:#35333d!important}
+body.cx-market-page .mc-table td{border-color:#302e37!important;color:#dad4dd}
+body.cx-market-page .mc-table tr:hover{background:rgba(255,154,88,.07)!important}
+body.cx-market-page .mc-table .mc-table-pair{color:#f9f2f1}
+body.cx-market-page .mc-table button{background:rgba(255,137,70,.13)!important;border-color:rgba(255,153,90,.36)!important;color:#ffbc89}
+body.cx-market-page :is(.mc-chart-panel,.mc-instruments) :is(button,input):focus-visible{
+ outline:2px solid #ffab78;outline-offset:2px;
+}
+@media(max-width:800px){
+ body.cx-market-page .mc-watch-row{background:#1a1b25!important;border-color:#37313b!important}
+ body.cx-market-page .mc-watch-row.active{border-color:rgba(255,153,91,.52)!important}
+ body.cx-market-page .mc-watch-more{flex:0 0 auto;min-width:130px}
+}
+@media(max-width:600px){
+ body.cx-market-page .mc-chart-toolbar{flex-wrap:wrap;justify-content:space-between;height:auto!important;min-height:45px}
+ body.cx-market-page .mc-intervals{max-width:100%;flex:1 1 180px}
+ body.cx-market-page .mc-chart-tools{flex:0 0 auto}
+ body.cx-market-page .mc-chart-loading{padding:16px}
+ body.cx-market-page .mc-chart-title{min-height:65px;height:auto}
+}
