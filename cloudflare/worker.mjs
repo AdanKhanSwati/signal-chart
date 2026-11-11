@@ -473,6 +473,57 @@ async function supportRequest(request,action,env,fetchFn,url){
  return reply({ticketId,status:outcome.status});
 }
 
+
+/**
+ * Internal, read-only recovery progress. This has NO authority to activate
+ * memberships, approve payments, clear legacy holds, or alter trial credits.
+ * It never returns Blob paths, email addresses, source bodies, or identity hints.
+ */
+async function recoveryStatus(request,env,fetchFn){
+ const user=await verifyUser(request,fetchFn,env);
+ const adminUid=String(env.SC_SUPER_ADMIN_UID||'').toLowerCase();
+ if(!UUID.test(adminUid))throw issue(503,'Recovery administrator is not configured');
+ if(!supportAdmin(user,env))throw issue(403,'Administrator permission required');
+ const config=secretConfig(env);
+ const rows=await rest(fetchFn,config,'GET',
+  'sc_legacy_recovery_items?select=id,item_kind,retrieval_status,review_status,content_sha256&limit=1001');
+ if(!Array.isArray(rows)||rows.length>1000)
+  throw issue(503,'Recovery inventory cannot be verified completely');
+ const totals={
+  inventoryCount:0,
+  verifiedReadCount:0,
+  inaccessibleCount:0,
+  awaitingReviewCount:0,
+  manuallyReconciledCount:0,
+  categories:{member:0,payment:0,review:0,grant:0,audit:0,signal:0,unknown:0}
+ };
+ const kinds=new Set(Object.keys(totals.categories));
+ for(const row of rows){
+  if(!UUID.test(row?.id)||!kinds.has(row?.item_kind)||
+     !['inventory_only','verified_read','not_accessible'].includes(row?.retrieval_status)||
+     !['pending','needs_manual_review','reconciled'].includes(row?.review_status))
+   throw issue(503,'Recovery inventory contains invalid records');
+  if(row.review_status==='reconciled'&&
+     (row.retrieval_status!=='verified_read'||!(/^[a-f0-9]{64}$/.test(row.content_sha256||''))))
+   throw issue(503,'Recovered evidence has not been verified');
+  totals.inventoryCount++;
+  totals.categories[row.item_kind]++;
+  if(row.retrieval_status==='verified_read')totals.verifiedReadCount++;
+  if(row.retrieval_status==='not_accessible')totals.inaccessibleCount++;
+  if(row.review_status==='reconciled')totals.manuallyReconciledCount++;
+  else totals.awaitingReviewCount++;
+ }
+ return reply({
+  source:'vercel_blob',
+  status:rows.length===0?'inventory_not_imported':
+    totals.awaitingReviewCount>0?'reconciliation_pending':'review_complete',
+  ...totals,
+  entitlementChangesMade:false,
+  paymentsEnabled:false,
+  note:'Recovery records are quarantined evidence; they never authorize access or payments.'
+ });
+}
+
 function safeError(error){
  const status=[400,401,403,404,405,409,413,415,428,429,503].includes(error?.status)?error.status:500;
  return reply({error:status===500?'The service is temporarily unavailable':error.message},status);
@@ -511,6 +562,11 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
      if(request.method==='POST'&&action==='unlock')
       return await premiumUnlock(request,env,fetchFn);
      throw issue(405,'Unlock premium signals using an authenticated POST request');
+    }
+    if(url.pathname==='/api/recovery'){
+     if(request.method!=='GET'||url.searchParams.get('action')!=='status')
+      throw issue(405,'Recovery inventory is read-only');
+     return await recoveryStatus(request,env,fetchFn);
     }
     if(url.pathname==='/api/cv-ops'){
      const action=url.searchParams.get('action');
