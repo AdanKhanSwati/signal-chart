@@ -73,9 +73,10 @@ function renderQuote(){
  const link=$('mc-next-link');link.href=p.type==='crypto'?'/crypto.html':'/forex.html';link.firstChild?.nodeType;
  link.textContent='View '+(p.type==='crypto'?'Crypto':'Forex')+' Signals ↗';
 }
-async function loadQuotes(){
- const results=await Promise.allSettled(['crypto','forex'].map(m=>fetch('/api/quotes?market='+m+(m==='crypto'?'&all=1':''),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Quotes unavailable');return r.json()})));
- for(const r of results){if(r.status!=='fulfilled')continue;for(const [s,v]of Object.entries(r.value.quotes||{})){if(lookup[s]&&valid(v.price)&&n(v.price)>0)state.quotes[s]=v}}
+function loadQuotes(){
+ // During Cloudflare migration /api/quotes is unported (HTTP 503). Use
+ // authenticated exchange kline ticks and real OHLC closes, not a polling
+ // loop that performs two guaranteed-failing requests every 30 seconds.
  renderWatch();renderTable();renderQuote();
 }
 function ema(bars,period){const k=2/(period+1);let value=bars[0]?.close||0;return bars.map((b,i)=>{value=i===0?b.close:k*b.close+(1-k)*value;return{time:b.time,value}})}
@@ -146,7 +147,11 @@ async function loadCandles(){
   if(unique.length<12)throw Error('Insufficient candle history for this period');
   const key=symbol+'|'+interval,same=state.chartKey===key&&(state.chart||state.chartEngine);
   const range=state.chart?.timeScale?.().getVisibleLogicalRange?.()||null,follow=range?range.to>=state.bars.length-7:true;
-  state.bars=unique;state.candleSource={symbol,source:data.source,instrument:data.instrument||null};showIndicators();renderQuote();
+  state.bars=unique;state.candleSource={symbol,source:data.source,instrument:data.instrument||null};
+   const latest=unique.at(-1),latestAt=new Date(latest.time*1000).toISOString();
+   state.quotes[symbol]={price:latest.close,asof:latestAt,source:data.source,
+    stale:!!data.historicalOnly||Date.now()-latest.time*1000>180000};
+   showIndicators();renderQuote();
   if(same&&state.chart&&state.candleSeries){
    state.candleSeries.setData(unique.map(({time,open,high,low,close})=>({time,open,high,low,close})));
    state.volumeSeries?.setData(unique.map(b=>({time:b.time,value:b.volume||0,color:b.close>=b.open?'#2d6845':'#784246'})));
@@ -167,7 +172,7 @@ async function loadCandles(){
 }
 function select(s){
  if(!lookup[s])return;
- state.symbol=s;state.candleSource=null;const p=lookup[s];window.SignalChartFeed?.select(s,state.interval);if(p.type==='forex')fetch('/api/quotes?market=forex&symbol='+s,{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{if(d?.quotes?.[s]){state.quotes[s]=d.quotes[s];if(state.symbol===s)renderQuote()}}).catch(()=>{});
+ state.symbol=s;state.candleSource=null;const p=lookup[s];window.SignalChartFeed?.select(s,state.interval);
  const url=new URL(location.href);url.searchParams.set('pair',s);history.replaceState({},'',url);
  renderWatch();renderQuote();loadCandles();
 }
@@ -221,11 +226,12 @@ let tickRender=0,barRender=0;
 window.addEventListener('signalchart:tick',e=>{
  for(const [symbol,q]of Object.entries(e.detail?.updates||{}))if(lookup[symbol])state.quotes[symbol]=q;
  if((e.detail?.updates||{})[state.symbol])renderQuote();
- if(Date.now()-tickRender>1800){tickRender=Date.now();renderWatch();renderTable()}
+ if(Date.now()-tickRender>9000&&!document.hidden){tickRender=Date.now();renderWatch()}
 });
 window.addEventListener('signalchart:kline',e=>{
  const {symbol,interval,candle,eventTime}=e.detail||{};
- if(symbol!==state.symbol||interval!==state.interval||!candle||!state.bars.length)return;
+ if(symbol!==state.symbol||interval!==state.interval||!candle||!state.bars.length||
+    state.candleSource?.instrument!=='perpetual')return;
  const last=state.bars.at(-1);
  if(candle.time===last.time)state.bars[state.bars.length-1]=candle;
  else if(candle.time>last.time){state.bars.push(candle);if(state.bars.length>240)state.bars.shift()}
@@ -239,6 +245,8 @@ window.addEventListener('signalchart:kline',e=>{
 });
 
 bind();select(state.symbol);expandCatalog();loadQuotes();
-setInterval(()=>{if(!document.hidden)loadQuotes()},30000);
-setInterval(()=>{if(!document.hidden&&(lookup[state.symbol].type==='forex'||!window.SignalChartFeed?.state.connected))loadCandles()},35000);
+// Do not continually re-request expired FX/provider errors or repaint an
+// 80-row table; true history is refreshed only when visible and selected.
+setInterval(()=>{if(!document.hidden&&state.bars.length&&
+ (lookup[state.symbol].type==='forex'||!window.SignalChartFeed?.state.connected))loadCandles()},180000);
 })();
