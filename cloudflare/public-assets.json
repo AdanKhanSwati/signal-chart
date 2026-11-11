@@ -69,6 +69,7 @@
     "signalchart-shell.js",
     "signalchart-wordmark.svg",
     "signalchart-terminal-brand.css",
+    "signalchart-terminal-responsive.css",
     "signalchart.css",
     "signalchart.js",
     "signals.html",
