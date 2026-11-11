@@ -43,7 +43,7 @@ test('market catalog uses a usable crypto fallback when the exchange is unreacha
  let calls=0;
  const response=await listMarkets({now:()=>600200,fetchFn:async()=>{calls++;throw Error('Exchange unavailable')}});
  const data=await response.json();
- assert.equal(calls,1);
+ assert.equal(calls,2,'Futures and Spot directories are attempted before static fallback');
  assert.ok(data.markets.some(x=>x.symbol==='BTCUSDT'));
  assert.ok(data.count.crypto>=20);
  assert.ok(data.count.forex>=40);
@@ -66,4 +66,35 @@ test('Cloudflare Worker serves public market discovery without requiring sign in
  const result=await data.json();
  assert.ok(result.markets.length>40);
  assert.equal(result.count.forex>=40,true);
+});
+
+
+test('Spot directory expands cryptocurrency coverage without claiming those coins have perpetual contracts',async()=>{
+ const {listMarkets}=await mod;
+ const calls=[];
+ const response=await listMarkets({now:()=>1801000,fetchFn:async(url)=>{
+  calls.push(url);
+  if(url.includes('fapi.binance.com'))return new Response('restricted',{status:451});
+  if(url.includes('data-api.binance.vision')){
+   assert.match(url,/symbolStatus=TRADING/);
+   assert.match(url,/showPermissionSets=false/);
+   return ok({symbols:[
+    {symbol:'BTCUSDT',baseAsset:'BTC',quoteAsset:'USDT',status:'TRADING'},
+    {symbol:'AAVEUSDC',baseAsset:'AAVE',quoteAsset:'USDC',status:'TRADING'},
+    {symbol:'ADAUSDT',baseAsset:'ADA',quoteAsset:'USDT',status:'BREAK'},
+    {symbol:'ETHBTC',baseAsset:'ETH',quoteAsset:'BTC',status:'TRADING'}
+   ]});
+  }
+  throw Error('Unrecognized provider');
+ }});
+ const data=await response.json();
+ assert.equal(response.status,200);
+ assert.equal(calls.length,2);
+ assert.equal(data.count.crypto,2);
+ assert.equal(data.instrument,'spot');
+ assert.match(data.source,/Spot/);
+ assert.equal(data.markets[0].instrument,'spot');
+ assert.ok(!data.markets.some(x=>x.symbol==='ADAUSDT'));
+ assert.ok(!data.markets.some(x=>x.symbol==='ETHBTC'));
+ assert.ok(data.count.forex>=40);
 });
