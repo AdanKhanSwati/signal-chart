@@ -15,7 +15,7 @@ const n=v=>Number(v),valid=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(N
 const fmt=(v,d)=>valid(v)?n(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
 const current=()=>lookup[state.symbol],status=(p,q)=>{if(!q||!valid(q.price))return 'UNAVAILABLE';const age=Date.now()-Date.parse(q.asof||'');const maxAge=p.type==='forex'?20*60*1000:3*60*1000;return q.stale||!Number.isFinite(age)||age>maxAge?'DELAYED':'UPDATED'};
 const safeTime=stamp=>{const d=new Date(stamp);return Number.isNaN(d.getTime())?'—':d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})};
-const source=p=>p.type==='forex'?'Indicative FX pricing':'Binance USD-M Futures';
+const source=p=>p.type==='forex'?'Indicative FX pricing':p.instrument==='spot'?'Binance Spot · reference chart':p.instrument==='perpetual'?'Binance USD-M Futures':'Crypto candles · checking data source';
 function child(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
 function logoAsset(p){
  const el=child('span','mc-logo-mark');
