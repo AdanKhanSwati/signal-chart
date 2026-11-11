@@ -11,3 +11,6 @@ vercel-recovered/
 .wrangler/
 .dev.vars
 .dev.vars.*
+recovery-private/
+*blob-inventory*.json
+*blob-export*.json
