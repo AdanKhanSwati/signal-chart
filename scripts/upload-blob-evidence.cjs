@@ -23,6 +23,7 @@ const {
 const {config}=require('./stage-blob-inventory.cjs');
 const BUCKET='sc-legacy-evidence';
 const SHA=/^[0-9a-f]{64}$/;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_FILES=250;
 const MAX_TOTAL_BYTES=40*1024*1024;
 const MAX_FILE_BYTES=3145728;
@@ -58,7 +59,7 @@ function verifyRecoveredFiles(inventory,evidence,evidenceDir){
      digest(bytes)!==expected.content_sha256||
      mediaType(bytes,entry.sourceKey)!==expected.mime_type)
    throw Error('Private recovered evidence changed after verification');
-  return {key:objectPath(expected.content_sha256,expected.mime_type),
+  return {sourceKey:entry.sourceKey,key:objectPath(expected.content_sha256,expected.mime_type),
    hash:expected.content_sha256,mime:expected.mime_type,bytes};
  });
  return {objects,preflightSummary:preflight.summary};
@@ -88,13 +89,16 @@ async function call(fetchFn,url,options){
 }
 
 async function uploadVerifiedObjects(items,{
- env=process.env,fetchFn=globalThis.fetch
+ env=process.env,fetchFn=globalThis.fetch,recordEvidence=false
 }={}){
  const cfg=guardedConfig(env);
  if(!Array.isArray(items)||!items.length||items.length>MAX_FILES)
   throw Error('No bounded private evidence to upload');
- const unique=new Set();
- let total=0,created=0,alreadyPresent=0;
+ const unique=new Set(),verified=new Set();
+ let total=0,created=0,alreadyPresent=0,linked=0;
+ const actor=String(env.SC_SUPER_ADMIN_UID||'').toLowerCase();
+ if(recordEvidence&&(env.SC_RECOVERY_LINK_APPROVED!=='true'||!UUID.test(actor)))
+  throw Error('Evidence linkage needs an independently approved verified operator');
  for(const item of items){
   if(!Buffer.isBuffer(item?.bytes)||item.bytes.length<1||item.bytes.length>MAX_FILE_BYTES||
      !SHA.test(item.hash||'')||digest(item.bytes)!==item.hash||
@@ -104,6 +108,9 @@ async function uploadVerifiedObjects(items,{
    throw Error('Invalid evidence bytes or object identity');
   total+=item.bytes.length;
   if(total>MAX_TOTAL_BYTES)throw Error('Evidence upload exceeds byte budget');
+  if(recordEvidence&&(!item.sourceKey||typeof item.sourceKey!=='string'||
+     item.sourceKey.length<3||item.sourceKey.length>512))
+   throw Error('Source inventory identity is required for evidence linkage');
   if(unique.has(item.key))continue; // identical content deduplicates safely.
   unique.add(item.key);
  }
@@ -137,11 +144,32 @@ async function uploadVerifiedObjects(items,{
   }
   if(bytes.length!==item.bytes.length||digest(bytes)!==item.hash)
    throw Error('Private storage evidence hash mismatch; upload is unverified');
+  verified.add(item.key);
+ }
+ if(recordEvidence){
+  // Each distinct source inventory entry is linked separately, even when
+  // multiple objects have identical content-addressed private bytes.
+  for(const item of items){
+   if(!verified.has(item.key))throw Error('Unverified private evidence cannot be linked');
+   const response=await call(fetchFn,cfg.url+'/rest/v1/rpc/sc_recovery_link_evidence',{
+    method:'POST',headers:privateHeaders(cfg,{'Content-Type':'application/json'}),
+    body:JSON.stringify({p_actor:actor,p_source_key:item.sourceKey,
+     p_digest:item.hash,p_storage_path:item.key,p_size:item.bytes.length})
+   });
+   if(!response?.ok)throw Error('Private evidence linkage was rejected by database');
+   let result;
+   try{result=await response.json()}catch{throw Error('Private evidence linkage response invalid')}
+   if(!['evidence_staged','already_recorded'].includes(result?.status)||
+      result?.accessGranted!==false||result?.paymentVerified!==false)
+    throw Error('Evidence staging was not verified; no entitlement changes allowed');
+   linked++;
+  }
  }
  return {
   objectsVerifiedInPrivateStorage:created+alreadyPresent,
   objectsCreated:created,
   existingMatchingObjects:alreadyPresent,
+  ledgerEvidenceLinksRecorded:linked,
   recoveredSourceAuthenticityEstablished:false,
   paymentEntitlementsGranted:0,
   trialRecordsChanged:0,
@@ -155,11 +183,13 @@ async function cli(argv=process.argv.slice(2),env=process.env){
  const inventoryPath=opt('--inventory'),evidencePath=opt('--evidence'),
   evidenceDir=opt('--evidence-dir');
  const dry=argv.includes('--dry-run'),write=argv.includes('--write');
+ const recordEvidence=argv.includes('--link-ledger');
+ if(recordEvidence&&!write)throw Error('Ledger linkage requires --write');
  if(!inventoryPath||!evidencePath||!evidenceDir||dry===write)
   throw Error('Required: --inventory --evidence --evidence-dir and exactly one of --dry-run/--write');
  const {objects,preflightSummary}=verifyRecoveredFiles(
   parseManifest(inventoryPath),parseManifest(evidencePath),evidenceDir);
- const result=write?await uploadVerifiedObjects(objects,{env}):
+ const result=write?await uploadVerifiedObjects(objects,{env,recordEvidence}):
   {objectsLocallyVerified:preflightSummary.checked,
    bytesLocallyHashed:preflightSummary.bytesChecked,objectsUploaded:0,
    paymentEntitlementsGranted:0,
