@@ -1,5 +1,6 @@
 import {listMarkets} from './market-catalog.mjs';
 import {getCandles} from './market-candles.mjs';
+import {getForexReferences} from './forex-reference.mjs';
 import {createResearch} from './research.mjs';
 
 /**
@@ -672,6 +673,8 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
      return await listMarkets({fetchFn});
     if(url.pathname==='/api/candles')
      return await getCandles(request,{fetchFn});
+    if(url.pathname==='/api/quotes')
+     return await getForexReferences(request,{fetchFn});
     if(url.pathname.startsWith('/api/'))
      throw issue(503,'This API route is not yet migrated');
     if(!env.ASSETS?.fetch)throw issue(503,'Static assets are not configured');
