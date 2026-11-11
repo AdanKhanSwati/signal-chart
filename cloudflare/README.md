@@ -181,11 +181,11 @@ The output file must be new and outside the current Git working directory; it is
 ### Separate append-only evidence copy index (November 11)
 
 A conservative alternative to modifying an inventory row is now available:
-\`database/sc-legacy-evidence-copy-index.sql\` was applied to Supabase as
-\`sc_legacy_evidence_copy_index\`. The private table
-\`sc_legacy_evidence_copies\` stores **local copy metadata only**. It has RLS,
+`database/sc-legacy-evidence-copy-index.sql` was applied to Supabase as
+`sc_legacy_evidence_copy_index`. The private table
+`sc_legacy_evidence_copies` stores **local copy metadata only**. It has RLS,
 no client policies, and no service-role DELETE permission. The
-\`sc_recovery_record_local_copy\` RPC is callable by service_role only and
+`sc_recovery_record_local_copy` RPC is callable by service_role only and
 requires an existing source-inventory row, a confirmed operator, a private
 content-addressed object with matching storage size and MIME, and an exact
 SHA-256-shaped object name. It appends an audit event for new links, but **does
@@ -209,16 +209,16 @@ following optional command can index the copies:
       --evidence /private/recovered-evidence.json \
       --evidence-dir /private/recovered-files --write
 
-For the write, server-only \`SUPABASE_URL\` and \`SUPABASE_SECRET_KEY\`
+For the write, server-only `SUPABASE_URL` and `SUPABASE_SECRET_KEY`
 must also be available **only in the private operator environment**. The
 indexer reads the stored bytes back and hashes them again before calling the
 RPC. It prints only aggregate results. If a source inventory row or private
 object is missing, it stops rather than inventing a record.
 
-The separate \`scripts/upload-blob-evidence.cjs --write --link-ledger\`
-path (if used) changes inventory retrieval status to \`verified_read\` and
-requires \`SC_RECOVERY_LINK_APPROVED=true\` and a configured
-\`SC_SUPER_ADMIN_UID\`. For the most conservative provenance workflow, prefer
+The separate `scripts/upload-blob-evidence.cjs --write --link-ledger`
+path (if used) changes inventory retrieval status to `verified_read` and
+requires `SC_RECOVERY_LINK_APPROVED=true` and a configured
+`SC_SUPER_ADMIN_UID`. For the most conservative provenance workflow, prefer
 the standalone append-only indexer above and leave inventory/review status
 unchanged until an authorized manual reconciliation. Neither path authorizes
 payments or premium/trial access.
