@@ -107,3 +107,9 @@ Success means verified users can securely log in on Cloudflare staging and see c
 - Next: check CI for the commit that added this section, confirm live provider parsing and news links on a Cloudflare staging deployment, then address historical Blob reconciliation, billing/admin data, and remaining market APIs. No production readiness claim.
 
 - Additional conservative calendar safeguard: a Forex Factory feed with only historical weekly entries cannot certify FULL_WEEK coverage. It must include an upcoming event (within eight days), otherwise coverage remains partial/unknown. Added a dedicated regression test.
+
+### Verified CI result for the research milestone
+
+- GitHub Actions run **42955267222** on commit `8855b54245ed535019d4db0de59a5f4b1aeea778` passed on November 11, 2026: **267 Node tests passed, 0 failed**, 78 allowlisted static assets exported, and Wrangler 4 compiled the Cloudflare Worker successfully in **dry-run only**. The code remains undeployed and live provider responses have not been exercised in a Cloudflare Worker.
+- Supabase project `nnailvcgaupjtdaxvjsx` is ACTIVE_HEALTHY and its organization remains on the **Free** tier. No database mutations were performed in this research continuation. Supabase security advisor still warns that leaked-password protection is disabled; RLS/no-policy informational findings are expected for intentionally server-only tables.
+- The next engineering priority is a **quarantined, non-entitlement historical Blob recovery ledger** and safe admin reconciliation tooling, without enabling checkout or creating access from unverified records. Cloudflare Workers Free staging access and browser E2E remain blocked until an account session is available. Do not modify DNS.
