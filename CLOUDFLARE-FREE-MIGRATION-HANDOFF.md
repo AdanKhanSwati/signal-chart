@@ -175,3 +175,9 @@ NEXT: 1) recover the real source inventory and encrypted/private files from old 
 - Added GET /api/ready for explicit fail-closed launch readiness (always HTTP 503 while historical Blob records, admin billing, provider reliability and signed-in staging tests are not verified), distinct from GET /api/health HTTP 200 liveness. No credentials or personal data are returned. Automated tests cover configured and unconfigured Workers.
 - GitHub Actions latest verified run 42968423826, commit dc39374406b1eec4c5165c1bed827360224ade6e: **334 tests passed, zero failed**, 78 allowlisted public assets exported, Wrangler dry-run successful. This is source/build QA only, NOT live Cloudflare verification. No production DNS, payment state, trials or user entitlements were changed.
 - The private recovery uploader can optionally link evidence into recovery inventory after independent approval, but the PREFERRED path is the separate append-only evidence copy indexer, which leaves source retrieval/review state unchanged until full original Vercel provenance is independently verified. Historical Blob store is still suspended and source data remains inaccessible.
+
+
+### November 11 — additional release-gate regression coverage
+- Added `tests/cloudflare-release-gates.test.js` on the migration branch (commit `e916c90c730b79bb8978be4782dcbc4364beb5b2`). It tests fail-closed readiness without secrets, query-string approval spoofing, disabled unmigrated payment/admin/signal routes, and rejection of readiness mutations.
+- These tests do not deploy a Worker, grant access or recover Blob records. Verify the new commit's GitHub Actions result before treating them as passing; prior verified run 42968553076 passed 334 tests.
+- Still blocked on authorized Cloudflare staging session and complete legitimate read-only Blob recovery. No production DNS, payments or trial flags should change.
