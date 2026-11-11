@@ -96,3 +96,42 @@ Next: migrate **administrator billing, historical payment/receipt reconciliation
 - `GET /api/research?mode=calendar&symbol=EURUSD` merges bounded official BLS release-calendar entries and attributed Forex Factory weekly events, includes current news, and fails closed with UNKNOWN or PARTIAL_US coverage when sources are unavailable/stale. The calendar never asserts a safe trading window from missing data.
 - `GET /api/research?mode=backtest` remains HTTP 503: paid research simulation has not been safely ported to the free Worker runtime. No premium signal generation or automated publishing was enabled.
 - The feeds use fixed HTTPS origins, 350 KB per-response caps, short timeouts, isolated 2–15 minute caches and no user-controlled upstream URL. Real provider reachability and browser QA remain unverified until a staging deployment exists.
+
+## Quarantined historical Blob recovery (November 11)
+
+Private evidence inventory tables now exist in Supabase:
+
+- public.sc_legacy_recovery_items — source object metadata, hash status and independent human-review state.
+- public.sc_legacy_recovery_events — append-only recovery audit, not payment approval.
+- Applied SQL migrations: sc_legacy_recovery_ledger and sc_legacy_recovery_tighten_grants.
+- Both have RLS on. Anonymous and authenticated browser roles cannot read them. The service role can read/insert, but cannot DELETE/TRUNCATE; it cannot UPDATE audit events.
+- Neither table authorizes paid access, admin accounts or new trials.
+
+A verified SC_SUPER_ADMIN_UID may GET /api/recovery?action=status for aggregate counts ONLY. No source names, user IDs or evidence bodies cross that HTTP response. Zero imported rows yield inventory_not_imported, NOT proof that no historical data exists. All imported items reviewed is NOT proof that the old Blob listing was complete.
+
+### Source inventory, after legitimate old-store access is restored
+
+Collect the COMPLETE paginated @vercel/blob list output read-only and privately. Save a JSON file outside Git with this format (an illustrative, synthetic object, NOT actual SignalChart data):
+
+    {
+      "source": "vercel_blob_list",
+      "complete": true,
+      "blobs": [
+        {"pathname":"audit/example-object.json","size":300,
+         "uploadedAt":"2026-11-10T00:00:00Z"}
+      ]
+    }
+
+Only set complete=true after validating every page, including the last cursor. This is an operator claim; the tool itself cannot independently prove completeness.
+
+Validate without credentials or database mutation:
+
+    node scripts/stage-blob-inventory.cjs --manifest /private/blob-inventory.json --dry-run
+
+After evidence review and with server-only Supabase credentials configured, stage inventory metadata idempotently:
+
+    SC_RECOVERY_IMPORT_APPROVED=true node scripts/stage-blob-inventory.cjs --manifest /private/blob-inventory.json --write
+
+This importer inserts only inventory_only/pending records, with conflict-ignore semantics. It never reads Blob contents, approves payments, grants access, issues trials or marks evidence reconciled. It prints category totals, not personal identifiers, source paths or secrets. Keep JSON manifests and secret keys outside Git.
+
+Still BLOCKED: A verified complete source inventory and readable historical Blob contents have NOT been recovered. Metadata is insufficient to restore historical paid entitlements or receipts.
