@@ -418,6 +418,19 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
       return await premiumUnlock(request,env,fetchFn);
      throw issue(405,'Unlock premium signals using an authenticated POST request');
     }
+    if(url.pathname==='/api/cv-ops'){
+     if(request.method==='GET'&&url.searchParams.get('action')==='me'){
+      const member=await getMember(request,env,fetchFn);
+      // Only a read-only snapshot of verified membership is available until
+      // legacy Blob billing and invoice records can be reconciled. Never
+      // return a payable wallet address or a fabricated payment history.
+      return reply({account:member.account,
+       checkout:{enabled:false,priceUSD:20,btcMonthly:null,network:'BTC mainnet',
+        wallet:null},
+       payments:[],tickets:[],migration:member.migration});
+     }
+     throw issue(503,'Billing, payment review and support operations are temporarily unavailable');
+    }
     if(url.pathname==='/api/member'){
      if(request.method!=='GET'||url.searchParams.get('action')!=='me')
       throw issue(503,'Membership changes are unavailable during migration');
