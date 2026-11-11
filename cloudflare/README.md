@@ -226,3 +226,58 @@ payments or premium/trial access.
 As of November 11, no historical source inventory, private evidence objects,
 or linked copy rows have been recovered. **Do not set any write-approval flag
 until the full private source inventory and actual files are available.**
+
+
+### Verified byte transfer into the private Supabase bucket
+
+The upload step is separated from source authenticity and payment approval.
+The source Vercel Blob account remains suspended: **no real evidence was
+downloaded, transferred or reviewed**.
+
+Validate and hash local files without any network writes:
+
+    node scripts/upload-blob-evidence.cjs \
+      --inventory /private/blob-inventory.json \
+      --evidence /private/recovered-evidence.json \
+      --evidence-dir /private/recovered-files --dry-run
+
+Only after recovering a complete read-only inventory, verifying legitimate
+source access and staging the local files outside Git, run on an operator-controlled
+server/terminal with its SUPABASE_URL and SUPABASE_SECRET_KEY securely set:
+
+    SC_EVIDENCE_UPLOAD_APPROVED=true \
+    node scripts/upload-blob-evidence.cjs \
+      --inventory /private/blob-inventory.json \
+      --evidence /private/recovered-evidence.json \
+      --evidence-dir /private/recovered-files --write
+
+The upload uses a content-addressed SHA-256 object name, no overwrite, and a
+second private download plus digest verification. It does not write any
+entitlement records or mark Blob provenance established.
+
+For follow-on indexing, use the **preferred separate append-only**
+scripts/index-blob-evidence.cjs procedure documented above. It requires
+SC_EVIDENCE_INDEX_APPROVED=true and a verified SC_RECOVERY_OPERATOR_UID and
+does NOT change inventory retrieval/review status. The alternate
+upload-blob-evidence.cjs --link-ledger mode can change the inventory to
+verified_read; avoid that mode unless historical provenance and the
+original source inventory have been independently checked.
+
+### Private recovery review notes
+
+With the actual Cloudflare administrator UUID configured as SC_SUPER_ADMIN_UID,
+a verified administrator can POST /api/recovery?action=note with bounded JSON:
+
+    {"itemId":"<existing recovery item UUID>","note":"Manual review required: ... "}
+
+The server checks the administrator against the verified Supabase Auth UID,
+then calls the service-role-only sc_recovery_add_review_note RPC. It appends
+a private audit event and changes only the review workflow state. The note
+never verifies a transaction, clears a past trial hold or grants premium access.
+Never include credentials or customer evidence bodies in an HTTP review note.
+
+**Production blocker:** The old store candriva-private-accounts continues to
+report limits-exceeded-suspended with five private objects. No external Blob
+source bytes, complete inventory, payment evidence or user ownership records
+were recovered in this chat. Cloudflare staging credentials and browser QA
+remain outstanding; leave signalchart.pro DNS and payments unchanged.
