@@ -281,3 +281,12 @@ report limits-exceeded-suspended with five private objects. No external Blob
 source bytes, complete inventory, payment evidence or user ownership records
 were recovered in this chat. Cloudflare staging credentials and browser QA
 remain outstanding; leave signalchart.pro DNS and payments unchanged.
+
+
+### Separate HTTP process health vs. launch readiness
+
+- GET /api/health returns HTTP 200 when the Worker process is alive, but explicitly reports productionReady=false.
+- GET /api/ready returns HTTP 503, status=migration_incomplete, productionReady=false, and named blockers until an independently verified production release is approved. Its checks cover static-asset binding, public/private Supabase key configuration, trial and premium feature flags, historical recovery, admin billing, live provider QA and browser E2E. It never exposes private keys or personal data.
+- Do NOT use a successful health endpoint or green GitHub Actions result as permission to switch signalchart.pro to Cloudflare. The customer and super-admin journeys must pass real staging tests, including historical payment reconciliation.
+
+This is a deliberate release safety guard, not a broken site. The Worker can still serve explicitly implemented public and staging endpoints while readiness returns 503.
