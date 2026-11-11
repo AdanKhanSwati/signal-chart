@@ -86,3 +86,15 @@ Success means verified users can securely log in on Cloudflare staging and see c
 - Added cloudflare/README.md with exact zero-cost staging commands, Worker environment requirements and production cutover blockers.
 - Added .dev.vars and .dev.vars.* to .gitignore to prevent accidentally committing local Cloudflare secrets.
 - NOT YET COMPLETE: Cloudflare account/dashboard is not connected for actual staging deployment; signalchart.pro DNS unchanged; private legacy Vercel Blob membership/payment recovery incomplete; premium signal, payment, support and super-admin APIs still not ported. Do not launch as paid customer platform yet.
+
+
+## November 11 continued: secure premium signals, billing safety and customer support
+
+- Ported `GET /api/premium-signals?action=list` with a strictly public four-field response and `POST /api/premium-signals?action=unlock` with verified Supabase Auth, SQL-only paid entitlements and the existing atomic three-unique-signals trial RPC. Feature is off by default unless Worker secret `SC_PREMIUM_UNLOCK_ENABLED=true` is explicitly enabled after historical entitlement reconciliation. No client-supplied UID, admin metadata or payment flag is trusted. Premium payload responses are private/no-store.
+- Ported `GET /api/cv-ops?action=me` to verified user-only membership with payment collection disabled and an honest historical-billing migration notice. Frontend billing page hides BTC wallet address, QR code, quote and payment submission while disabled, rather than encouraging transfers to an inactive invoice workflow.
+- Created private support tables and service-role-only RPCs in `database/sc-support-messages.sql`; applied migration `sc_support_messages_phase_two` to Supabase. Privilege checks confirmed RLS enabled and anonymous/authenticated access denied on both tables and all support functions.
+- Ported customer support inbox, owned-ticket message reads, ticket creation, replies and close actions to `/api/cv-ops` using verified Auth identity, user ownership checks, SQL rate limits, and optional server-only `SC_SUPER_ADMIN_UID` for staff conversation access. Other users' ticket existence is concealed.
+- Added `tests/cloudflare-premium-signals.test.js`, `tests/cloudflare-billing-maintenance.test.js`, and `tests/cloudflare-support.test.js`. **GitHub Actions run 42954286299 passed 255 tests, 0 failed and compiled the Cloudflare Worker plus 78 assets in Wrangler dry-run**. No Cloudflare deployment occurred.
+- Updated `cloudflare/README.md` with new routes and integration flags.
+
+**Remaining**: actual Cloudflare account integration and workers.dev staging URL, live browser E2E sign-in/testing, payment and receipt migration from suspended Vercel Blob, administrator billing/review backend, automated and backtested research/signals, news/calendar and final production readiness. Do not change signalchart.pro or accept live payments until these are verified. Mandatory hosting target remains $0/month.
