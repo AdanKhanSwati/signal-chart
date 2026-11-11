@@ -67,3 +67,22 @@ Success means verified users can securely log in on Cloudflare staging and see c
 - Corrected vercel.json to set git.deploymentEnabled.signalchart-cloudflare-free-migration=false to stop future accidental Vercel Git previews.
 - **Next**: Confirm GitHub Actions QA result; complete Cloudflare deployment access via Work cloud browser and configure three Worker secrets (SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY) without committing them; integrate private SQL billing migration, safe payment receipt storage and legacy record recovery; port market/signal APIs; verify existing user sign-ins on Cloudflare staging and finish production approval gates.
 - User requested autonomous continuation for three hours, no interruptions. A three-run hourly ChatGPT automation has been created to revisit this exact branch, commit safe incremental work and only report completion or a genuine user-required blocker at the final attempt. No three-hour completion guarantee can be made.
+
+
+## 2026-11-11 engineering continuation — account trials and public markets
+
+- Cloudflare staging Worker now supports secure, optional browser trial registration:
+  - GET /api/trial?action=device issues an HttpOnly, Secure, SameSite=Lax, HMAC-signed first-party cookie, only for verified Supabase users.
+  - POST /api/trial?action=activate_browser enforces verified Supabase user ID, server-controlled historical-account cutoff, signed cookie, Cloudflare Turnstile Siteverify action and hostname, and transactional sc_activate_browser_trial RPC.
+  - Cookie signature verification rejects noncanonical base64url aliases. Browser/IP hashes are advisory for SQL anti-abuse, never premium authorization.
+  - The trial feature remains DISABLED until all required Worker-side secrets, Turnstile host registration and rollout date are configured. Historical accounts created before cutoff are fail-closed pending review.
+- Added Cloudflare public market metadata and historical candles:
+  - cloudflare/market-catalog.mjs supports live Binance USD-M listing, validated symbols, 10-minute in-isolate cache, and a bounded crypto fallback + existing FX pair catalog.
+  - cloudflare/market-candles.mjs supports Binance perpetual OHLC and Yahoo indicative FX candles, validates exchange-provided bars, limits provider response sizes/timeouts, and caches quotes briefly.
+  - Routes GET /api/markets, GET /api/candles?action=markets and GET /api/candles?market=...&symbol=...&interval=....
+  - These are READ-ONLY public market data endpoints, not trading signals or paid signal unlocks. Third-party chart availability must be checked live before launch.
+- Added regression tests for browser-trial no-cookie/auth, Turnstile mismatch, historical lockout, SQL trial claim, market listing and price history.
+- GitHub Actions ran 223 tests successfully (0 failures) and successfully compiled Cloudflare Worker with 78 static assets using Wrangler 4 dry-run; no deployment or paid service was activated. A flaky cookie tampering test revealed noncanonical base64url acceptance and was fixed with exact canonical comparison. Latest tests/CI should be checked before release.
+- Added cloudflare/README.md with exact zero-cost staging commands, Worker environment requirements and production cutover blockers.
+- Added .dev.vars and .dev.vars.* to .gitignore to prevent accidentally committing local Cloudflare secrets.
+- NOT YET COMPLETE: Cloudflare account/dashboard is not connected for actual staging deployment; signalchart.pro DNS unchanged; private legacy Vercel Blob membership/payment recovery incomplete; premium signal, payment, support and super-admin APIs still not ported. Do not launch as paid customer platform yet.
