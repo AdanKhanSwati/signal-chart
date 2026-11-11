@@ -40,7 +40,8 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "signalchart-recovery-staging": false
+      "signalchart-recovery-staging": false,
+      "signalchart-cloudflare-free-migration": false
     }
   }
 }
