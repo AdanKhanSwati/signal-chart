@@ -6,7 +6,7 @@ const $=s=>document.querySelector(s),create=(tag,cls,text)=>{
 const accountRoot=$('#sc-trial-account'),signalsRoot=$('#sc-trial-signals');
 if(!accountRoot&&!signalsRoot)return;
 let auth=null,session=null,trial=null,serverOffset=0,selectedMarket='all',allSignals=[];
-let paidOverride=null,browserTrialEnabled=false,turnstileSiteKey=null,turnstileWidget=null,turnstileLoading=false;
+let paidOverride=null,browserTrialEnabled=false,turnstileSiteKey=null,turnstileWidget=null,turnstileLoading=false,trialHours=null;
 async function sharedSupabaseClient(url,anonKey){
  // Account and trial code run concurrently. Share a single GoTrue client and
  // one script-load Promise so refresh-token storage is never contended locally.
@@ -42,6 +42,9 @@ const notify=(text,bad=false)=>{
 const safeTime=s=>s?new Date(s).toLocaleString():'—';
 function updateVerificationGuide(signedIn){
  const ready=browserTrialEnabled&&!!turnstileSiteKey;
+ const headline=$('#sc-browser-guide-title');
+ if(headline)headline.textContent=ready&&Number.isInteger(trialHours)?
+  'Activate your '+trialHours+'-hour free trial':'Free trial activation is being prepared';
  const state=$('#sc-browser-availability');
  if(state){state.textContent=ready?'Browser trial activation available':'Browser trial setup pending';state.dataset.available=ready?'true':'false'}
  const link=$('#sc-browser-guide-link');
@@ -62,6 +65,7 @@ const expString=()=>{
 async function initializeClient(){
  const c=await fetch('/api/config',{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject(Error('Authentication unavailable')));
  if(!c.authReady||!c.supabaseUrl||!c.supabaseAnonKey)throw Error('Sign-in service unavailable');
+ trialHours=Number.isInteger(c.trialHours)&&c.trialHours>0?c.trialHours:null;
  browserTrialEnabled=c.emailDeviceTrialEnabled===true&&c.trialVerificationMethod==='verified_email_browser';
  turnstileSiteKey=typeof c.turnstileSiteKey==='string'?c.turnstileSiteKey:null;
  updateVerificationGuide(false);
