@@ -287,7 +287,7 @@ async function getMember(request,env,fetchFn){
  }};
 }
 function safeError(error){
- const status=[400,401,403,404,405,409,429,503].includes(error?.status)?error.status:500;
+ const status=[400,401,403,404,405,409,413,428,429,503].includes(error?.status)?error.status:500;
  return reply({error:status===500?'The service is temporarily unavailable':error.message},status);
 }
 export function createWorker({fetchFn=globalThis.fetch}={}){
