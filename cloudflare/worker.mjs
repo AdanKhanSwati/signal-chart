@@ -1,3 +1,5 @@
+import {listMarkets} from './market-catalog.mjs';
+
 /**
  * SignalChart Cloudflare Workers Free migration adapter.
  *
@@ -320,6 +322,10 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
       throw issue(503,'Membership changes are unavailable during migration');
      return reply(await getMember(request,env,fetchFn));
     }
+    if((url.pathname==='/api/markets'||
+        (url.pathname==='/api/candles'&&url.searchParams.get('action')==='markets'))&&
+        request.method==='GET')
+     return await listMarkets({fetchFn});
     if(url.pathname.startsWith('/api/'))
      throw issue(503,'This API route is not yet migrated');
     if(!env.ASSETS?.fetch)throw issue(503,'Static assets are not configured');
