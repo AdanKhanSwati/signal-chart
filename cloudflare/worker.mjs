@@ -175,7 +175,8 @@ async function browserCookie(request,env){
  const [id,signature,...extra]=part.slice(COOKIE_NAME.length+1).split('.');
  if(extra.length||!COOKIE_TOKEN.test(id||'')||!COOKIE_TOKEN.test(signature||''))return null;
  const mac=rawBytes(signature);
- if(!mac)return null;
+ // Reject non-canonical base64url encodings that alter only unused pad bits.
+ if(!mac||urlSafe(mac)!==signature)return null;
  const key=await browserKey(env);
  const valid=await crypto.subtle.verify('HMAC',key,mac,new TextEncoder().encode('sc-v1-browser:'+id));
  return valid?id:null;
