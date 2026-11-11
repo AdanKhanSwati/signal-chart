@@ -75,3 +75,14 @@ without deploying anywhere. The migration branch MUST NOT trigger Vercel.
 The free tier has finite CPU and request allowances. Large market-analysis jobs
 must be redesigned for the free limits rather than running inside a synchronous
 Worker request.
+
+## November 11, 2026 — additional tested staging routes
+
+- `GET /api/premium-signals?action=list` is a public, field-allowlisted teaser feed; `POST /api/premium-signals?action=unlock` requires verified Supabase Auth. Its paid entitlement comes only from unrevoked, approved SQL records. A free trial unlock uses the existing transactional `sc_unlock_trial` RPC, which prevents a fourth unique signal while permitting reopening the first three before expiry. **Both are gated by `SC_PREMIUM_UNLOCK_ENABLED=true`; the default is disabled while legacy entitlements remain unreconciled.**
+- `GET /api/cv-ops?action=me` returns the verified customer's membership and support inbox, with no payment-collection facility. Historical payments are represented as migration-pending, not falsely claimed absent.
+- `GET /api/cv-ops?action=messages&ticketId=...` reads only a ticket owned by the verified user. `POST /api/cv-ops?action=new_ticket`, `reply`, and `close_ticket` use private, rate-limited Supabase support RPCs. Server-only `SC_SUPER_ADMIN_UID` optionally permits a verified staff member to access another user's support conversation; user-editable metadata cannot grant this.
+- New database migration `database/sc-support-messages.sql` applied to Supabase project `nnailvcgaupjtdaxvjsx` as `sc_support_messages_phase_two`. Both support tables have RLS enabled with no direct `anon` or `authenticated` access; all three support functions explicitly deny browser-role execution. Privilege checks passed.
+- On the staged billing page, payment wallet, QR, payment submission, and BTC quote remain hidden when `checkout.enabled=false`. The page clearly warns not to send funds while historic records are reconciled. `/api/checkout` and all payment writes still fail closed.
+- GitHub Actions run `42954286299` passed **255/255 tests**, with a successful Wrangler 4 dry-run compiling the Worker and 78 static assets. No actual Cloudflare staging or production deployment has occurred.
+
+Next: migrate **administrator billing, historical payment/receipt reconciliation, signal analysis and news/calendar backend**, then connect Cloudflare staging credentials and run live customer/admin E2E QA before production domain cutover. Never deploy `signalchart.pro` as a paid site before these checks.
