@@ -121,3 +121,16 @@ test('malformed research symbol never produces a false safe-window assessment',a
  const data=await (await h(req('calendar','NOT-A-SYMBOL'))).json();
  assert.equal(data.assessment,null);
 });
+
+test('Cloudflare Worker routes public research and rejects premium backtest without Supabase',async()=>{
+ const workerModule=await import(pathToFileURL(path.resolve(__dirname,'../cloudflare/worker.mjs')).href);
+ const worker=workerModule.createWorker({fetchFn:mock()});
+ const health=await worker.fetch(req('health'),{});
+ assert.equal(health.status,200);
+ assert.equal((await health.json()).unattendedPublishing.enabled,false);
+ const news=await worker.fetch(req('news'),{});
+ assert.equal(news.status,200);
+ assert.equal((await news.json()).headlines.length,2);
+ const backtest=await worker.fetch(req('backtest'),{});
+ assert.equal(backtest.status,503);
+});
