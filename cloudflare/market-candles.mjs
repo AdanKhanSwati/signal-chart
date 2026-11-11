@@ -62,7 +62,7 @@ function aggregate(bars,bucket){
 async function provider(fetchFn,url){
  const res=await fetchFn(url,{
   method:'GET',headers:{Accept:'application/json'},
-  cache:'no-store',signal:AbortSignal.timeout(8500)
+  cache:'no-store',signal:AbortSignal.timeout(5000)
  });
  const length=Number(res.headers.get('content-length')||0);
  if(!res.ok||(length>0&&length>MAX_TEXT))throw Error('Market provider unavailable');
