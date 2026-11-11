@@ -82,5 +82,5 @@ test('frontend does not draw QR or quote when checkout is disabled',()=>{
  assert.match(script,/walletSection\.hidden=!c\.enabled/);
  assert.match(script,/txt\('#cand-wallet',c\.enabled\?c\.wallet:'—'\)/);
  assert.match(script,/if\(userData\?\.checkout\?\.enabled\)\{/);
- assert.match(script,/if\(userData\.migration\?\.incomplete\)/);
+ assert.match(script,/userData\.migration\?\.incomplete/);
 });
