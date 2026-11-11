@@ -189,25 +189,27 @@ export async function getCandles(request,{fetchFn=globalThis.fetch,now=Date.now}
     source='AlgoSpecial historical broker FX (not a live executable quote)';
     instrument='historical_fx';
    }catch{
-    for(const host of ['query1.finance.yahoo.com','query2.finance.yahoo.com']){
-    try{
-     const chart=await provider(fetchFn,'https://'+host+'/v8/finance/chart/'+code+
-      '?range='+o.range+'&interval='+o.i);
-     const result=chart?.chart?.result?.[0],
-      timestamps=result?.timestamp,quote=result?.indicators?.quote?.[0];
-     if(!Array.isArray(timestamps)||!quote||timestamps.length>15000)
-      throw Error('Malformed forex provider response');
-     bars=cleanBars(timestamps.map((t,i)=>({
-      time:t,open:quote.open?.[i],high:quote.high?.[i],low:quote.low?.[i],
-      close:quote.close?.[i],volume:quote.volume?.[i]||0
-     })));
-     if(o.bucket)bars=aggregate(bars,o.bucket);
-     if(bars.length<8)throw Error('Insufficient FX history');
-     source='Yahoo Finance indicative FX chart';
-     instrument='indicative_fx';
-     break;
-    }catch{bars=[]}
-   }
+    // Query1 and Query2 often fail together on Cloudflare edges. Probe both
+    // concurrently (maximum one provider timeout) instead of serial waits.
+    const checks=await Promise.allSettled(
+     ['query1.finance.yahoo.com','query2.finance.yahoo.com'].map(async host=>{
+      const chart=await provider(fetchFn,'https://'+host+'/v8/finance/chart/'+code+
+       '?range='+o.range+'&interval='+o.i);
+      const result=chart?.chart?.result?.[0],
+       timestamps=result?.timestamp,quote=result?.indicators?.quote?.[0];
+      if(!Array.isArray(timestamps)||!quote||timestamps.length>15000)
+       throw Error('Malformed forex provider response');
+      let historical=cleanBars(timestamps.map((t,i)=>({
+       time:t,open:quote.open?.[i],high:quote.high?.[i],low:quote.low?.[i],
+       close:quote.close?.[i],volume:quote.volume?.[i]||0
+      })));
+      if(o.bucket)historical=aggregate(historical,o.bucket);
+      if(historical.length<8)throw Error('Insufficient FX history');
+      return historical;
+     })
+    );
+    const available=checks.find(x=>x.status==='fulfilled');
+    if(available){bars=available.value;source='Yahoo Finance indicative FX chart';instrument='indicative_fx'}
    }
   }
   if(bars.length<5)throw Error('Insufficient candles');
