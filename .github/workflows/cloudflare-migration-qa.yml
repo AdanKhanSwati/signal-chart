@@ -1,0 +1,38 @@
+name: SignalChart Cloudflare Migration QA
+on:
+  push:
+    branches:
+      - signalchart-cloudflare-free-migration
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install project dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+      - name: Syntax-check Worker and account tests
+        run: |
+          node --check cloudflare/worker.mjs
+          node --check tests/cloudflare-worker.test.js
+      - name: Run all regression tests
+        run: node --test tests/*.test.js
+      - name: Build reviewed Cloudflare static assets
+        run: node scripts/build-cloudflare-static.cjs
+      - name: Verify public bundle excludes server code
+        run: |
+          test -f .cloudflare-dist/index.html
+          test -f .cloudflare-dist/account.html
+          test ! -e .cloudflare-dist/api
+          test ! -e .cloudflare-dist/lib
+          test ! -e .cloudflare-dist/.env
+          test ! -e .cloudflare-dist/setup.html
