@@ -125,3 +125,12 @@ Success means verified users can securely log in on Cloudflare staging and see c
 - Production DNS is unchanged, customer payment collection remains disabled, and Cloudflare staging is not deployed because there is no connected Cloudflare account session in this chat.
 
 NEXT engineering priorities: 1) inspect latest GitHub Actions run for successful tests and Wrangler dry-run, 2) recover/read/verify the old Vercel Blob objects or get authorized restoration, 3) create manual evidence reconciliation workflow with proper server admin gate and no auto-entitlements, 4) migrate admin billing/receipts carefully, 5) Cloudflare staging deployment and browser E2E, 6) real signal/research validation before final cutover.
+
+
+### 2026-11-11: Evidence storage prepared
+
+- APPLIED Supabase migration sc_legacy_evidence_bucket: private sc-legacy-evidence Storage bucket, 3 MiB object cap, JSON/PNG/JPEG only. Verified public=false, zero objects, zero storage.objects policies. No actual evidence has been transferred.
+- Authenticated read-only Cloudflare endpoint GET /api/recovery?action=status is server-admin gated and returns aggregate counts only; writes denied.
+- Completed and CI-tested the safe metadata importer scripts/stage-blob-inventory.cjs. It requires a COMPLETE private paginated Vercel Blob list export and performs only idempotent inventory inserts after a separate explicit write opt-in. The old source inventory is not yet available, so nothing was imported.
+- As of the latest full CI check: 287 Node tests passed, zero failed; Wrangler successfully dry-ran Worker bundle and all 78 static assets. No paid services activated or DNS modifications made.
+- NEXT: Obtain the original private Blob read access or authorized restoration, preserve full source inventory+content hashes in quarantine, then reconcile each payment/trial/customer record separately. Never treat inventory completeness as proved by a few reviewed rows.
