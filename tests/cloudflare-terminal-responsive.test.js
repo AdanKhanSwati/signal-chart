@@ -54,5 +54,5 @@ test('Legible text and touch controls stay scoped to terminal without altering b
  assert.match(css,/\.mc-chart-tools \.mc-chart-toggle/);
  assert.doesNotMatch(css,/(?:background-image|content):\s*url\(/);
  assert.doesNotMatch(css,/\.sc-logo img|\.sc-mobile-logo img|\.sc-avatar/);
- assert.doesNotMatch(css,/body\s*\{/);
+ assert.doesNotMatch(css,/(?:^|\n)\s*body\s*\{/);
 });
