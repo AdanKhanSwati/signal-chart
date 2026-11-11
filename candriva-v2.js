@@ -254,9 +254,10 @@ async function boot(){
     const retry=document.createElement('button');
     retry.type='button';retry.className='v2-outline';retry.textContent='Retry account connection';
     retry.onclick=async()=>{
-     retry.disabled=true;msg('Checking your account connection…');
+     retry.disabled=true;
+     note.textContent='Checking the account connection…';
      try{const data=await fetchMember();startAccount(data);setupMemberChrome();msg('')}
-     catch(err){msg(err.message||'Account is still unavailable.',true)}
+     catch(err){note.textContent=err.message||'Account is still unavailable.';status.classList.add('error')}
      finally{retry.disabled=false}
     };
     status.append(note,retry);
