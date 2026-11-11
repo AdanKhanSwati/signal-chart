@@ -17,10 +17,10 @@ test('all first-party browser API calls preserve preview access cookies',()=>{
  }
 });
 
-async function accountScenario(memberReply){
+async function accountScenario(memberReply,waitMs=40){
  const status={textContent:'',children:[],classList:{toggle(){}},append(...nodes){this.children.push(...nodes)}};
- const authOff={hidden:true},sent=[];
- const elements={'#v2-status':status,'#auth-off':authOff};
+ const authOff={hidden:true},authArea={hidden:true},sent=[];
+ const elements={'#v2-status':status,'#auth-off':authOff,'#auth-area':authArea};
  const document={
   body:{dataset:{candrivaPage:'account'}},
   querySelector:sel=>elements[sel]||null,
@@ -38,8 +38,8 @@ async function accountScenario(memberReply){
  };
  const loc={href:'https://protected-preview.vercel.app/account.html',origin:'https://protected-preview.vercel.app',reload(){}};
  vm.runInNewContext(read('candriva-v2.js'),{document,window,location:loc,URL,setTimeout,console,fetch});
- await new Promise(resolve=>setTimeout(resolve,40));
- return {status,authOff,sent};
+ await new Promise(resolve=>setTimeout(resolve,waitMs));
+ return {status,authOff,authArea,sent};
 }
 
 test('signed-in member request sends the bearer token AND Vercel preview cookie credentials',async()=>{
@@ -49,6 +49,7 @@ test('signed-in member request sends the bearer token AND Vercel preview cookie 
  assert.equal(api.options.credentials,'same-origin');
  assert.equal(api.options.headers.Authorization,'Bearer test-only-verified-token');
  assert.equal(r.authOff.hidden,true,'the site must not report missing Supabase on API authorization failure');
+ assert.equal(r.authArea.hidden,false,'sign-in form must be recoverable after failed membership read');
  assert.match(r.status.textContent,/Session not authorized/);
 });
 
@@ -58,8 +59,12 @@ test('protected preview HTML response is diagnosed without claiming Supabase is 
  assert.equal(r.authOff.hidden,true);
 });
 
-test('blocked protected-preview network request shows actionable account-access message',async()=>{
- const r=await accountScenario(async()=>{throw new TypeError('Failed to fetch')});
- assert.match(r.status.textContent,/protected preview/i);
+test('blocked account GET requests are retried once, then show recovery without falsely claiming preview access',async()=>{
+ const r=await accountScenario(async()=>{throw new TypeError('Failed to fetch')},700);
+ assert.match(r.status.textContent,/Network connection to SignalChart was interrupted/i);
  assert.equal(r.authOff.hidden,true);
+ assert.equal(r.authArea.hidden,false);
+ assert.equal(r.sent.filter(x=>x.url==='/api/member?action=me').length,2);
+ assert.ok(r.status.children.some(x=>x.textContent==='Retry account connection'));
+ assert.ok(r.status.children.some(x=>x.textContent==='Sign out and use another account'));
 });
