@@ -131,3 +131,19 @@ test('Inventory pagination is bounded; counts never pretend to cover an incomple
  const res=await w.fetch(request(),env);
  assert.equal(res.status,503);
 });
+
+test('All reviewed rows still cannot certify source inventory completeness',async()=>{
+ const records=[{
+  id:ITEM,item_kind:'payment',retrieval_status:'verified_read',
+  review_status:'reconciled',content_sha256:'f'.repeat(64)
+ }];
+ const w=await worker(simulate({records}));
+ const res=await w.fetch(request(),env);
+ assert.equal(res.status,200);
+ const state=await res.json();
+ assert.equal(state.manuallyReconciledCount,1);
+ assert.equal(state.awaitingReviewCount,0);
+ assert.equal(state.sourceInventoryCompletenessVerified,false);
+ assert.equal(state.status,'items_reviewed_source_completeness_unverified');
+ assert.equal(state.entitlementChangesMade,false);
+});
