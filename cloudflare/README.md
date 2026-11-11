@@ -142,3 +142,37 @@ Still BLOCKED: A verified complete source inventory and readable historical Blob
 Supabase migration sc_legacy_evidence_bucket created the private bucket sc-legacy-evidence on the Free project. It is public=false, accepts application/json, image/png and image/jpeg, and limits each file to 3 MiB. Live verification found ZERO files and ZERO Storage object policies. No customer can download or upload evidence via the public frontend; server credentials must never be embedded in JavaScript.
 
 The bucket is a destination ONLY. Historical Blob bodies and receipts have NOT yet been recovered, hashed, uploaded or reconciled. Quarantined inventory rows never activate subscriptions or reset trials.
+
+
+### Offline preflight for recovered Blob bytes (November 11)
+
+After legitimate READ-ONLY access to the suspended original Blob store is restored, download copies to a private local directory **outside Git**. Use the COMPLETE paginated source inventory from the prior section. A second private JSON manifest references the recovered local files, for example:
+
+    {
+      "source": "vercel_blob_recovery",
+      "objects": [
+        {"pathname": "audit/example-object.json",
+         "file": "example-object.json",
+         "sha256": "64 lowercase hexadecimal characters, if independently recorded"}
+      ]
+    }
+
+The optional sha256 must be an actual 64-character digest; omit the field if there is no independently recorded digest. The pathname must exactly match the verified source inventory, and file is a relative path beneath the private evidence directory. Only JSON/PNG/JPEG objects up to 3 MiB can pass this preflight; do not delete other original Blob types because the current quarantine bucket cannot accept them.
+
+    node scripts/verify-blob-evidence.cjs \
+      --inventory /private/blob-inventory.json \
+      --evidence /private/recovered-evidence.json \
+      --evidence-dir /private/recovered-files \
+      --dry-run
+
+Optionally write a **private local-only** JSON report with computed SHA-256 hashes and source object paths (never commit or paste the report into public logs):
+
+    node scripts/verify-blob-evidence.cjs \
+      --inventory /private/blob-inventory.json \
+      --evidence /private/recovered-evidence.json \
+      --evidence-dir /private/recovered-files \
+      --dry-run --write-private-report --output /private/verified-preflight.json
+
+The output file must be new and outside the current Git working directory; it is created with restrictive 0600 permissions. The CLI prints aggregate counts only and suppresses private identifiers in errors. It refuses incomplete source inventories, unexpected/duplicate keys, symlink/traversal paths, mismatched byte lengths, invalid file formats, and wrong digests. The optional digest is only as trustworthy as its independent source.
+
+**Important:** This is a local integrity preflight, NOT proof that files came from the suspended Blob store, that any payment cleared, or that a user owns an entitlement. It makes NO Supabase/Storage writes, does NOT mark evidence as verified_read/reconciled, and never grants access. Actual provenance verification, private evidence upload, audited human review and legacy payment/trial reconciliation remain separate blocked steps.
