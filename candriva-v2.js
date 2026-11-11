@@ -244,8 +244,9 @@ async function boot(){
    if(sb){
     show('#auth-area',true);
     switchAuth('signin');
-    $('#tab-signup').onclick=()=>switchAuth('signup');
-    $('#tab-signin').onclick=()=>switchAuth('signin');
+    const signUpTab=$('#tab-signup'),signInTab=$('#tab-signin');
+    if(signUpTab)signUpTab.onclick=()=>switchAuth('signup');
+    if(signInTab)signInTab.onclick=()=>switchAuth('signin');
    }
    const status=$('#v2-status');
    if(status){
