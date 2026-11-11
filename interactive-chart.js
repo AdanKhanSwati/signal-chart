@@ -6,6 +6,7 @@ const valid=v=>Number.isFinite(Number(v));
 function create(canvas,options={}){
  if(!canvas)return null;
  const box=canvas.parentElement,ohlc=options.ohlcTarget||null;
+ const axisFontSize=Number.isFinite(options.axisFontSize)?Math.max(10,Math.min(14,options.axisFontSize)):10;
  const settings={bars:[],symbol:'',timeframe:'',digits:2,span:64,end:null,hover:null,drag:false,pointers:new Map(),pinch:null,indicators:true,volume:true,raf:0,changed:false,lastDataLen:0,lastLastTime:null,lastFirstTime:null};
  const maxBars=()=>Math.max(12,settings.bars.length);
  const money=v=>valid(v)?Number(v).toLocaleString('en-US',{minimumFractionDigits:settings.digits,maximumFractionDigits:settings.digits}):'—';
@@ -15,7 +16,7 @@ function create(canvas,options={}){
  };
  const geometry=()=>{
   const r=canvas.getBoundingClientRect(),w=Math.max(245,r.width),h=Math.max(195,r.height);
-  const right=w<440?66:81,left=12,top=22,bottom=36,volumeHeight=settings.volume?Math.max(26,Math.min(56,h*.16)):0;
+  const right=axisFontSize>=12?(w<440?88:96):(w<440?66:81),left=12,top=22,bottom=axisFontSize>=12?44:36,volumeHeight=settings.volume?Math.max(26,Math.min(56,h*.16)):0;
   return{w,h,left,right,top,bottom,volumeHeight,plotWidth:Math.max(55,w-left-right),priceHeight:Math.max(68,h-top-bottom-volumeHeight-12)};
  };
  function visible(){
@@ -30,7 +31,8 @@ function create(canvas,options={}){
   const b=settings.bars,g=geometry(),dpr=Math.min(g.w<700?3.5:2.75,window.devicePixelRatio||1),pw=Math.round(g.w*dpr),ph=Math.round(g.h*dpr);
   if(canvas.width!==pw||canvas.height!==ph){canvas.width=pw;canvas.height=ph}
   const ctx=canvas.getContext('2d');if(!ctx)return;
-  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,g.w,g.h);
+  // Match the integer backing store to CSS pixels precisely to preserve crisp labels.
+  ctx.setTransform(pw/g.w,0,0,ph/g.h,0,0);ctx.clearRect(0,0,g.w,g.h);
   ctx.fillStyle='rgba(15,15,23,.04)';ctx.fillRect(0,0,g.w,g.h);
   if(!b.length){ctx.font='12px system-ui,sans-serif';ctx.fillStyle='#aea7b5';ctx.fillText('Loading market candles…',20,g.h/2);return}
   const {start,end}=visible(),first=clamp(Math.floor(start),0,b.length-1),last=clamp(Math.ceil(end),0,b.length),seg=b.slice(first,last);
@@ -42,11 +44,11 @@ function create(canvas,options={}){
   const y=v=>g.top+(pMax-v)/pRange*g.priceHeight;
   const fromY=yVal=>pMax-(yVal-g.top)/g.priceHeight*pRange;
   const step=g.plotWidth/settings.span;
-  ctx.textBaseline='middle';ctx.font='10px system-ui,-apple-system,sans-serif';ctx.lineWidth=1;
+  ctx.textBaseline='middle';ctx.font=axisFontSize+'px system-ui,-apple-system,sans-serif';ctx.lineWidth=1;
   for(let i=0;i<=4;i++){
    const py=g.top+g.priceHeight*i/4,v=pMax-i*pRange/4;
    ctx.strokeStyle='rgba(255,175,119,.075)';ctx.beginPath();ctx.moveTo(g.left,py);ctx.lineTo(g.w-g.right+5,py);ctx.stroke();
-   ctx.fillStyle='#a8a0ad';ctx.textAlign='left';ctx.fillText(money(v),g.w-g.right+11,py);
+   ctx.fillStyle='#e1dce5';ctx.textAlign='left';ctx.fillText(money(v),g.w-g.right+8,py);
   }
   const candleWidth=clamp(step*.64,1.4,19);
   for(let i=first;i<last;i++){
@@ -69,11 +71,16 @@ function create(canvas,options={}){
     for(let i=first;i<last;i++){const cx=x(i),cy=y(values[i]);if(!began){ctx.moveTo(cx,cy);began=true}else ctx.lineTo(cx,cy)}ctx.stroke();ctx.globalAlpha=1;ctx.lineWidth=1;
    }
   }
-  ctx.fillStyle='#a59caa';ctx.textBaseline='middle';ctx.font='9px system-ui,sans-serif';
-  for(let j=0;j<5;j++){
-   const idx=clamp(Math.round(start+(settings.span-1)*j/4),0,b.length-1),v=b[idx],cx=x(idx),label=timeText(v.time);
+  ctx.fillStyle='#d2cbd7';ctx.textBaseline='middle';ctx.font=(axisFontSize>=12?11:9)+'px system-ui,sans-serif';
+  const timeSteps=axisFontSize>=12&&g.w<440?3:5;
+  for(let j=0;j<timeSteps;j++){
+   const idx=clamp(Math.round(start+(settings.span-1)*j/(timeSteps-1)),0,b.length-1),v=b[idx],cx=x(idx);
+   const tickDate=new Date(v.time*1000);
+   const label=axisFontSize>=12&&g.w<440?
+    (/^(1d|1w|1mo)$/.test(settings.timeframe)?tickDate.toLocaleDateString(undefined,{month:'short',day:'numeric'}):tickDate.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})):
+    timeText(v.time);
    if(cx<0||cx>g.w-g.right)continue;
-   ctx.textAlign=j===0?'left':j===4?'right':'center';ctx.fillText(label,clamp(cx,10,g.w-g.right),g.h-15);
+   ctx.textAlign=j===0?'left':j===timeSteps-1?'right':'center';ctx.fillText(label,clamp(cx,10,g.w-g.right),g.h-18);
   }
   // Last traded candle marker; uses only source OHLC values.
   const lastBar=b[b.length-1];
@@ -82,14 +89,14 @@ function create(canvas,options={}){
    if(py>=g.top-3&&py<=g.top+g.priceHeight+3){
     ctx.strokeStyle='rgba(255,139,77,.53)';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(Math.max(g.left,x(b.length-1)),py);ctx.lineTo(g.w-g.right+5,py);ctx.stroke();ctx.setLineDash([]);
     ctx.fillStyle='#fa864b';ctx.fillRect(g.w-g.right+5,py-9,g.right-8,18);
-    ctx.fillStyle='#1d1720';ctx.textAlign='center';ctx.font='bold 10px system-ui,sans-serif';ctx.fillText(money(lastBar.close),g.w-g.right/2+2,py);
+    ctx.fillStyle='#1d1720';ctx.textAlign='center';ctx.font='bold '+axisFontSize+'px system-ui,sans-serif';ctx.fillText(money(lastBar.close),g.w-g.right/2+2,py);
    }
   }
   if(settings.hover){
    const px=clamp(settings.hover.x,g.left,g.w-g.right),py=clamp(settings.hover.y,g.top,g.top+g.priceHeight);
    const index=clamp(Math.round(start+(px-g.left)/g.plotWidth*settings.span-.5),0,b.length-1),c=b[index];
    ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(243,225,220,.6)';ctx.beginPath();ctx.moveTo(x(index),g.top);ctx.lineTo(x(index),g.h-g.bottom+3);ctx.moveTo(g.left,py);ctx.lineTo(g.w-g.right+4,py);ctx.stroke();ctx.setLineDash([]);
-   ctx.fillStyle='#ddd0d5';ctx.font='bold 10px system-ui,sans-serif';ctx.textAlign='left';
+   ctx.fillStyle='#f1e8f2';ctx.font='bold '+axisFontSize+'px system-ui,sans-serif';ctx.textAlign='left';
    const label='O '+money(c.open)+'   H '+money(c.high)+'   L '+money(c.low)+'   C '+money(c.close);
    if(ohlc)ohlc.textContent=label+' · '+timeText(c.time);
    const value=money(fromY(py));ctx.fillStyle='#5d505b';ctx.fillRect(g.w-g.right+5,py-9,g.right-8,18);ctx.fillStyle='#f5e6e6';ctx.textAlign='center';ctx.fillText(value,g.w-g.right/2+2,py);
