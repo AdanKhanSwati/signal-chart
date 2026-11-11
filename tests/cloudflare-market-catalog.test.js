@@ -72,7 +72,7 @@ test('Cloudflare Worker serves public market discovery without requiring sign in
 test('Spot directory expands cryptocurrency coverage without claiming those coins have perpetual contracts',async()=>{
  const {listMarkets}=await mod;
  const calls=[];
- const response=await listMarkets({now:()=>1801000,fetchFn:async(url)=>{
+ const response=await listMarkets({now:()=>Date.now()+10000000,fetchFn:async(url)=>{
   calls.push(url);
   if(url.includes('fapi.binance.com'))return new Response('restricted',{status:451});
   if(url.includes('data-api.binance.vision')){
