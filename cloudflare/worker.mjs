@@ -525,6 +525,40 @@ async function recoveryStatus(request,env,fetchFn){
  });
 }
 
+
+async function recoveryReviewNote(request,env,fetchFn){
+ const user=await verifyUser(request,fetchFn,env);
+ if(!UUID.test(String(env.SC_SUPER_ADMIN_UID||'').toLowerCase()))
+  throw issue(503,'Recovery administrator is not configured');
+ if(!supportAdmin(user,env))throw issue(403,'Administrator permission required');
+ const len=Number(request.headers.get('Content-Length')||0);
+ if(!Number.isFinite(len)||len<0||len>2500)
+  throw issue(413,'Recovery review note is too large');
+ if(!String(request.headers.get('Content-Type')||'').toLowerCase().startsWith('application/json'))
+  throw issue(415,'Expected JSON request');
+ let body;
+ try{
+  const raw=await request.text();if(raw.length>2500)throw Error('Too large');
+  body=JSON.parse(raw);
+ }catch{throw issue(400,'Invalid recovery review note')}
+ const itemId=body?.itemId,note=body?.note;
+ if(typeof itemId!=='string'||!UUID.test(itemId)||
+    typeof note!=='string'||note.trim().length<5||note.trim().length>1200)
+  throw issue(400,'Invalid recovery review note');
+ const outcome=await rest(fetchFn,secretConfig(env),'POST',
+  'rpc/sc_recovery_add_review_note',{
+   p_actor:user.uid,p_item:itemId,p_note:note.trim()
+  });
+ if(outcome?.status==='rate_limited')throw issue(429,'Recovery review rate limit reached');
+ if(outcome?.status==='not_found')throw issue(404,'Recovery item not found');
+ if(outcome?.status==='review_locked')throw issue(409,'Recovery item is already reconciled');
+ if(outcome?.status!=='noted'||outcome.accessGranted!==false||
+    outcome.paymentVerified!==false)
+  throw issue(503,'Recovery review note could not be verified');
+ return reply({status:'noted',reviewStatus:outcome.reviewStatus,
+  entitlementChanged:false,paymentApproved:false},200);
+}
+
 function safeError(error){
  const status=[400,401,403,404,405,409,413,415,428,429,503].includes(error?.status)?error.status:500;
  return reply({error:status===500?'The service is temporarily unavailable':error.message},status);
@@ -565,9 +599,12 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
      throw issue(405,'Unlock premium signals using an authenticated POST request');
     }
     if(url.pathname==='/api/recovery'){
-     if(request.method!=='GET'||url.searchParams.get('action')!=='status')
-      throw issue(405,'Recovery inventory is read-only');
-     return await recoveryStatus(request,env,fetchFn);
+     const action=url.searchParams.get('action');
+     if(request.method==='GET'&&action==='status')
+      return await recoveryStatus(request,env,fetchFn);
+     if(request.method==='POST'&&action==='note')
+      return await recoveryReviewNote(request,env,fetchFn);
+     throw issue(405,'Unsupported recovery operation');
     }
     if(url.pathname==='/api/cv-ops'){
      const action=url.searchParams.get('action');
