@@ -64,14 +64,19 @@ function paymentStatus(p){return p.decision==='approved'?'Approved':p.decision==
 async function loadBilling(){
  userData=await call('me');
  const u=userData.account,c=userData.checkout;
- if(c.wallet!==WALLET)throw Error('Receiving wallet mismatch. Payment submissions are disabled.');
+ if(c.enabled&&c.wallet!==WALLET)throw Error('Receiving wallet mismatch. Payment submissions are disabled.');
+ const walletSection=$('#cand-wallet')?.closest('section');
+ if(walletSection)walletSection.hidden=!c.enabled;
+ const copy=$('#cand-copy');if(copy)copy.disabled=!c.enabled;
  show('#billing-main',true);
  txt('#cand-email',u.email);txt('#cand-plan',u.status==='administrator'?'Administrator':u.status==='active'?'Active subscription':u.status==='granted'?'Complimentary access':u.status==='trial'?'Free trial':'Expired / renew to unlock');
  txt('#cand-status',u.status.toUpperCase());txt('#cand-trial',dt(u.trialEndsAt));txt('#cand-paid',dt(u.accessUntil||u.paidUntil));
  show('#cand-price-closed',!c.enabled);show('#cand-payment-form',c.enabled);
  txt('#cand-price',formatBTC(c.btcMonthly));txt('#cand-payment-open',c.enabled?formatBTC(c.btcMonthly)+'/ MONTH':'PRICE PENDING');
  const root=$('#cand-payment-history');root.replaceChildren();
- if(!userData.payments.length)empty(root,'No payment submissions yet.');
+ if(!userData.payments.length)empty(root,userData.migration?.incomplete?
+  'Historical payment records are being reconciled. Do not send funds during migration.':
+  'No payment submissions yet.');
  for(const p of userData.payments){
  const card=el('div','cand-listitem'),d=el('div','cand-info-row');
  d.append(el('span','',paymentStatus(p)),el('strong','',formatBTC(p.priceBTC)));
@@ -79,8 +84,7 @@ async function loadBilling(){
  }
 }
 async function billingSetup(){
- drawQr();
- try{const q=await liveBTCQuote();txt('#cand-conversion',q.btcMonthly.toFixed(8)+' BTC ≈ $20 USD · '+q.provider);txt('#cand-conversion-time','Rate '+dt(q.quotedAt)+'. Only a currently active invoice is payable.')}catch{txt('#cand-conversion','Current market rate unavailable.');}
+ // Do not generate a payable QR code or quote until a verified invoice is available.
  $('#cand-copy').onclick=async()=>{try{await navigator.clipboard.writeText(WALLET);note('Bitcoin wallet address copied.')}catch{note('Copy the address shown above.')}};
  $('#cand-payment-form').onsubmit=async e=>{
  e.preventDefault();const btn=$('#cand-submit');btn.disabled=true;note('Submitting payment for review…');
@@ -92,6 +96,13 @@ async function billingSetup(){
  }catch(err){note(err.message,true)}finally{btn.disabled=false}
  };
  await loadBilling();
+ if(userData?.checkout?.enabled){
+  drawQr();
+  try{const q=await liveBTCQuote();txt('#cand-conversion',q.btcMonthly.toFixed(8)+' BTC ≈ $20 USD · '+q.provider);txt('#cand-conversion-time','Rate '+dt(q.quotedAt)+'. Only a currently active invoice is payable.')}catch{txt('#cand-conversion','Current market rate unavailable.');}
+ }else{
+  txt('#cand-conversion','Payment processing is paused.');
+  txt('#cand-conversion-time','Do not transfer cryptocurrency until a payable invoice is shown.');
+ }
 }
 function ticketButton(ticket,click){const b=el('button','cand-listitem');b.type='button';b.append(el('strong','',ticket.subject||'Support message'),el('small','',(ticket.category||'general')+' · '+(ticket.status||'open')+' · '+dt(ticket.lastAt)));b.onclick=click;return b}
 function renderMessages(events,root){root.replaceChildren();for(const m of events){const d=el('div','cand-bubble'+(m.from==='admin'?' admin':''));d.append(el('span','cand-sender',(m.from==='admin'?'SignalChart Support':'Customer')+' · '+dt(m.at)),el('p','',m.text));root.append(d)}root.scrollTop=root.scrollHeight}
