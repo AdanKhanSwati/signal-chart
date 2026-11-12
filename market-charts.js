@@ -9,7 +9,7 @@ const pairs=[
  {s:'GBPUSD',label:'GBP / USD',short:'GBP',icon:'£',type:'forex',d:5},
  {s:'USDJPY',label:'USD / JPY',short:'JPY',icon:'¥',type:'forex',d:3}
 ], lookup=Object.fromEntries(pairs.map(p=>[p.s,p])), $=id=>document.getElementById(id);
-const state={symbol:'BTCUSDT',interval:'1m',filter:'all',search:'',quotes:{},bars:[],chart:null,chartLines:[],chartObs:null,chartEngine:null,chartKey:null,volumeSeries:null,ema:true,loadId:0,abort:null,canvas:null,chartDraw:null,visibleCount:24,catalogCount:8,catalogSource:'Initial watchlist',candleSource:null};
+const state={symbol:'BTCUSDT',interval:'1m',filter:'all',search:'',quotes:{},bars:[],chart:null,chartLines:[],chartObs:null,chartEngine:null,chartKey:null,volumeSeries:null,ema:true,loadId:0,abort:null,canvas:null,chartDraw:null,visibleCount:24,catalogCount:8,catalogSource:'Initial watchlist',candleSource:null,referenceNextRetry:0};
 const q=new URL(location.href).searchParams.get('pair');if(lookup[q])state.symbol=q;
 const n=v=>Number(v),valid=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v));
 const fmt=(v,d)=>valid(v)?n(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
@@ -217,6 +217,60 @@ function hostedChartLibrary(){
 }
 const TV_INTERVALS={'1m':'1','3m':'3','5m':'5','15m':'15','30m':'30',
  '1h':'60','4h':'240','1d':'1D','1w':'1W'};
+// This is a line of actual PUBLISHED DAILY reference rates. It must never
+// be promoted to intraday OHLC or used for premium strategies/backtests.
+async function renderDailyReference(p,id){
+ if(p.type!=='forex')return false;
+ try{
+  $('mc-chart-loading').textContent='Checking published daily FX reference rates…';
+  const r=await fetch('/api/fx-daily-reference?symbol='+encodeURIComponent(p.s),
+   {cache:'no-store',signal:state.abort?.signal});
+  if(!r.ok)throw Error('Daily reference series unavailable');
+  const data=await r.json();
+  if(id!==state.loadId)return true;
+  const points=Array.isArray(data.points)?data.points:[];
+  if(data.referenceOnly!==true||data.instrument!=='daily_reference'||
+     points.length<12||typeof data.source!=='string')throw Error('Unverified daily reference series');
+  const series=points.map(x=>({time:Number(x.time),value:Number(x.rate)}));
+  if(series.some(x=>!(Number.isInteger(x.time)&&x.time>0&&Number.isFinite(x.value)&&x.value>0)))
+   throw Error('Invalid published reference rates');
+  const lib=await Promise.race([loadChartLibrary(),
+   new Promise((_,fail)=>setTimeout(()=>fail(Error('Chart library unavailable')),5700))]);
+  if(id!==state.loadId)return true;
+  clearChart();
+  const area=$('mc-chart'),chart=lib.createChart(area,{
+   width:Math.max(270,area.clientWidth),height:Math.max(220,area.clientHeight),
+   layout:{background:{type:'solid',color:'#11141d'},textColor:'#e1dce5',fontSize:12},
+   grid:{vertLines:{color:'#292e3a'},horzLines:{color:'#292e3a'}},
+   rightPriceScale:{borderColor:'#343743'},
+   timeScale:{borderColor:'#343743',timeVisible:false},
+   handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false},
+   handleScale:{mouseWheel:true,pinch:true,axisPressedMouseMove:true}
+  });
+  state.chart=chart;
+  chart.addLineSeries({color:'#ff9b59',lineWidth:2,
+   priceFormat:{type:'price',precision:p.d,minMove:Math.pow(10,-p.d)}}).setData(series);
+  chart.timeScale().fitContent();
+  if('ResizeObserver'in window){
+   state.chartObs=new ResizeObserver(()=>{if(state.chart!==chart||!area.isConnected)return;
+    try{chart.applyOptions({width:Math.max(220,area.clientWidth),height:Math.max(220,area.clientHeight)})}catch{}
+   });state.chartObs.observe(area);
+  }
+  state.bars=[];showIndicators();
+  state.candleSource={symbol:p.s,source:data.source,exchange:'frankfurter',instrument:'daily_reference'};
+  state.chartKey='dailyref|'+p.s;
+  state.referenceNextRetry=Date.now()+900000;
+  const latest=series.at(-1);
+  state.quotes[p.s]={price:latest.value,asof:new Date(latest.time*1000).toISOString(),
+   reference:true,referenceDate:new Date(latest.time*1000).toISOString().slice(0,10),
+   source:data.source,stale:!!data.stale};
+  renderQuote();
+  $('mc-chart-updated').textContent='DAILY REFERENCE LINE · Intraday OHLC unavailable · Not a broker quote';
+  $('mc-chart-loading').hidden=true;
+  return true;
+ }catch{return false}
+}
+
 async function renderHostedChart(p,interval,id){
  $('mc-chart-loading').textContent='Checking an alternative hosted chart…';
  try{
@@ -305,12 +359,13 @@ async function loadCandles(){
   clearChart();$('mc-chart-loading').hidden=false;
   $('mc-chart-loading').textContent=e.message||'Chart unavailable';
   $('mc-chart-updated').textContent='Direct OHLC source unavailable';showIndicators();
+  if(p.type==='forex'&&await renderDailyReference(p,id))return;
   await renderHostedChart(p,interval,id);
  }
 }
 function select(s){
  if(!lookup[s])return;
- state.symbol=s;state.candleSource=null;const p=lookup[s];window.SignalChartFeed?.select(s,state.interval);
+ state.symbol=s;state.candleSource=null;state.referenceNextRetry=0;const p=lookup[s];window.SignalChartFeed?.select(s,state.interval);
  const url=new URL(location.href);url.searchParams.set('pair',s);history.replaceState({},'',url);
  renderWatch();renderQuote();loadCandles();
 }
@@ -412,7 +467,9 @@ bind();select(state.symbol);expandCatalog();loadQuotes();
 // 80-row table; true history is refreshed only when visible and selected.
 setInterval(()=>{if(!document.hidden)loadQuotes()},900000);
 setInterval(()=>{
- if(document.hidden||!state.bars.length)return;
+ if(document.hidden)return;
+ if(state.candleSource?.instrument==='daily_reference'&&Date.now()<state.referenceNextRetry)return;
+ if(!state.bars.length&&state.candleSource?.instrument!=='daily_reference')return;
  // Non-Binance feeds cannot use Binance stream updates. Refresh actual
  // source candles periodically instead of mixing prices across exchanges.
  if(lookup[state.symbol].type==='forex'||
