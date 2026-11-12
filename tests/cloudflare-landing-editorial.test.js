@@ -9,7 +9,7 @@ test('SignalChart landing matches approved sans-serif luxury composition and sho
  assert.match(html,/src="\/signalchart-globe\.svg"/);
  assert.match(html,/fonts\.googleapis\.com\/css2\?family=Manrope/);
  assert.match(css,/--font:'Manrope',Inter/);
- assert.doesNotMatch(css,/Times New Roman|Georgia|serif/);
+ assert.doesNotMatch(css,/Times New Roman|Georgia|,serif/);
  assert.match(globe,/role="img"/);
  assert.match(globe,/world markets globe/);
  assert.match(globe,/#ed8f39/);
