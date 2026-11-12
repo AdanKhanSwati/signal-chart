@@ -41,3 +41,21 @@ test('Old deployment and forex 502 are reported, not hidden by green source test
  assert.ok(r.checks.find(x=>x.id==='rootLanding').result==='OLD_DEPLOYMENT');
  assert.ok(r.checks.find(x=>x.id==='forexEUR').result==='UNEXPECTED_HTTP');
 });
+
+test('USD spot-reference crypto data cannot certify perpetual staging readiness',async()=>{
+ const r=await runSmoke({fetchFn:async url=>{
+  if(url.endsWith('/api/ready'))return response({productionReady:false},503);
+  if(url.endsWith('/api/health'))return response({ok:true});
+  if(url.includes('/api/markets'))return response({markets:Array.from({length:77},()=>({symbol:'BTCUSDT'}))});
+  if(url.includes('/api/candles'))return response({
+   source:'Coinbase Exchange USD spot reference (NOT USDT futures)',
+   instrument:'spot_reference',exchange:'coinbase',aliasOnly:true,
+   candles:Array.from({length:24},(_,i)=>({time:1700000000+i*3600,open:1,high:1,low:1,close:1}))
+  });
+  return response('<title>SignalChart</title><h1>See the market.</h1>',200,'text/html');
+ }});
+ assert.equal(r.verdict,'STAGING_REQUIRES_ATTENTION');
+ assert.equal(r.checks.find(x=>x.id==='cryptoBTC').result,'REFERENCE_ONLY');
+ assert.equal(r.checks.find(x=>x.id==='cryptoADA').result,'REFERENCE_ONLY');
+ assert.equal(r.checks.find(x=>x.id==='forexEUR').result,'PASS');
+});
