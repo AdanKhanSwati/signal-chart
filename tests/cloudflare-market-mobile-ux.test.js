@@ -15,6 +15,7 @@ test('Terminal DOM order matches chart-first mobile reading and keyboard order',
  const table=body.indexOf('class="mc-market-overview"');
  assert.ok(chart>0&&watch>chart&&insights>watch&&table>insights);
  assert.match(body,/id="mc-browse-markets"/);
+ assert.match(html,/<body data-unified="terminal" class="cx-market-page sc-terminal-page">/);
  assert.match(body,/aria-controls="mc-search"/);
  assert.match(body,/class="mc-content"/);
 });
