@@ -55,6 +55,6 @@ test('Shared mobile header search button shows real icon instead of empty square
  assert.match(shared,/\.sc-search>\.sc-search-icon svg\{/);
  assert.match(shared,/@media\(max-width:360px\)/);
  assert.match(shell,/aria-label="Search markets, forex pairs and signals"/);
- assert.match(shell,/class=\\"sc-search-icon\\"/);
+ assert.match(shell,/class="sc-search-icon"/);
  assert.doesNotMatch(shared,/\.sc-logo img\{display:none/);
 });
