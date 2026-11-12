@@ -35,7 +35,8 @@ async function probe(item,fetchFn){
   // A USD spot reference is useful for a public chart but does not prove
   // USDT perpetual-market coverage or suitability for automated signals.
   const referenceOnly=valid&&item.id.startsWith('crypto')&&
-   (data.instrument==='spot_reference'||data.aliasOnly===true);
+   (data.instrument!=='perpetual'||data.aliasOnly===true||
+    !['binance','bybit','okx'].includes(String(data.exchange||'').toLowerCase()));
   return {id:item.id,status:res.status,
    result:!valid?'INVALID_HISTORY':referenceOnly?'REFERENCE_ONLY':'PASS',
    instrument:valid?String(data.instrument||'unknown').slice(0,24):undefined,
