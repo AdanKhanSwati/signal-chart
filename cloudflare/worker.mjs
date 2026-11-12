@@ -687,7 +687,7 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
   },
   async scheduled(_controller,env,ctx){
    // Hourly Cloudflare Cron runs a disabled-by-default, publish-free scanner.
-   const task=scanner.scheduled(env);
+   const task=scanner.scheduled(env,_controller?.scheduledTime);
    if(ctx?.waitUntil)ctx.waitUntil(task);
    else await task;
   }
