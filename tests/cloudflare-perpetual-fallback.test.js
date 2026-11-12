@@ -67,12 +67,12 @@ test('Fallback to OKX actual swap contract is source-labeled, includes contract-
 test('Malformed OHLC, duplicate timestamps and empty history are rejected at both venues',async()=>{
  const {getAlternativePerpetual}=await mod;
  for(const rows of [
-  fixtures(330).map((r,i)=>i===4?[...r.slice(0,2),'999999999','0.001',...r.slice(4)]:r),
+  fixtures(330).map((r,i)=>i===4?[...r.slice(0,2),'0.001','999999999',...r.slice(4)]:r),
   fixtures(330).map((r,i)=>i===4?[...r.slice(0,1),...r.slice(1)]:r),
   fixtures(4)
  ]){
   // Force two consecutive identical timestamps in the second set.
-  if(rows.length===330&&rows[4][0]===fixtures(330)[4][0]&&rows[4][2]!=='999999999')
+  if(rows.length===330&&rows[4][0]===fixtures(330)[4][0]&&rows[4][2]!=='0.001')
    rows[4][0]=rows[3][0];
   await assert.rejects(getAlternativePerpetual('BTCUSDT','1h',{
    limit:350,minBars:260,venues:['bybit'],
@@ -117,7 +117,7 @@ test('Public chart chooses source-identified USDT perpetual before USD spot fall
 });
 test('Dry-run scanner can evaluate Bybit real-contract fixture with same-source ticker, never publishing it',async()=>{
  const {createAutoScanner}=await scanner,calls=[];
- const feed=fixtures(330),closing=Number(feed.at(-1)[4]);
+ const feed=fixtures(330),closing=Number(feed.at(-2)[4]);
  const engine=createAutoScanner({
   now:()=>NOW,cryptoSymbols:['BTCUSDT'],forexSymbols:[],
   researchHandler:async()=>json({coverage:'FULL_WEEK',checkedAt:new Date(NOW).toISOString(),events:[]}),
