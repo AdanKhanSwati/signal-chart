@@ -608,8 +608,17 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
   async fetch(request,env){
    try{
     const url=new URL(request.url);
-    if(url.pathname==='/api/auto-signals')
+    if(url.pathname==='/api/auto-signals'){
+     // Public staging-only configuration health: no market fetches, no keys,
+     // customer data, signal levels or admin actions.
+     if(request.method==='GET'&&url.searchParams.get('action')==='status')
+      return reply({mode:'STAGING_RESEARCH_DRY_RUN',
+       researchEnabled:env.SC_AUTO_RESEARCH_ENABLED==='true',
+       publicationEnabled:false,publicationRouteConfigured:false,
+       scheduledMinutesUTC:[7,8,9,10],
+       note:'No premium signals, payments or orders can be created by this scanner.'});
      return await scanner.handle(request,env);
+    }
     if(url.pathname==='/api/research')return await research(request);
     if(url.pathname==='/api/config'){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
