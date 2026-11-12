@@ -19,5 +19,9 @@
     "crons": [
       "7,8,9,10 * * * *"
     ]
+  },
+  "vars": {
+    "SC_AUTO_RESEARCH_ENABLED": "true",
+    "SC_AUTO_PUBLISH_ENABLED": "false"
   }
 }
