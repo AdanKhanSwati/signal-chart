@@ -63,7 +63,10 @@ test('Cloudflare Cron writes one append-only scan audit while leaving publicatio
  });
  let wrote=0,fetched=0;
  const fetchFn=async(url,opts)=>{
-  if(url.includes('fapi.binance.com')){fetched++;return new Response(JSON.stringify(candles))}
+  if(url.includes('/fapi/v1/klines?')){fetched++;return new Response(JSON.stringify(candles))}
+  if(url.includes('/fapi/v1/ticker/price?')){
+   fetched++;return new Response(JSON.stringify({symbol:'BTCUSDT',price:String(candles.at(-1)[4])}))
+  }
   if(url.endsWith('/rpc/sc_record_auto_scan')){
    wrote++;const data=JSON.parse(opts.body);
    assert.equal(data.p_published,0);
@@ -83,5 +86,5 @@ test('Cloudflare Cron writes one append-only scan audit while leaving publicatio
  assert.equal(run.published,0);
  assert.equal(run.qualified,1);
  assert.equal(run.auditSaved,true);
- assert.equal(wrote,1);assert.equal(fetched,1);
+ assert.equal(wrote,1);assert.equal(fetched,2);
 });
