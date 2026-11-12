@@ -298,7 +298,18 @@ function chartLatest(){
 function bind(){
  $('mc-search').addEventListener('input',e=>{state.search=e.target.value.toLowerCase().trim();state.visibleCount=24;renderWatch();$('mc-watch-list').scrollLeft=0});
  document.addEventListener('click',e=>{
-  const s=e.target.closest('[data-mc-symbol]');if(s){select(s.dataset.mcSymbol);return}
+  const s=e.target.closest('[data-mc-symbol]');if(s){
+   select(s.dataset.mcSymbol);
+   // Chart appears before the mobile picker. Return to it after selection,
+   // otherwise the visitor remains beneath the updated candles.
+   if(window.matchMedia?.('(max-width: 800px)').matches){
+    const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelector('.mc-chart-panel')?.scrollIntoView({
+     behavior:reduce?'auto':'smooth',block:'start'
+    });
+   }
+   return
+  }
    const more=e.target.closest('[data-mc-more]');if(more){state.visibleCount+=48;renderWatch();return}
   const filter=e.target.closest('[data-mc-filter]');if(filter){state.filter=filter.dataset.mcFilter;state.visibleCount=24;document.querySelectorAll('[data-mc-filter]').forEach(b=>b.classList.toggle('active',b===filter));renderWatch();$('mc-watch-list').scrollLeft=0;return}
   const interval=e.target.closest('[data-mc-int]');if(interval){state.interval=interval.dataset.mcInt;document.querySelectorAll('[data-mc-int]').forEach(b=>b.classList.toggle('active',b===interval));window.SignalChartFeed?.select(state.symbol,state.interval);loadCandles();return}
