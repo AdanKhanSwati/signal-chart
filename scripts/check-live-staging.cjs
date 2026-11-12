@@ -32,7 +32,12 @@ async function probe(item,fetchFn){
   if(item.type==='markets')return {id:item.id,status:res.status,result:Array.isArray(data.markets)&&data.markets.length>=30?'PASS':'CATALOG_INCOMPLETE',
    count:Array.isArray(data.markets)?data.markets.length:null};
   const valid=Array.isArray(data.candles)&&data.candles.length>=12&&typeof data.source==='string';
-  return {id:item.id,status:res.status,result:valid?'PASS':'INVALID_HISTORY',
+  // A USD spot reference is useful for a public chart but does not prove
+  // USDT perpetual-market coverage or suitability for automated signals.
+  const referenceOnly=valid&&item.id.startsWith('crypto')&&
+   (data.instrument==='spot_reference'||data.aliasOnly===true);
+  return {id:item.id,status:res.status,
+   result:!valid?'INVALID_HISTORY':referenceOnly?'REFERENCE_ONLY':'PASS',
    instrument:valid?String(data.instrument||'unknown').slice(0,24):undefined,
    exchange:valid?String(data.exchange||'none').slice(0,20):undefined,
    count:valid?data.candles.length:0};
