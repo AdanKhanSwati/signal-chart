@@ -30,7 +30,7 @@ function acceptRows(rows,ms,max){
    throw Error('Invalid OHLC value');
   const time=Number(r.time),open=Number(r.open),high=Number(r.high),
    low=Number(r.low),close=Number(r.close),volume=Number(r.volume);
-  if(!Number.isInteger(time)||time<1600000000000||time%ms!==0||
+  if(!Number.isInteger(time)||time<1600000000000||time%(ms===604800000?86400000:ms)!==0||
      open<=0||high<=0||low<=0||close<=0||volume<0||
      high<Math.max(open,close,low)||low>Math.min(open,close,high))
    throw Error('Malformed perpetual candle');
