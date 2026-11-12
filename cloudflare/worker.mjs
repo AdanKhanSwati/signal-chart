@@ -2,6 +2,7 @@ import {listMarkets} from './market-catalog.mjs';
 import {getCandles} from './market-candles.mjs';
 import {getForexReferences} from './forex-reference.mjs';
 import {createResearch} from './research.mjs';
+import {createAutoScanner} from './auto-scanner.mjs';
 
 /**
  * SignalChart Cloudflare Workers Free migration adapter.
@@ -602,10 +603,13 @@ function safeError(error){
 }
 export function createWorker({fetchFn=globalThis.fetch}={}){
  const research=createResearch({fetchFn});
+ const scanner=createAutoScanner({fetchFn});
  return {
   async fetch(request,env){
    try{
     const url=new URL(request.url);
+    if(url.pathname==='/api/auto-signals')
+     return await scanner.handle(request,env);
     if(url.pathname==='/api/research')return await research(request);
     if(url.pathname==='/api/config'){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
@@ -680,6 +684,12 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
     if(!env.ASSETS?.fetch)throw issue(503,'Static assets are not configured');
     return env.ASSETS.fetch(request);
    }catch(e){return safeError(e)}
+  },
+  async scheduled(_controller,env,ctx){
+   // Hourly Cloudflare Cron runs a disabled-by-default, publish-free scanner.
+   const task=scanner.scheduled(env);
+   if(ctx?.waitUntil)ctx.waitUntil(task);
+   else await task;
   }
  };
 }
