@@ -65,7 +65,7 @@ test('Cloudflare Cron writes one append-only scan audit while leaving publicatio
  const fetchFn=async(url,opts)=>{
   if(url.includes('/fapi/v1/klines?')){fetched++;return new Response(JSON.stringify(candles))}
   if(url.includes('/fapi/v1/ticker/price?')){
-   fetched++;return new Response(JSON.stringify({symbol:'BTCUSDT',price:String(candles.at(-1)[4])}))
+   fetched++;return new Response(JSON.stringify({symbol:'BTCUSDT',price:String(candles.at(-2)[4])}))
   }
   if(url.endsWith('/rpc/sc_record_auto_scan')){
    wrote++;const data=JSON.parse(opts.body);
