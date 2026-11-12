@@ -130,7 +130,7 @@ export function classifyScanError(error){
   return 'INSUFFICIENT_HISTORY';
  if(/Stale or unclosed market candle/i.test(message))return 'STALE_CANDLES';
  if(/Discontinuous recent hourly candles/i.test(message))return 'GAPPED_CANDLES';
- if(/Insufficient.*history|Incomplete.*history|No independently verified/i.test(message))
+ if(/Insufficient.*(?:history|candles)|Incomplete.*history|No independently verified/i.test(message))
   return 'INCOMPLETE_SOURCE';
  if(/Invalid|Malformed|Duplicate|OHLC/i.test(message))return 'INVALID_SOURCE';
  return 'PROVIDER_UNAVAILABLE';
