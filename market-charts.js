@@ -236,9 +236,15 @@ async function renderHostedChart(p,interval,id){
 
 async function loadCandles(){
  const symbol=state.symbol,interval=state.interval,p=lookup[symbol],id=++state.loadId;
+ const key=symbol+'|'+interval,previousBars=state.bars.length;
+ // Capture the old range BEFORE replacing bar data. A background refresh
+ // should neither snap a panned chart to the right edge nor blank its indicators.
+ const keepCurrent=!!(state.chartKey===key&&previousBars&&(state.chart||state.chartEngine));
+ const range=keepCurrent?state.chart?.timeScale?.().getVisibleLogicalRange?.()||null:null;
+ const follow=range?range.to>=previousBars-7:true;
  state.abort?.abort();state.abort=new AbortController();
  $('mc-chart-loading').textContent='Loading '+p.label+' candlesticks…';$('mc-chart-loading').hidden=false;
- state.bars=[];showIndicators();
+ if(!keepCurrent){state.bars=[];showIndicators()}
  try{
   const url='/api/candles?market='+p.type+'&symbol='+encodeURIComponent(symbol)+'&interval='+interval;
   const res=await fetch(url,{cache:'no-store',signal:state.abort.signal});if(!res.ok)throw Error('Historical candles unavailable ('+res.status+'). Try another pair or refresh.');
@@ -247,8 +253,7 @@ async function loadCandles(){
   const validBars=(data.candles||[]).filter(b=>[b.time,b.open,b.high,b.low,b.close].every(valid)).map(b=>({time:n(b.time),open:n(b.open),high:n(b.high),low:n(b.low),close:n(b.close),volume:n(b.volume)||0})).sort((a,b)=>a.time-b.time);
   const unique=[];for(const bar of validBars){if(unique.at(-1)?.time===bar.time)unique[unique.length-1]=bar;else unique.push(bar)}
   if(unique.length<12)throw Error('Insufficient candle history for this period');
-  const key=symbol+'|'+interval,same=state.chartKey===key&&(state.chart||state.chartEngine);
-  const range=state.chart?.timeScale?.().getVisibleLogicalRange?.()||null,follow=range?range.to>=state.bars.length-7:true;
+  const same=keepCurrent;
   state.bars=unique;state.candleSource={symbol,source:data.source,instrument:data.instrument||null,exchange:data.exchange||null};
    const latest=unique.at(-1),latestAt=new Date(latest.time*1000).toISOString();
    const existing=state.quotes[symbol];
@@ -275,6 +280,13 @@ async function loadCandles(){
    (data.instrument==='spot_reference'?'USD spot reference · ':data.instrument==='spot'?'Spot OHLC · ':'Candle ')+safeTime(unique.at(-1).time*1000);
   $('mc-chart-loading').hidden=true;
  }catch(e){if(e.name==='AbortError'||id!==state.loadId)return;
+  // A brief exchange outage must not erase a chart we already fetched
+  // successfully. Clearly label the retained history as not freshly verified.
+  if(keepCurrent&&state.chartKey===key&&state.bars.length&&(state.chart||state.chartEngine)){
+   $('mc-chart-loading').hidden=true;
+   $('mc-chart-updated').textContent='Previous candles retained · refresh unavailable';
+   return;
+  }
   clearChart();$('mc-chart-loading').hidden=false;
   $('mc-chart-loading').textContent=e.message||'Chart unavailable';
   $('mc-chart-updated').textContent='Direct OHLC source unavailable';showIndicators();
