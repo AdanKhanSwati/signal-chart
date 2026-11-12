@@ -20,7 +20,7 @@ test('Healthy research staging still requires launch gates to be passed independ
   if(url.includes('/api/markets'))return response({markets:Array.from({length:75},()=>({symbol:'BTCUSDT'}))});
   if(url.includes('/api/candles'))return response({source:'Bybit USDT linear perpetual',instrument:'perpetual',exchange:'bybit',
    candles:Array.from({length:24},()=>({time:1700000000,open:1,high:1,low:1,close:1}))});
-  return response('<html><title>SignalChart</title><h1>Know the market.</h1></html>',200,'text/html');
+  return response('<html><title>SignalChart</title><h1>See the market.</h1></html>',200,'text/html');
  }});
  assert.equal(r.verdict,'PUBLIC_SMOKE_PASSED');
  assert.equal(r.passed,endpoints.length);
