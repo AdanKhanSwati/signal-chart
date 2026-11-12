@@ -23,6 +23,8 @@ export function scanAuditPayload(report){
   p_published:0,p_errors:errors,
   p_metadata:{mode:'cloudflare_dry_run',strategy:'sc-hourly-ema-breakout-v1',
    published:false,feedStatus:report?.status||'ERROR',
+   scanHour:/^\d{4}-\d{2}-\d{2}T\d{2}:00:00\.000Z$/.test(String(report?.hourKey||''))?report.hourKey:null,
+   shard:Number.isInteger(report?.slot)&&report.slot>=0&&report.slot<=3?report.slot:null,
    counts:Object.fromEntries(Object.entries(report?.counts||{}).filter(
     ([name,count])=>/^[A-Z_]{1,36}$/.test(name)&&
      Number.isInteger(count)&&count>=0&&count<=200))
