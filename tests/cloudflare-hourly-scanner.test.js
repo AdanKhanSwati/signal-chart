@@ -7,9 +7,9 @@ const path=require('node:path');
 const mod=import(pathToFileURL(path.resolve(__dirname,'../cloudflare/auto-scanner.mjs')).href);
 const strategy=import(pathToFileURL(path.resolve(__dirname,'../cloudflare/signal-strategy.mjs')).href);
 const legacy=require('../lib/sc-auto-engine');
-const NOW=Date.UTC(2026,10,12,19,7,0),H=3600000,SECRET='a'.repeat(40);
+const NOW=Date.UTC(2026,10,12,19,8,0),H=3600000,SECRET='a'.repeat(40);
 const url='https://signalchart.staging.example/api/auto-signals';
-function candles(now=NOW,n=340){
+function candles(now=NOW,n=330){
  const aligned=Math.floor((now-8*60000)/H)*H,first=aligned-(n-1)*H;
  return Array.from({length:n},(_,i)=>{
   const close=100+.06*i+Math.sin(i*1.25)*.38;
