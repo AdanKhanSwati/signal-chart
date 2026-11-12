@@ -268,7 +268,7 @@ async function installPush(){
  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))throw Error('Push notifications are unavailable in this browser.');
  const data=await call('vapid');if(!data.enabled)throw Error('Push service is not configured.');
  const permission=await Notification.requestPermission();if(permission!=='granted')throw Error('Enable notifications in Android Chrome settings.');
- const worker=await navigator.serviceWorker.register('/ops-sw.js',{scope:'/'});
+ const worker=await navigator.serviceWorker.register('/ops-sw.js',{scope:'/ops.html'});
  await navigator.serviceWorker.ready;
  const key=data.publicKey.replace(/-/g,'+').replace(/_/g,'/'),raw=atob(key+'='.repeat((4-key.length%4)%4)),bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));
  const sub=await worker.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});
@@ -280,7 +280,7 @@ async function installPush(){
 async function testPush(){
  if(!('serviceWorker'in navigator)||!('Notification'in window))throw Error('Notifications require an Android browser with permission enabled.');
  if(Notification.permission!=='granted')throw Error('Grant notification permission before testing.');
- await navigator.serviceWorker.register('/ops-sw.js',{scope:'/'});
+ await navigator.serviceWorker.register('/ops-sw.js',{scope:'/ops.html'});
  const reg=await navigator.serviceWorker.ready;
  await reg.showNotification('SignalChart Ops · device test',{body:'Device notification displayed. Server-side payment push must be tested separately.',icon:'/ops-icon.svg',data:{url:'/ops.html'},tag:'local-device-test'});
  return {sent:1};
