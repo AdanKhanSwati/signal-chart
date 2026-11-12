@@ -17,8 +17,12 @@ async function loadMarkets(){
    // Binance WebSocket update on the same mobile screen.
    const field=$('app-price-'+short),change=$('app-change-'+short);
    if(field.dataset.streamLive==='true'&&window.SignalChartFeed?.state?.connected)return data.source;
+   const quoteCurrency=String(data.quoteCurrency||'USDT');
+   $('app-market-'+short).textContent=short+' / '+quoteCurrency;
+   $('app-provider-'+short).textContent=(data.instrument==='perpetual'?'Futures':
+    data.instrument==='spot'?'Spot':'Spot reference')+' · '+String(data.exchange||data.source).slice(0,30);
    field.textContent=price.toLocaleString('en-US',
-    {minimumFractionDigits:price<10?4:2,maximumFractionDigits:price<10?4:2})+' '+(data.quoteCurrency||'USDT');
+    {minimumFractionDigits:price<10?4:2,maximumFractionDigits:price<10?4:2})+' '+quoteCurrency;
    const baseline=bars.findLast(b=>Number(b.time)<=stamp-24*3600&&Number(b.time)>=stamp-26*3600);
    const previous=Number(baseline?.close);
    if(previous>0){
@@ -34,6 +38,7 @@ async function loadMarkets(){
    if($('app-price-'+short).dataset.streamLive!=='true'){
     $('app-price-'+short).textContent='—';
     $('app-change-'+short).textContent='Market source unavailable';
+    $('app-provider-'+short).textContent='No verified quote';
    }
    throw Error('Market source unavailable');
   }finally{clearTimeout(timeout)}

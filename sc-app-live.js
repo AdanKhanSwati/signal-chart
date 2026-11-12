@@ -7,7 +7,11 @@ window.addEventListener('signalchart:tick',event=>{
   const item=updates[symbol];if(!(Number(item?.price)>0))continue;
   const out=$('app-price-'+short),changeEl=$('app-change-'+short);
   if(!out||!changeEl)continue;
-  out.textContent='$'+fmt(item.price,item.price<10?4:2);
+  out.dataset.streamLive='true';
+  const pair=$('app-market-'+short),provider=$('app-provider-'+short);
+  if(pair)pair.textContent=short+' / USDT';
+  if(provider)provider.textContent='Binance Futures · live ticker';
+  out.textContent=fmt(item.price,item.price<10?4:2)+' USDT';
   const change=Number(item.changePercent)||0;
   changeEl.textContent=(change>0?'+':'')+fmt(change,2)+'% 24h';
   changeEl.classList.toggle('down',change<0);
