@@ -14,5 +14,10 @@
   "observability": {
     "enabled": false
   },
-  "keep_vars": true
+  "keep_vars": true,
+  "triggers": {
+    "crons": [
+      "7 * * * *"
+    ]
+  }
 }
