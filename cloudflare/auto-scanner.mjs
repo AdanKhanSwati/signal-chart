@@ -121,12 +121,28 @@ async function forexBars(symbol,fetchFn){
  if(!found)throw Error('Indicative FX history unavailable');
  return found.value;
 }
+export const SCAN_MINUTES=Object.freeze([7,8,9,10]);
+export function selectCronShard(scheduledTime,cryptoSymbols=CRYPTO,forexSymbols=Object.keys(FX)){
+ if(!Number.isFinite(scheduledTime)||scheduledTime<1600000000000)
+  return {valid:false,slot:-1,markets:[]};
+ const at=new Date(scheduledTime),slot=SCAN_MINUTES.indexOf(at.getUTCMinutes());
+ if(slot<0)return {valid:false,slot:-1,markets:[]};
+ const markets=[
+  ...cryptoSymbols.map(symbol=>({market:'crypto',symbol})),
+  ...forexSymbols.map(symbol=>({market:'forex',symbol}))
+ ];
+ const selected=markets.filter((_,i)=>i%SCAN_MINUTES.length===slot);
+ return {valid:true,slot,markets:selected,
+  hourKey:new Date(Date.UTC(at.getUTCFullYear(),at.getUTCMonth(),
+   at.getUTCDate(),at.getUTCHours(),0,0)).toISOString()};
+}
+
 export function createAutoScanner({
  fetchFn=globalThis.fetch,now=Date.now,cryptoImpl=globalThis.crypto,
  researchHandler=null,cryptoSymbols=CRYPTO,forexSymbols=Object.keys(FX)
 }={}){
  const research=researchHandler||createResearch({fetchFn,now});
- async function run(){
+ async function run({symbols:nullOrSymbols=null}={}){
   const at=now();
   const calendarResponse=await research(
    new Request('https://scanner.internal/api/research?mode=calendar&symbol=BTCUSDT'));
@@ -140,7 +156,7 @@ export function createAutoScanner({
    return {status:'BLOCKED_NEWS_DATA',dryRun:true,published:0,
     scanned:0,qualified:0,counts:{NEWS_UNVERIFIED:0},
     strategy:STRATEGY,checkedAt:new Date(at).toISOString()};
-  const symbols=[
+  const symbols=nullOrSymbols||[
    ...cryptoSymbols.map(symbol=>({market:'crypto',symbol})),
    ...forexSymbols.map(symbol=>({market:'forex',symbol}))
   ];
@@ -196,24 +212,32 @@ export function createAutoScanner({
    return reply({error:'Automated research unavailable; no signals published'},503);
   }
  }
- async function scheduled(env){
-  // Cloudflare scheduled events never unlock paid content or auto-publish.
-  // An unconfigured staging Worker performs NO network or database work.
+ async function scheduled(env,scheduledTime){
+  // Cloudflare Workers Free has a strict 10ms per-Cron CPU budget.
+  // Four tiny, disjoint shards run at minutes 7/8/9/10 after the hour.
+  // Invalid/ad-hoc scheduled events perform no network or database work.
   if(env?.SC_AUTO_RESEARCH_ENABLED!=='true')return {status:'DISABLED',published:0};
+  const shard=selectCronShard(scheduledTime,cryptoSymbols,forexSymbols);
+  if(!shard.valid||!shard.markets.length)return {status:'IGNORED_SCHEDULE',published:0};
   try{
-   const result=await run();
-   const audit=await saveDryRunAudit(fetchFn,env,result);
-   console.info('SignalChart hourly DRY RUN',JSON.stringify({
+   const result=await run({symbols:shard.markets});
+   const audit=await saveDryRunAudit(fetchFn,env,{
+    ...result,slot:shard.slot,hourKey:shard.hourKey
+   });
+   console.info('SignalChart sharded hourly DRY RUN',JSON.stringify({
+    hourKey:shard.hourKey,slot:shard.slot,
     status:result.status,scanned:result.scanned,
     qualified:result.qualified,published:0,counts:result.counts,
     auditSaved:audit.saved
    }));
-   return {...result,auditSaved:audit.saved};
+   return {...result,slot:shard.slot,hourKey:shard.hourKey,
+    auditSaved:audit.saved};
   }catch{
    // An audit failure must never become a permission to publish.
-   const failure={status:'ERROR',scanned:0,qualified:0,published:0,counts:{}};
+   const failure={status:'ERROR',scanned:0,qualified:0,published:0,counts:{},
+    slot:shard.slot,hourKey:shard.hourKey};
    await saveDryRunAudit(fetchFn,env,failure);
-   console.warn('SignalChart hourly research source check failed; no signals published');
+   console.warn('SignalChart sharded research check failed; no signals published');
    return failure;
   }
  }
