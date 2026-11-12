@@ -9,6 +9,7 @@ import {createResearch} from './research.mjs';
 import {evaluate,CRYPTO,FX,STRATEGY} from './signal-strategy.mjs';
 import {saveDryRunAudit} from './scan-audit.mjs';
 import {getAlternativePerpetual,getPerpetualTicker} from './perpetual-sources.mjs';
+import {readWeeklyCalendar} from './calendar-bridge.mjs';
 
 const HOUR=3600000,MAX_RESPONSE=2200000,MAX_AGE=20*60000;
 const reply=(payload,status=200)=>new Response(JSON.stringify(payload),{
@@ -39,7 +40,7 @@ export async function verifyScanSignature(request,env,{
  }catch{return false}
 }
 function calendarRisk(calendar,symbol,at){
- if(calendar?.coverage!=='FULL_WEEK')return 'NEWS_UNVERIFIED';
+ if(!['FULL_WEEK','SINGLE_SOURCE_WEEKLY'].includes(calendar?.coverage))return 'NEWS_UNVERIFIED';
  const relevant=symbol.endsWith('USDT')?['USD']:
   [symbol.slice(0,3),symbol.slice(3,6),'USD'];
  for(const event of calendar.events||[]){
@@ -142,13 +143,21 @@ export function createAutoScanner({
  researchHandler=null,cryptoSymbols=CRYPTO,forexSymbols=Object.keys(FX)
 }={}){
  const research=researchHandler||createResearch({fetchFn,now});
- async function run({symbols:nullOrSymbols=null}={}){
+ async function run({symbols:nullOrSymbols=null,env=null}={}){
   const at=now();
-  const calendarResponse=await research(
-   new Request('https://scanner.internal/api/research?mode=calendar&symbol=BTCUSDT'));
-  if(!calendarResponse.ok)throw Error('Economic calendar unavailable');
-  const calendar=await calendarResponse.json();
-  if(calendar?.coverage!=='FULL_WEEK'||
+  // A private Supabase pg_net cache can recover a weekly event feed that is
+  // inaccessible directly from this Cloudflare edge. It remains ONE source.
+  // This is sufficient for dry-run research, NEVER for a premium publication.
+  let calendar=null;
+  if(!researchHandler&&env)
+   calendar=await readWeeklyCalendar(fetchFn,env,{now});
+  if(!calendar){
+   const calendarResponse=await research(
+    new Request('https://scanner.internal/api/research?mode=calendar&symbol=BTCUSDT'));
+   if(!calendarResponse.ok)throw Error('Economic calendar unavailable');
+   calendar=await calendarResponse.json();
+  }
+  if(!['FULL_WEEK','SINGLE_SOURCE_WEEKLY'].includes(calendar?.coverage)||
      !Array.isArray(calendar.events)||
      !Number.isFinite(Date.parse(calendar.checkedAt))||
      at-Date.parse(calendar.checkedAt)>MAX_AGE||
@@ -184,7 +193,8 @@ export function createAutoScanner({
      catch{return {...item,status:'TICKER_UNAVAILABLE'}}
      if(Math.abs(price-candidate.entry)>candidate.atr*.20)
       return {...item,status:'PRICE_DRIFT'};
-     return {...item,status:'CANDIDATE_UNPUBLISHED'};
+     return {...item,status:calendar.coverage==='FULL_WEEK'?
+      'CANDIDATE_UNPUBLISHED':'CANDIDATE_NEWS_UNVERIFIED'};
     }catch{return {...item,status:'DATA_UNAVAILABLE'}}
    })));
   }
@@ -192,6 +202,8 @@ export function createAutoScanner({
   for(const row of rows)counts[row.status]=(counts[row.status]||0)+1;
   return {status:counts.DATA_UNAVAILABLE?'PARTIAL_DATA':'SCAN_COMPLETED',
    dryRun:true,published:0,qualified:counts.CANDIDATE_UNPUBLISHED||0,
+   researchOnlyCandidates:counts.CANDIDATE_NEWS_UNVERIFIED||0,
+   newsCoverage:calendar.coverage,publicationReady:false,
    scanned:rows.length,counts,strategy:STRATEGY,
    checkedAt:new Date(at).toISOString(),
    sources:{crypto:'Exchange-specific Binance, Bybit or OKX closed USDT perpetual candles',
@@ -206,7 +218,7 @@ export function createAutoScanner({
   if(env?.SC_AUTO_RESEARCH_ENABLED!=='true')
    return reply({error:'Automated research staging is not enabled'},503);
   try{
-   const result=await run();
+   const result=await run({env});
    return reply(result,result.status==='BLOCKED_NEWS_DATA'?503:200);
   }catch{
    return reply({error:'Automated research unavailable; no signals published'},503);
@@ -220,7 +232,7 @@ export function createAutoScanner({
   const shard=selectCronShard(scheduledTime,cryptoSymbols,forexSymbols);
   if(!shard.valid||!shard.markets.length)return {status:'IGNORED_SCHEDULE',published:0};
   try{
-   const result=await run({symbols:shard.markets});
+   const result=await run({symbols:shard.markets,env});
    const audit=await saveDryRunAudit(fetchFn,env,{
     ...result,slot:shard.slot,hourKey:shard.hourKey
    });
