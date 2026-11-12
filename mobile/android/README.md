@@ -11,7 +11,7 @@ Both default to `https://signal-chart.auxwork3.workers.dev`. Release application
 
 ## Build
 
-Use JDK 17, Gradle 8.11.1 and Android SDK 36 with build-tools 35.0.0:
+Requires Android 7.0 (API 24) or newer. Use JDK 17, Gradle 8.11.1 and Android SDK 36 with build-tools 35.0.0:
 
 ```sh
 cd mobile/android
