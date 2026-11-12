@@ -64,3 +64,28 @@ test('Append-only audit identifies the correct UTC hour and batch, never include
  assert.equal(malicious.p_metadata.shard,null);
  assert.deepEqual(malicious.p_metadata.counts,{NO_SETUP:1});
 });
+
+
+test('Public staging scanner status proves Cron flag without leaking privileged keys or enabling publication',async()=>{
+ const {pathToFileURL}=require('node:url');
+ const workerModule=await import(pathToFileURL(path.resolve(__dirname,'../cloudflare/worker.mjs')).href);
+ let upstream=0;
+ const worker=workerModule.createWorker({fetchFn:async()=>{upstream++;throw Error('Status must stay offline')}});
+ const url='https://staging.example.test/api/auto-signals?action=status';
+ const active=await worker.fetch(new Request(url),{
+  SC_AUTO_RESEARCH_ENABLED:'true',SC_AUTO_PUBLISH_ENABLED:'true',
+  SUPABASE_SECRET_KEY:'sb_secret_'+'z'.repeat(40)
+ });
+ assert.equal(active.status,200);
+ const body=await active.json();
+ assert.equal(body.mode,'STAGING_RESEARCH_DRY_RUN');
+ assert.equal(body.researchEnabled,true);
+ assert.equal(body.publicationEnabled,false);
+ assert.equal(body.publicationRouteConfigured,false);
+ assert.deepEqual(body.scheduledMinutesUTC,[7,8,9,10]);
+ assert.doesNotMatch(JSON.stringify(body),/sb_secret_|signing|password/);
+ const disabled=await (await worker.fetch(new Request(url),{})).json();
+ assert.equal(disabled.researchEnabled,false);
+ assert.equal(disabled.publicationEnabled,false);
+ assert.equal(upstream,0);
+});
