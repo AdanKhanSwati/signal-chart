@@ -28,14 +28,28 @@ function logoAsset(p){
  }
  return el
 }
+// Keep both asset classes discoverable in a bounded mobile watchlist.
+ // Don't let hundreds of futures contracts bury the forex directory.
+function balancedMarkets(markets,max){
+ const limit=Math.max(0,Math.floor(max));
+ if(markets.length<=limit)return markets.slice();
+ const crypto=markets.filter(p=>p.type==='crypto');
+ const forex=markets.filter(p=>p.type==='forex');
+ if(!crypto.length||!forex.length)return markets.slice(0,limit);
+ const forexSlots=Math.min(forex.length,Math.floor(limit/2));
+ const cryptoSlots=Math.min(crypto.length,limit-forexSlots);
+ const remainingForex=Math.min(forex.length,limit-cryptoSlots);
+ return [...crypto.slice(0,cryptoSlots),...forex.slice(0,remainingForex)];
+}
 function renderWatch(){
  const root=$('mc-watch-list'),x=root.scrollLeft,y=root.scrollTop;
  root.replaceChildren();
  const filtered=pairs.filter(p=>(state.filter==='all'||p.type===state.filter)&&(!state.search||(p.label+' '+p.short+' '+p.s).toLowerCase().includes(state.search)));
  const countLabel=document.querySelector('.mc-instruments .mc-panel-heading small');
  if(countLabel)countLabel.textContent=pairs.length.toLocaleString()+' markets';
+ const limit=state.search?Math.max(100,state.visibleCount):state.visibleCount;
  let group='';
- for(const p of filtered.slice(0,state.search?Math.max(100,state.visibleCount):state.visibleCount)){
+ for(const p of balancedMarkets(filtered,limit)){
   if(p.type!==group){group=p.type;root.append(child('div','mc-watch-group',p.type==='crypto'?'CRYPTO MARKETS':'FOREX PAIRS'))}
   const button=child('button','mc-watch-row'+(p.s===state.symbol?' active':''));button.type='button';button.dataset.mcSymbol=p.s;button.setAttribute('aria-pressed',String(p.s===state.symbol));
   const left=child('span','mc-watch-left'),right=child('span','mc-watch-right');
@@ -44,7 +58,6 @@ function renderWatch(){
   button.append(left,right);root.append(button);
  }
  if(!filtered.length)root.append(child('p','', 'No matching markets.'));
- const limit=state.search?Math.max(100,state.visibleCount):state.visibleCount;
  if(filtered.length>limit){const more=child('button','mc-watch-more','Show more · '+(filtered.length-limit).toLocaleString()+' remaining');more.type='button';more.dataset.mcMore='true';root.append(more)}
  // Preserve the user's horizontal position while switching symbols or
  // receiving catalog updates; avoid repeated snapping back to the first coin.
@@ -71,7 +84,9 @@ function updateVisibleMarketPrices(){
 }
 function renderTable(){
  const tbody=$('mc-market-rows');tbody.replaceChildren();
- for(const p of pairs.slice(0,80)){
+ // The summary stays bounded, but includes both FX and crypto even when
+ // exchange listings contain hundreds of crypto instruments.
+ for(const p of balancedMarkets(pairs,80)){
   const tr=document.createElement('tr'),quote=state.quotes[p.s],fields=[p.label,p.type==='crypto'?'Crypto':'Forex',fmt(quote?.price,p.d),status(p,quote)];
   tr.dataset.marketSymbol=p.s;
   for(const [i,v] of fields.entries()){
