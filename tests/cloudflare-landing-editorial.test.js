@@ -14,6 +14,10 @@ test('SignalChart landing matches approved sans-serif luxury composition and sho
  assert.match(globe,/world markets globe/);
  assert.match(globe,/#ed8f39/);
  assert.match(globe,/clip-path="url\(#sphere\)"/);
+ assert.ok(JSON.parse(read('cloudflare/public-assets.json')).files.includes('signalchart-hero.svg'));
+ assert.match(read('launch.css'),/url\('\/signalchart-hero\.svg'\)/);
+ assert.match(read('signalchart-hero.svg'),/data:image\/jpeg;base64,/);
+ 
 });
 test('Four market price cards are translucent and only use provider prices',()=>{
  const html=read('launch.html'),css=read('launch.css'),js=read('launch.js');
