@@ -146,7 +146,7 @@ export async function getCandles(request,{fetchFn=globalThis.fetch,now=Date.now}
  const key=market+':'+symbol+':'+interval;
  const saved=CACHE.get(key);
  if(saved&&saved.expires>now())return response(saved.data,saved.status||200);
- let bars=[],source='',instrument='indicative_fx',quoteCurrency=null,aliasOnly=false;
+ let bars=[],source='',instrument='indicative_fx',exchange=null,quoteCurrency=null,aliasOnly=false;
  try{
   if(market==='crypto'){
    const exchangeRows=raw=>{
@@ -161,7 +161,7 @@ export async function getCandles(request,{fetchFn=globalThis.fetch,now=Date.now}
      encodeURIComponent(symbol)+'&interval='+encodeURIComponent(interval)+'&limit=240'));
     if(bars.length<5)throw Error('Empty futures candle feed');
     source='Binance USD-M perpetual futures';
-    instrument='perpetual';
+    instrument='perpetual';exchange='binance';
    }catch{
     try{
      // Bybit/OKX USDT perpetuals are separate, explicitly named venues.
@@ -175,7 +175,7 @@ export async function getCandles(request,{fetchFn=globalThis.fetch,now=Date.now}
      })));
      if(bars.length<5)throw Error('Incomplete independent futures chart');
      source=independent.source;
-     instrument='perpetual';
+     instrument='perpetual';exchange=independent.exchange;
     }catch{
      try{
       bars=exchangeRows(await provider(fetchFn,
@@ -183,13 +183,13 @@ export async function getCandles(request,{fetchFn=globalThis.fetch,now=Date.now}
        encodeURIComponent(symbol)+'&interval='+encodeURIComponent(interval)+'&limit=240'));
       if(bars.length<5)throw Error('Empty spot candle feed');
       source='Binance Spot price history (NOT futures)';
-      instrument='spot';
+      instrument='spot';exchange='binance';
      }catch{
       // Coinbase uses USD, NOT USDT/USDC.
       bars=await coinbaseSpot(fetchFn,symbol,interval)||[];
       if(bars.length<5)throw Error('No verified chart provider available');
       source='Coinbase Exchange USD spot reference (NOT USDT/USDC futures)';
-      instrument='spot_reference';
+      instrument='spot_reference';exchange='coinbase';
       quoteCurrency='USD';
       aliasOnly=true;
      }
@@ -202,7 +202,7 @@ export async function getCandles(request,{fetchFn=globalThis.fetch,now=Date.now}
    try{
     bars=await algoForex(fetchFn,symbol,interval,now);
     source='AlgoSpecial historical broker FX (not a live executable quote)';
-    instrument='historical_fx';
+    instrument='historical_fx';exchange='algospecial';
    }catch{
     // Query1 and Query2 often fail together on Cloudflare edges. Probe both
     // concurrently (maximum one provider timeout) instead of serial waits.
@@ -224,12 +224,12 @@ export async function getCandles(request,{fetchFn=globalThis.fetch,now=Date.now}
      })
     );
     const available=checks.find(x=>x.status==='fulfilled');
-    if(available){bars=available.value;source='Yahoo Finance indicative FX chart';instrument='indicative_fx'}
+    if(available){bars=available.value;source='Yahoo Finance indicative FX chart';instrument='indicative_fx';exchange='yahoo'}
    }
   }
   if(bars.length<5)throw Error('Insufficient candles');
   const result={
-   market,symbol,interval,source,instrument,
+   market,symbol,interval,source,instrument,exchange,
    quoteCurrency:quoteCurrency||(market==='crypto'?symbol.endsWith('USDC')?'USDC':'USDT':null),
    quoteBasis:market==='forex'?'Indicative OHLC; not broker-executable':
     instrument==='perpetual'?'Futures traded-market OHLC':
