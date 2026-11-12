@@ -80,15 +80,19 @@ test('Signed read-only scan checks source-real closed futures and withholds all 
  const {createAutoScanner}=await mod;
  let fetched=0;
  const scanner=createAutoScanner({fetchFn:async uri=>{
-  fetched++;assert.match(uri,/^https:\/\/fapi\.binance\.com\/fapi\/v1\/klines\?symbol=BTCUSDT/);
-  return upstream();
+  fetched++;
+  if(uri.includes('/fapi/v1/klines?'))return upstream();
+  if(uri.includes('/fapi/v1/ticker/price?'))
+   return new Response(JSON.stringify({symbol:'BTCUSDT',
+    price:String(candles().at(-1)[4])}));
+  throw Error('Unknown futures URL');
  },researchHandler:calendar(),now:()=>NOW,cryptoImpl:webcrypto,
  cryptoSymbols:['BTCUSDT'],forexSymbols:[]});
  const env={SC_AUTO_CRON_SECRET:SECRET,SC_AUTO_RESEARCH_ENABLED:'true'};
  const response=await scanner.handle(req(),env);
  assert.equal(response.status,200);
  const obj=await response.json();
- assert.equal(fetched,1);
+ assert.equal(fetched,2,'Qualifying setup requires a same-venue futures ticker');
  assert.equal(obj.dryRun,true);assert.equal(obj.published,0);
  assert.equal(obj.qualified,1);assert.equal(obj.scanned,1);
  assert.equal(obj.results[0].status,'CANDIDATE_UNPUBLISHED');
