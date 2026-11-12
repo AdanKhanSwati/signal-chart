@@ -34,7 +34,7 @@ test('Service-role-key audit sends only a server-to-server RPC and no customer d
   assert.equal(data.p_published,0);
   assert.equal(data.p_status,'COMPLETED');
   assert.deepEqual(data.p_metadata.counts,{NO_SETUP:1});
-  return new Response('',{status:204});
+  return new Response(null,{status:204});
  },env,{status:'SCAN_COMPLETED',scanned:1,qualified:0,counts:{NO_SETUP:1}});
  assert.deepEqual(r,{saved:true});
  assert.equal(calls,1);
@@ -70,7 +70,7 @@ test('Cloudflare Cron writes one append-only scan audit while leaving publicatio
    assert.equal(data.p_qualified,1);
    assert.equal(data.p_status,'COMPLETED');
    assert.equal(opts.headers.apikey,secret);
-   return new Response('',{status:204});
+   return new Response(null,{status:204});
   }
   throw Error('Unknown target');
  };
