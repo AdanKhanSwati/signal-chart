@@ -41,6 +41,7 @@ test('Ticker updates do not replace images or destroy the horizontally scrolled 
  assert.match(js,/\.mc-watch-row\[data-mc-symbol\]/);
  assert.match(js,/tr\.dataset\.marketSymbol=p\.s/);
  assert.match(js,/id="mc-browse-markets"|const browse=\$\('mc-browse-markets'\)/);
+ assert.match(js,/document\.querySelector\('\.mc-chart-panel'\)\?\.scrollIntoView/);
  const tick=js.slice(js.indexOf("window.addEventListener('signalchart:tick'"),js.indexOf("window.addEventListener('signalchart:kline'"));
  assert.doesNotMatch(tick,/renderWatch\(\)/);
 });
