@@ -122,6 +122,20 @@ async function forexBars(symbol,fetchFn){
  if(!found)throw Error('Indicative FX history unavailable');
  return found.value;
 }
+export function classifyScanError(error){
+ // Bounded diagnostic codes only: no upstream HTTP payload, credentials,
+ // symbol-level prices, stack traces or user data enter scan audit rows.
+ const message=String(error?.message||'');
+ if(/Not enough verified completed candles|Insufficient completed four-hour trend data/i.test(message))
+  return 'INSUFFICIENT_HISTORY';
+ if(/Stale or unclosed market candle/i.test(message))return 'STALE_CANDLES';
+ if(/Discontinuous recent hourly candles/i.test(message))return 'GAPPED_CANDLES';
+ if(/Insufficient.*history|Incomplete.*history|No independently verified/i.test(message))
+  return 'INCOMPLETE_SOURCE';
+ if(/Invalid|Malformed|Duplicate|OHLC/i.test(message))return 'INVALID_SOURCE';
+ return 'PROVIDER_UNAVAILABLE';
+}
+
 export const SCAN_MINUTES=Object.freeze([7,8,9,10]);
 export function selectCronShard(scheduledTime,cryptoSymbols=CRYPTO,forexSymbols=Object.keys(FX)){
  if(!Number.isFinite(scheduledTime)||scheduledTime<1600000000000)
@@ -181,21 +195,22 @@ export function createAutoScanner({
        bars:await forexBars(item.symbol,fetchFn)};
      const candidate=evaluate(item.symbol,item.market,feed.bars,at);
      if(candidate.status!=='CANDIDATE')
-      return {...item,status:'NO_SETUP'};
+      return {...item,status:'NO_SETUP',source:feed.source};
      const risk=calendarRisk(calendar,item.symbol,at);
-     if(risk)return {...item,status:risk};
-     if(item.market==='forex')return {...item,status:'INDICATIVE_ONLY'};
+     if(risk)return {...item,status:risk,source:feed.source};
+     if(item.market==='forex')return {...item,status:'INDICATIVE_ONLY',source:feed.source};
      // A closed-candle entry can drift significantly before the scanner runs.
      // A candidate is not qualified until the SAME exchange's current trade
      // price agrees with its completed-candle entry within 0.20 ATR.
      let price;
      try{price=await exchangePrice(feed,item.symbol,fetchFn)}
-     catch{return {...item,status:'TICKER_UNAVAILABLE'}}
+     catch{return {...item,status:'TICKER_UNAVAILABLE',source:feed.source}}
      if(Math.abs(price-candidate.entry)>candidate.atr*.20)
-      return {...item,status:'PRICE_DRIFT'};
+      return {...item,status:'PRICE_DRIFT',source:feed.source};
      return {...item,status:calendar.coverage==='FULL_WEEK'?
-      'CANDIDATE_UNPUBLISHED':'CANDIDATE_NEWS_UNVERIFIED'};
-    }catch{return {...item,status:'DATA_UNAVAILABLE'}}
+      'CANDIDATE_UNPUBLISHED':'CANDIDATE_NEWS_UNVERIFIED',source:feed.source};
+    }catch(error){return {...item,status:'DATA_UNAVAILABLE',
+     diagnostic:classifyScanError(error)}}
    })));
   }
   const counts={};
@@ -209,7 +224,10 @@ export function createAutoScanner({
    sources:{crypto:'Exchange-specific Binance, Bybit or OKX closed USDT perpetual candles',
     forex:'Yahoo historical indicative data — ineligible for publication'},
    // Deliberately omit candidate levels, sides, private analysis and evidence.
-   results:rows.map(({symbol,market,status})=>({symbol,market,status}))};
+   results:rows.map(({symbol,market,status,source,diagnostic})=>({
+    symbol,market,status,...(source?{source}:{}),
+    ...(diagnostic?{diagnostic}:{})
+   }))};
  }
  async function handle(request,env){
   if(request.method!=='POST')return reply({error:'POST only'},405);
