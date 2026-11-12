@@ -5,6 +5,7 @@
  * candle data. Limits and in-isolate caching protect free-tier resources.
  */
 import {FOREX} from './market-catalog.mjs';
+import {getAlternativePerpetual} from './perpetual-sources.mjs';
 const SPECIAL={
  USDJPY:'JPY=X',USDCHF:'CHF=X',USDCAD:'CAD=X',USDSGD:'SGD=X',
  USDHKD:'HKD=X',USDNOK:'NOK=X',USDSEK:'SEK=X',USDCNH:'CNH=X',
@@ -163,21 +164,35 @@ export async function getCandles(request,{fetchFn=globalThis.fetch,now=Date.now}
     instrument='perpetual';
    }catch{
     try{
-     bars=exchangeRows(await provider(fetchFn,
-      'https://data-api.binance.vision/api/v3/klines?symbol='+
-      encodeURIComponent(symbol)+'&interval='+encodeURIComponent(interval)+'&limit=240'));
-     if(bars.length<5)throw Error('Empty spot candle feed');
-     source='Binance Spot price history (NOT futures)';
-     instrument='spot';
+     // Bybit/OKX USDT perpetuals are separate, explicitly named venues.
+     // Prefer real perpetual candles to mislabeled spot references.
+     const independent=await getAlternativePerpetual(symbol,interval,{
+      fetchFn,limit:240,minBars:5
+     });
+     bars=cleanBars(independent.bars.map(b=>({
+      time:Math.floor(b.time/1000),
+      open:b.open,high:b.high,low:b.low,close:b.close,volume:b.volume
+     })));
+     if(bars.length<5)throw Error('Incomplete independent futures chart');
+     source=independent.source;
+     instrument='perpetual';
     }catch{
-     // Coinbase uses USD, NOT USDT/USDC. Explicitly disclose the reference
-     // currency and alias status; never imply this is exchange futures OHLC.
-     bars=await coinbaseSpot(fetchFn,symbol,interval)||[];
-     if(bars.length<5)throw Error('No verified chart provider available');
-     source='Coinbase Exchange USD spot reference (NOT USDT/USDC futures)';
-     instrument='spot_reference';
-     quoteCurrency='USD';
-     aliasOnly=true;
+     try{
+      bars=exchangeRows(await provider(fetchFn,
+       'https://data-api.binance.vision/api/v3/klines?symbol='+
+       encodeURIComponent(symbol)+'&interval='+encodeURIComponent(interval)+'&limit=240'));
+      if(bars.length<5)throw Error('Empty spot candle feed');
+      source='Binance Spot price history (NOT futures)';
+      instrument='spot';
+     }catch{
+      // Coinbase uses USD, NOT USDT/USDC.
+      bars=await coinbaseSpot(fetchFn,symbol,interval)||[];
+      if(bars.length<5)throw Error('No verified chart provider available');
+      source='Coinbase Exchange USD spot reference (NOT USDT/USDC futures)';
+      instrument='spot_reference';
+      quoteCurrency='USD';
+      aliasOnly=true;
+     }
     }
    }
   }else{
