@@ -8,9 +8,35 @@ if(menu&&mobile){
 // Render the actual same-origin terminal, not a fabricated product mockup.
 // Load only near the viewport on desktop to avoid doubling mobile data usage.
 const wrap=$('terminal-frame-wrap'),frame=$('terminal-preview');
-if(wrap&&frame&&window.matchMedia('(min-width:621px)').matches){
- const boot=()=>{if(frame.src)return;frame.addEventListener('load',()=>wrap.classList.add('is-loaded'),{once:true});frame.src=frame.dataset.src;};
- if('IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){observer.disconnect();boot();}},{rootMargin:'120px'});observer.observe(wrap);}else boot();
+if(wrap&&frame){
+ const screen=wrap.querySelector('.device-screen'),tap=wrap.querySelector('.device-tap');
+ let started=false,selected='',observed=false;
+ const narrow=()=>!window.matchMedia('(min-width:621px)').matches;
+ function fit(){
+  if(!screen)return;
+  const mobile=narrow(),virtualWidth=mobile?390:1440,virtualHeight=mobile?900:1120;
+  const width=screen.getBoundingClientRect().width||virtualWidth;
+  screen.style.setProperty('--preview-width',virtualWidth+'px');
+  screen.style.setProperty('--preview-height',virtualHeight+'px');
+  screen.style.setProperty('--preview-scale',String(Math.min(1,width/virtualWidth)));
+  screen.style.aspectRatio=virtualWidth+'/'+virtualHeight;
+  const next=mobile?(frame.dataset.mobileSrc||'/app.html'):(frame.dataset.src||'/terminal.html');
+  if(tap){tap.href=next;tap.setAttribute('aria-label',mobile?'Open complete SignalChart mobile workspace':'Open complete SignalChart terminal');}
+  if(started&&next!==selected){selected=next;wrap.classList.remove('is-loaded');frame.src=next;}
+  else selected=next;
+ }
+ frame.addEventListener('load',()=>wrap.classList.add('is-loaded'));
+ fit();
+ function boot(){if(started)return;started=true;frame.src=selected;}
+ if('ResizeObserver'in window&&screen)new ResizeObserver(fit).observe(screen);
+ else window.addEventListener('resize',fit,{passive:true});
+ window.addEventListener('resize',fit,{passive:true});
+ if('IntersectionObserver'in window){
+  const observer=new IntersectionObserver(entries=>{
+   if(entries.some(x=>x.isIntersecting)){observer.disconnect();observed=true;boot();}
+  },{rootMargin:'120px'});
+  observer.observe(wrap);
+ }else{observed=true;boot();}
 }
 const feeds=[
  ['lp-btc','lp-btc-source','lp-btc-chart','crypto','BTCUSDT',2],
