@@ -24,3 +24,9 @@ test('Snapshot avoids fabricated quotes or stale market claim',()=>{
  assert.match(s,/Source temporarily unavailable/);
  assert.doesNotMatch(s,/Math\.random|fakePrice/);
 });
+test('Cloudflare invokes the Worker on root rather than serving index.html before route dispatch',()=>{
+ const config=JSON.parse(read('cloudflare/wrangler.staging.json'));
+ assert.ok(config.assets.run_worker_first.includes('/'),'Root must pass through Worker to reach landing page');
+ assert.ok(config.assets.run_worker_first.includes('/api/*'),'API endpoints must still pass through Worker');
+ assert.equal(config.assets.directory,'../.cloudflare-dist');
+});
