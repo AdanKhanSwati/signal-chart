@@ -1,5 +1,6 @@
 import {listMarkets} from './market-catalog.mjs';
 import {getCandles} from './market-candles.mjs';
+import {getFxDailyReferences} from './fx-daily-reference.mjs';
 import {getForexReferences} from './forex-reference.mjs';
 import {createResearch} from './research.mjs';
 import {createAutoScanner} from './auto-scanner.mjs';
@@ -684,6 +685,8 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
         (url.pathname==='/api/candles'&&url.searchParams.get('action')==='markets'))&&
         request.method==='GET')
      return await listMarkets({fetchFn});
+    if(url.pathname==='/api/fx-daily-reference')
+     return await getFxDailyReferences(request,{fetchFn});
     if(url.pathname==='/api/candles')
      return await getCandles(request,{fetchFn});
     if(url.pathname==='/api/quotes')
