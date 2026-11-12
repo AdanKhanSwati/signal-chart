@@ -81,7 +81,7 @@ test('Cloudflare Cron writes one append-only scan audit while leaving publicatio
   researchHandler:async()=>new Response(JSON.stringify({
    coverage:'FULL_WEEK',checkedAt:new Date(NOW).toISOString(),events:[]
   })),cryptoSymbols:['BTCUSDT'],forexSymbols:[]});
- const run=await scanner.scheduled(env);
+ const run=await scanner.scheduled(env,Date.UTC(2026,10,12,19,7));
  assert.equal(run.status,'SCAN_COMPLETED');
  assert.equal(run.published,0);
  assert.equal(run.qualified,1);
