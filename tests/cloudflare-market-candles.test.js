@@ -223,3 +223,25 @@ test('Failed FX provider calls are short-term cached to avoid mobile retry storm
  assert.equal(second.status,502);
  assert.equal(calls,3);
 });
+
+test('FX broker timeframe mismatch cannot be shown as requested 15-minute OHLC',async()=>{
+ const {getCandles}=await mod;
+ const q=request('market=forex&symbol=EURCHF&interval=15m');
+ let calls=0;
+ const rows=Array.from({length:12},(_,i)=>({
+  Timestamp:'2026.11.12 '+String(Math.floor(i/4)).padStart(2,'0')+':'+String((i%4)*15).padStart(2,'0')+':00',
+  Open:1.1,High:1.2,Low:1.0,Close:1.15
+ }));
+ const res=await getCandles(q,{
+  now:()=>Date.parse('2026-11-13T00:00:00Z'),
+  fetchFn:async url=>{
+   calls++;
+   if(url.includes('algospecial.com'))
+    return json({symbol:'EURCHF',timeframe:'H1',data:rows});
+   return new Response('Unavailable',{status:502});
+  }
+ });
+ assert.equal(res.status,502);
+ assert.equal(calls,3,'mismatched broker candles must trigger independent Yahoo fallbacks');
+ assert.equal((await res.json()).error,'Market candles temporarily unavailable');
+});
