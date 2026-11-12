@@ -136,7 +136,7 @@ test('Unreachable exchange is counted as unavailable, never as a hypothetical tr
 });
 test('Worker Cron trigger and public API never publish premium details',async()=>{
  const config=require('../cloudflare/wrangler.staging.json');
- assert.deepEqual(config.triggers.crons,['7 * * * *']);
+ assert.deepEqual(config.triggers.crons,['7,8,9,10 * * * *']);
  assert.equal(config.keep_vars,true);
  const {createWorker}=await import(pathToFileURL(path.resolve(__dirname,'../cloudflare/worker.mjs')).href);
  const worker=createWorker({fetchFn:async()=>{throw Error('Should not fetch')}});
