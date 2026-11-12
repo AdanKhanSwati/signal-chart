@@ -8,6 +8,7 @@
 import {createResearch} from './research.mjs';
 import {evaluate,CRYPTO,FX,STRATEGY} from './signal-strategy.mjs';
 import {saveDryRunAudit} from './scan-audit.mjs';
+import {getAlternativePerpetual,getPerpetualTicker} from './perpetual-sources.mjs';
 
 const HOUR=3600000,MAX_RESPONSE=2200000,MAX_AGE=20*60000;
 const reply=(payload,status=200)=>new Response(JSON.stringify(payload),{
@@ -62,17 +63,41 @@ async function upstreamJSON(fetchFn,url){
  return JSON.parse(text);
 }
 async function cryptoBars(symbol,fetchFn){
- // Futures only: spot OHLC is not interchangeable with USDT perpetual orders.
- const rows=await upstreamJSON(fetchFn,
-  'https://fapi.binance.com/fapi/v1/klines?symbol='+symbol+'&interval=1h&limit=350');
- if(!Array.isArray(rows)||rows.length<260||rows.length>350)
-  throw Error('Insufficient exchange futures history');
- return rows.map(r=>({
-  time:Number(r?.[0]),closeTime:Number(r?.[6]),
-  open:Number(r?.[1]),high:Number(r?.[2]),low:Number(r?.[3]),
-  close:Number(r?.[4]),volume:Number(r?.[5])
- }));
+ // Binance USDT perpetual, then independently identified Bybit/OKX USDT
+ // perpetuals. No spot USD substitution is permitted for signal evaluation.
+ try{
+  const rows=await upstreamJSON(fetchFn,
+   'https://fapi.binance.com/fapi/v1/klines?symbol='+symbol+'&interval=1h&limit=350');
+  if(!Array.isArray(rows)||rows.length<260||rows.length>350)
+   throw Error('Insufficient Binance futures history');
+  return {
+   source:'Binance USD-M perpetual futures',exchange:'binance',
+   bars:rows.map(r=>({
+    time:Number(r?.[0]),closeTime:Number(r?.[6]),
+    open:Number(r?.[1]),high:Number(r?.[2]),low:Number(r?.[3]),
+    close:Number(r?.[4]),volume:Number(r?.[5])
+   }))
+  };
+ }catch{
+  const other=await getAlternativePerpetual(symbol,'1h',{
+   fetchFn,limit:350,minBars:260
+  });
+  return {source:other.source,exchange:other.exchange,bars:other.bars};
+ }
 }
+async function exchangePrice(feed,symbol,fetchFn){
+ let price;
+ if(feed.exchange==='binance'){
+  const doc=await upstreamJSON(fetchFn,
+   'https://fapi.binance.com/fapi/v1/ticker/price?symbol='+symbol);
+  if(doc?.symbol!==symbol)throw Error('Binance ticker mismatched');
+  price=Number(doc?.price);
+ }else price=await getPerpetualTicker(feed,symbol,{fetchFn});
+ if(!Number.isFinite(price)||price<=0)
+  throw Error('Unverified exchange ticker');
+ return price;
+}
+
 async function forexBars(symbol,fetchFn){
  const ticker=FX[symbol];
  if(!ticker)throw Error('Unsupported indicative FX pair');
@@ -125,16 +150,25 @@ export function createAutoScanner({
   for(let i=0;i<symbols.length;i+=3){
    rows.push(...await Promise.all(symbols.slice(i,i+3).map(async item=>{
     try{
-     const bars=item.market==='crypto'?
+     const feed=item.market==='crypto'?
       await cryptoBars(item.symbol,fetchFn):
-      await forexBars(item.symbol,fetchFn);
-     const candidate=evaluate(item.symbol,item.market,bars,at);
+      {source:'Yahoo Finance indicative FX',exchange:null,
+       bars:await forexBars(item.symbol,fetchFn)};
+     const candidate=evaluate(item.symbol,item.market,feed.bars,at);
      if(candidate.status!=='CANDIDATE')
       return {...item,status:'NO_SETUP'};
      const risk=calendarRisk(calendar,item.symbol,at);
      if(risk)return {...item,status:risk};
-     return {...item,status:item.market==='forex'?
-      'INDICATIVE_ONLY':'CANDIDATE_UNPUBLISHED'};
+     if(item.market==='forex')return {...item,status:'INDICATIVE_ONLY'};
+     // A closed-candle entry can drift significantly before the scanner runs.
+     // A candidate is not qualified until the SAME exchange's current trade
+     // price agrees with its completed-candle entry within 0.20 ATR.
+     let price;
+     try{price=await exchangePrice(feed,item.symbol,fetchFn)}
+     catch{return {...item,status:'TICKER_UNAVAILABLE'}}
+     if(Math.abs(price-candidate.entry)>candidate.atr*.20)
+      return {...item,status:'PRICE_DRIFT'};
+     return {...item,status:'CANDIDATE_UNPUBLISHED'};
     }catch{return {...item,status:'DATA_UNAVAILABLE'}}
    })));
   }
@@ -144,7 +178,7 @@ export function createAutoScanner({
    dryRun:true,published:0,qualified:counts.CANDIDATE_UNPUBLISHED||0,
    scanned:rows.length,counts,strategy:STRATEGY,
    checkedAt:new Date(at).toISOString(),
-   sources:{crypto:'Binance USD-M closed futures candles',
+   sources:{crypto:'Exchange-specific Binance, Bybit or OKX closed USDT perpetual candles',
     forex:'Yahoo historical indicative data — ineligible for publication'},
    // Deliberately omit candidate levels, sides, private analysis and evidence.
    results:rows.map(({symbol,market,status})=>({symbol,market,status}))};
