@@ -691,6 +691,9 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
     if(url.pathname.startsWith('/api/'))
      throw issue(503,'This API route is not yet migrated');
     if(!env.ASSETS?.fetch)throw issue(503,'Static assets are not configured');
+    if(url.pathname==='/'&&(request.method==='GET'||request.method==='HEAD')){
+     return env.ASSETS.fetch(new Request(new URL('/launch.html',request.url),request));
+    }
     return env.ASSETS.fetch(request);
    }catch(e){return safeError(e)}
   },
