@@ -29,7 +29,8 @@ function logoAsset(p){
  return el
 }
 function renderWatch(){
- const root=$('mc-watch-list');root.replaceChildren();
+ const root=$('mc-watch-list'),x=root.scrollLeft,y=root.scrollTop;
+ root.replaceChildren();
  const filtered=pairs.filter(p=>(state.filter==='all'||p.type===state.filter)&&(!state.search||(p.label+' '+p.short+' '+p.s).toLowerCase().includes(state.search)));
  const countLabel=document.querySelector('.mc-instruments .mc-panel-heading small');
  if(countLabel)countLabel.textContent=pairs.length.toLocaleString()+' markets';
@@ -45,11 +46,34 @@ function renderWatch(){
  if(!filtered.length)root.append(child('p','', 'No matching markets.'));
  const limit=state.search?Math.max(100,state.visibleCount):state.visibleCount;
  if(filtered.length>limit){const more=child('button','mc-watch-more','Show more · '+(filtered.length-limit).toLocaleString()+' remaining');more.type='button';more.dataset.mcMore='true';root.append(more)}
+ // Preserve the user's horizontal position while switching symbols or
+ // receiving catalog updates; avoid repeated snapping back to the first coin.
+ root.scrollLeft=x;root.scrollTop=y;
+}
+function updateVisibleMarketPrices(){
+ // Do not destroy and reconstruct every coin logo on streaming ticks.
+ // In-place text updates preserve mobile scroll and keyboard focus.
+ const root=$('mc-watch-list');
+ for(const row of root.querySelectorAll('.mc-watch-row[data-mc-symbol]')){
+  const p=lookup[row.dataset.mcSymbol],right=row.querySelector('.mc-watch-right');
+  if(!p||!right)continue;
+  const nextPrice=fmt(state.quotes[p.s]?.price,p.d),nextStatus=status(p,state.quotes[p.s]);
+  if(right.children[0]?.textContent!==nextPrice)right.children[0].textContent=nextPrice;
+  if(right.children[1]?.textContent!==nextStatus)right.children[1].textContent=nextStatus;
+ }
+ for(const row of $('mc-market-rows').querySelectorAll('tr[data-market-symbol]')){
+  const p=lookup[row.dataset.marketSymbol];if(!p)continue;
+  const price=row.children[2],feed=row.children[3],q=state.quotes[p.s],nextStatus=status(p,q);
+  if(price&&price.textContent!==fmt(q?.price,p.d))price.textContent=fmt(q?.price,p.d);
+  if(feed){if(feed.textContent!==nextStatus)feed.textContent=nextStatus;
+   feed.classList.toggle('delayed',nextStatus!=='UPDATED')}
+ }
 }
 function renderTable(){
  const tbody=$('mc-market-rows');tbody.replaceChildren();
  for(const p of pairs.slice(0,80)){
   const tr=document.createElement('tr'),quote=state.quotes[p.s],fields=[p.label,p.type==='crypto'?'Crypto':'Forex',fmt(quote?.price,p.d),status(p,quote)];
+  tr.dataset.marketSymbol=p.s;
   for(const [i,v] of fields.entries()){
    const td=child('td',i===0?'mc-table-pair':i===2?'mc-table-price':i===3?'mc-status'+(v!=='UPDATED'?' delayed':''):'',v);
    tr.append(td)
@@ -272,12 +296,18 @@ function chartLatest(){
  else state.chartEngine?.reset()
 }
 function bind(){
- $('mc-search').addEventListener('input',e=>{state.search=e.target.value.toLowerCase().trim();state.visibleCount=24;renderWatch()});
+ $('mc-search').addEventListener('input',e=>{state.search=e.target.value.toLowerCase().trim();state.visibleCount=24;renderWatch();$('mc-watch-list').scrollLeft=0});
  document.addEventListener('click',e=>{
   const s=e.target.closest('[data-mc-symbol]');if(s){select(s.dataset.mcSymbol);return}
    const more=e.target.closest('[data-mc-more]');if(more){state.visibleCount+=48;renderWatch();return}
-  const filter=e.target.closest('[data-mc-filter]');if(filter){state.filter=filter.dataset.mcFilter;state.visibleCount=24;document.querySelectorAll('[data-mc-filter]').forEach(b=>b.classList.toggle('active',b===filter));renderWatch();return}
+  const filter=e.target.closest('[data-mc-filter]');if(filter){state.filter=filter.dataset.mcFilter;state.visibleCount=24;document.querySelectorAll('[data-mc-filter]').forEach(b=>b.classList.toggle('active',b===filter));renderWatch();$('mc-watch-list').scrollLeft=0;return}
   const interval=e.target.closest('[data-mc-int]');if(interval){state.interval=interval.dataset.mcInt;document.querySelectorAll('[data-mc-int]').forEach(b=>b.classList.toggle('active',b===interval));window.SignalChartFeed?.select(state.symbol,state.interval);loadCandles();return}
+ });
+ const browse=$('mc-browse-markets');
+ if(browse)browse.addEventListener('click',()=>{
+  const panel=document.querySelector('.mc-instruments');
+  panel?.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+  // Keep the keyboard closed until the visitor taps the search field.
  });
  $('mc-chart-refresh').addEventListener('click',()=>{loadCandles();loadQuotes()});$('mc-zoom-in').addEventListener('click',()=>zoomChart(.8));$('mc-zoom-out').addEventListener('click',()=>zoomChart(1.25));$('mc-chart-latest').addEventListener('click',chartLatest);
  $('mc-indicators').addEventListener('click',()=>{state.ema=!state.ema;const btn=$('mc-indicators');btn.classList.toggle('active',state.ema);btn.setAttribute('aria-pressed',String(state.ema));for(const line of state.chartLines)line.applyOptions({visible:state.ema});state.chartEngine?.setIndicators(state.ema);state.chartDraw?.()});
@@ -313,7 +343,7 @@ let tickRender=0,barRender=0;
 window.addEventListener('signalchart:tick',e=>{
  for(const [symbol,q]of Object.entries(e.detail?.updates||{}))if(lookup[symbol])state.quotes[symbol]=q;
  if((e.detail?.updates||{})[state.symbol])renderQuote();
- if(Date.now()-tickRender>9000&&!document.hidden){tickRender=Date.now();renderWatch()}
+ if(Date.now()-tickRender>9000&&!document.hidden){tickRender=Date.now();updateVisibleMarketPrices()}
 });
 window.addEventListener('signalchart:kline',e=>{
  const {symbol,interval,candle,eventTime}=e.detail||{};
