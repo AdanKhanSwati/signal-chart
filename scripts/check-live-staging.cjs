@@ -23,7 +23,7 @@ async function probe(item,fetchFn){
   if(item.type==='landing'||item.type==='app'){
    const html=(await res.text()).slice(0,250000);
    if(!html.includes('SignalChart'))return {id:item.id,status:res.status,result:'UNEXPECTED_CONTENT'};
-   const isNew=html.includes('Know the market.');
+   const isNew=html.includes('See the market.');
    return {id:item.id,status:res.status,result:item.type==='landing'&&!isNew?'OLD_DEPLOYMENT':'PASS'};
   }
   const data=await res.json();
