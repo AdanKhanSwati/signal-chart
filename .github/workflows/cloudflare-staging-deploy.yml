@@ -1,0 +1,91 @@
+name: Deploy SignalChart Staging
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target Worker (staging only)'
+        type: choice
+        options:
+          - signal-chart-workers-dev
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: signalchart-cloudflare-staging-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/signalchart-cloudflare-free-migration'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout reviewed migration branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Node.js runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install verified dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+
+      - name: Validate staging-only deployment and payment/signal safeguards
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const wrangler = JSON.parse(fs.readFileSync('cloudflare/wrangler.staging.json','utf8'));
+          if (wrangler.name !== 'signal-chart' ||
+              wrangler.workers_dev !== true ||
+              wrangler.keep_vars !== true ||
+              wrangler.routes || wrangler.route ||
+              wrangler.vars?.SC_AUTO_PUBLISH_ENABLED !== 'false' ||
+              wrangler.main !== './worker.mjs')
+            throw Error('Unsafe Cloudflare deployment configuration');
+          const worker = fs.readFileSync('cloudflare/worker.mjs','utf8');
+          if (!worker.includes('productionReady:false') ||
+              !worker.includes('customerPaymentCollectionAvailable:false'))
+            throw Error('Unverified release controls have changed');
+          console.log('Staging-only Worker and release safeguards verified.');
+          NODE
+
+      - name: Run regression tests before deploying
+        run: node --test tests/*.test.js
+
+      - name: Build approved static bundle
+        run: node scripts/build-cloudflare-static.cjs
+
+      - name: Validate public asset boundary
+        run: |
+          test -f .cloudflare-dist/launch.html
+          test -f .cloudflare-dist/customer-sw.js
+          test ! -e .cloudflare-dist/api
+          test ! -e .cloudflare-dist/lib
+          test ! -e .cloudflare-dist/setup.html
+          test ! -e .cloudflare-dist/.env
+
+      - name: Verify deploy credentials are configured privately
+        env:
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CF_ACCOUNT" ] || [ -z "$CF_TOKEN" ]; then
+            echo "::error::Add CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN as GitHub Actions repository secrets. Never commit these credentials."
+            exit 1
+          fi
+
+      - name: Deploy to existing Workers dev staging (no custom domain)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --yes wrangler@4 deploy --config cloudflare/wrangler.staging.json
+
+      - name: Read-only live staging smoke (not paid release approval)
+        if: always()
+        continue-on-error: true
+        run: node scripts/check-live-staging.cjs
