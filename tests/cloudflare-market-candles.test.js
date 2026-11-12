@@ -120,8 +120,10 @@ test('Geo-blocked Binance perpetual candles fall back to genuine Binance Spot OH
  });
  assert.equal(res.status,200);
  const result=await res.json();
- assert.deepEqual(calls.length,2);
- assert.match(calls[1],/data-api\.binance\.vision\/api\/v3\/klines/);
+ assert.equal(calls.length,4,'Futures providers are checked before Spot');
+ assert.ok(calls.some(u=>u.includes('api.bybit.com')));
+ assert.ok(calls.some(u=>u.includes('www.okx.com')));
+ assert.match(calls[3],/data-api\.binance\.vision\/api\/v3\/klines/);
  assert.equal(result.instrument,'spot');
  assert.equal(result.quoteCurrency,'USDT');
  assert.equal(result.aliasOnly,false);
@@ -145,7 +147,9 @@ test('When exchange futures and spot providers fail, Coinbase USD spot reference
  });
  assert.equal(res.status,200);
  const result=await res.json();
- assert.equal(calls.length,3);
+ assert.equal(calls.length,5);
+ assert.ok(calls.some(u=>u.includes('api.bybit.com')));
+ assert.ok(calls.some(u=>u.includes('www.okx.com')));
  assert.equal(result.instrument,'spot_reference');
  assert.equal(result.quoteCurrency,'USD');
  assert.equal(result.aliasOnly,true);
