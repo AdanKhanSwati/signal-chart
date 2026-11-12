@@ -84,7 +84,7 @@ test('Signed read-only scan checks source-real closed futures and withholds all 
   if(uri.includes('/fapi/v1/klines?'))return upstream();
   if(uri.includes('/fapi/v1/ticker/price?'))
    return new Response(JSON.stringify({symbol:'BTCUSDT',
-    price:String(candles().at(-1)[4])}));
+    price:String(candles().at(-2)[4])}));
   throw Error('Unknown futures URL');
  },researchHandler:calendar(),now:()=>NOW,cryptoImpl:webcrypto,
  cryptoSymbols:['BTCUSDT'],forexSymbols:[]});
