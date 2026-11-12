@@ -30,3 +30,11 @@ test('Cloudflare invokes the Worker on root rather than serving index.html befor
  assert.ok(config.assets.run_worker_first.includes('/api/*'),'API endpoints must still pass through Worker');
  assert.equal(config.assets.directory,'../.cloudflare-dist');
 });
+
+test('Cloudflare serves explicit html URLs directly without default extension-stripping redirects',()=>{
+ const config=JSON.parse(read('cloudflare/wrangler.staging.json'));
+ assert.equal(config.assets.html_handling,'none');
+ assert.equal(config.assets.not_found_handling,'none');
+ const assets=JSON.parse(read('cloudflare/public-assets.json')).files;
+ for(const p of ['launch.html','app.html','account.html','dashboard.html'])assert.ok(assets.includes(p));
+});
