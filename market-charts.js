@@ -249,7 +249,7 @@ async function loadCandles(){
   if(unique.length<12)throw Error('Insufficient candle history for this period');
   const key=symbol+'|'+interval,same=state.chartKey===key&&(state.chart||state.chartEngine);
   const range=state.chart?.timeScale?.().getVisibleLogicalRange?.()||null,follow=range?range.to>=state.bars.length-7:true;
-  state.bars=unique;state.candleSource={symbol,source:data.source,instrument:data.instrument||null};
+  state.bars=unique;state.candleSource={symbol,source:data.source,instrument:data.instrument||null,exchange:data.exchange||null};
    const latest=unique.at(-1),latestAt=new Date(latest.time*1000).toISOString();
    const existing=state.quotes[symbol];
    if(!(p.type==='forex'&&existing?.reference===true&&
@@ -352,14 +352,22 @@ async function expandCatalog(){
 }
 let tickRender=0,barRender=0;
 window.addEventListener('signalchart:tick',e=>{
- for(const [symbol,q]of Object.entries(e.detail?.updates||{}))if(lookup[symbol])state.quotes[symbol]=q;
+ for(const [symbol,q]of Object.entries(e.detail?.updates||{})){
+  if(!lookup[symbol])continue;
+  // Binance miniTicker is not a Bybit/OKX/Spot chart quote.
+  // Preserve selected chart's source-specific price from its last OHLC bar.
+  const activeDifferentVenue=symbol===state.symbol&&
+   state.candleSource?.exchange&&
+   (state.candleSource.instrument!=='perpetual'||state.candleSource.exchange!=='binance');
+  if(!activeDifferentVenue)state.quotes[symbol]=q;
+ }
  if((e.detail?.updates||{})[state.symbol])renderQuote();
  if(Date.now()-tickRender>9000&&!document.hidden){tickRender=Date.now();updateVisibleMarketPrices()}
 });
 window.addEventListener('signalchart:kline',e=>{
  const {symbol,interval,candle,eventTime}=e.detail||{};
  if(symbol!==state.symbol||interval!==state.interval||!candle||!state.bars.length||
-    state.candleSource?.instrument!=='perpetual')return;
+     (state.candleSource?.instrument!=='perpetual'||state.candleSource?.exchange!=='binance'))return;
  const last=state.bars.at(-1);
  if(candle.time===last.time)state.bars[state.bars.length-1]=candle;
  else if(candle.time>last.time){state.bars.push(candle);if(state.bars.length>240)state.bars.shift()}
@@ -376,6 +384,13 @@ bind();select(state.symbol);expandCatalog();loadQuotes();
 // Do not continually re-request expired FX/provider errors or repaint an
 // 80-row table; true history is refreshed only when visible and selected.
 setInterval(()=>{if(!document.hidden)loadQuotes()},900000);
-setInterval(()=>{if(!document.hidden&&state.bars.length&&
- (lookup[state.symbol].type==='forex'||!window.SignalChartFeed?.state.connected))loadCandles()},180000);
+setInterval(()=>{
+ if(document.hidden||!state.bars.length)return;
+ // Non-Binance feeds cannot use Binance stream updates. Refresh actual
+ // source candles periodically instead of mixing prices across exchanges.
+ if(lookup[state.symbol].type==='forex'||
+    state.candleSource?.exchange!=='binance'||
+    state.candleSource?.instrument!=='perpetual'||
+    !window.SignalChartFeed?.state.connected)loadCandles();
+},120000);
 })();
