@@ -7,6 +7,7 @@
  */
 import {createResearch} from './research.mjs';
 import {evaluate,CRYPTO,FX,STRATEGY} from './signal-strategy.mjs';
+import {saveDryRunAudit} from './scan-audit.mjs';
 
 const HOUR=3600000,MAX_RESPONSE=2200000,MAX_AGE=20*60000;
 const reply=(payload,status=200)=>new Response(JSON.stringify(payload),{
@@ -167,14 +168,19 @@ export function createAutoScanner({
   if(env?.SC_AUTO_RESEARCH_ENABLED!=='true')return {status:'DISABLED',published:0};
   try{
    const result=await run();
+   const audit=await saveDryRunAudit(fetchFn,env,result);
    console.info('SignalChart hourly DRY RUN',JSON.stringify({
     status:result.status,scanned:result.scanned,
-    qualified:result.qualified,published:0,counts:result.counts
+    qualified:result.qualified,published:0,counts:result.counts,
+    auditSaved:audit.saved
    }));
-   return result;
+   return {...result,auditSaved:audit.saved};
   }catch{
+   // An audit failure must never become a permission to publish.
+   const failure={status:'ERROR',scanned:0,qualified:0,published:0,counts:{}};
+   await saveDryRunAudit(fetchFn,env,failure);
    console.warn('SignalChart hourly research source check failed; no signals published');
-   return {status:'ERROR',published:0};
+   return failure;
   }
  }
  return {run,handle,scheduled};
