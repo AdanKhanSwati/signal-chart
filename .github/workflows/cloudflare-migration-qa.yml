@@ -40,3 +40,6 @@ jobs:
           test ! -e .cloudflare-dist/setup.html
       - name: Compile Cloudflare Worker and assets without deploying
         run: npx --yes wrangler@4 deploy --dry-run --config cloudflare/wrangler.staging.json --outdir /tmp/signalchart-worker-dryrun
+      - name: Inspect public staging availability (read only, non-gating)
+        continue-on-error: true
+        run: node scripts/check-live-staging.cjs
