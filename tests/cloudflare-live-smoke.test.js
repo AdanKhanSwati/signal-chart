@@ -7,6 +7,7 @@ const response=(data,status=200,contentType='application/json')=>new Response(
 );
 test('Live staging smoke performs only public GET checks, including launch and both markets',()=>{
  assert.ok(endpoints.some(x=>x.id==='rootLanding'));
+ for(const p of ['Markets','Platform','Research','Membership'])assert.ok(endpoints.some(x=>x.id==='marketing'+p));
  assert.ok(endpoints.some(x=>x.id==='cryptoBTC'));
  assert.ok(endpoints.some(x=>x.id==='forexEUR'));
  assert.ok(endpoints.every(x=>x.path.startsWith('/')&&!/unlock|checkout|payment|admin|trial/.test(x.path)));
@@ -21,7 +22,7 @@ test('Healthy research staging still requires launch gates to be passed independ
   if(url.includes('EURUSD'))return response({source:'Historical broker OHLC',instrument:'historical_fx',exchange:'algospecial',candles:Array.from({length:24},(_,i)=>({time:1700000000+i*900,open:1,high:1,low:1,close:1}))});
   if(url.includes('/api/candles'))return response({source:'Bybit USDT linear perpetual',instrument:'perpetual',exchange:'bybit',
    candles:Array.from({length:24},()=>({time:1700000000,open:1,high:1,low:1,close:1}))});
-  return response('<html><title>SignalChart</title><h1>Trade with<br><span>market context.</span></h1></html>',200,'text/html');
+  return response('<html><title>SignalChart</title><main id="main"><a aria-current="page" href="/markets.html">Markets</a><h1>Trade with<br><span>market context.</span></h1></main></html>',200,'text/html');
  }});
  assert.equal(r.verdict,'PUBLIC_SMOKE_PASSED');
  assert.equal(r.passed,endpoints.length);

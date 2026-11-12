@@ -8,6 +8,10 @@ const endpoints=Object.freeze([
  {id:'rootLanding',path:'/',expected:200,type:'landing'},
  {id:'landingAsset',path:'/launch.html',expected:200,type:'landing'},
  {id:'mobileApp',path:'/app.html',expected:200,type:'app'},
+ {id:'marketingMarkets',path:'/markets.html',expected:200,type:'marketing'},
+ {id:'marketingPlatform',path:'/platform.html',expected:200,type:'marketing'},
+ {id:'marketingResearch',path:'/research.html',expected:200,type:'marketing'},
+ {id:'marketingMembership',path:'/membership.html',expected:200,type:'marketing'},
  {id:'marketDirectory',path:'/api/markets',expected:200,type:'markets'},
  {id:'cryptoBTC',path:'/api/candles?market=crypto&symbol=BTCUSDT&interval=1h',expected:200,type:'candles'},
  {id:'cryptoADA',path:'/api/candles?market=crypto&symbol=ADAUSDT&interval=1h',expected:200,type:'candles'},
@@ -16,13 +20,14 @@ const endpoints=Object.freeze([
 async function probe(item,fetchFn){
  try{
   const res=await fetchFn(ORIGIN+item.path,{
-   method:'GET',headers:{Accept:item.type==='landing'||item.type==='app'?'text/html':'application/json'},
+   method:'GET',headers:{Accept:item.type==='landing'||item.type==='app'||item.type==='marketing'?'text/html':'application/json'},
    redirect:'error',signal:AbortSignal.timeout(11000),cache:'no-store'
   });
   if(res.status!==item.expected)return {id:item.id,status:res.status,result:'UNEXPECTED_HTTP'};
-  if(item.type==='landing'||item.type==='app'){
+  if(item.type==='landing'||item.type==='app'||item.type==='marketing'){
    const html=(await res.text()).slice(0,250000);
    if(!html.includes('SignalChart'))return {id:item.id,status:res.status,result:'UNEXPECTED_CONTENT'};
+   if(item.type==='marketing')return {id:item.id,status:res.status,result:html.includes('<main id="main">')&&html.includes('aria-current="page"')?'PASS':'INCOMPLETE_PAGE'};
    const isNew=html.includes('Trade with<br><span>market context.');
    return {id:item.id,status:res.status,result:item.type==='landing'&&!isNew?'OLD_DEPLOYMENT':'PASS'};
   }
