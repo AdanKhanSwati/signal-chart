@@ -1,5 +1,8 @@
 name: Deploy SignalChart Staging
 on:
+  push:
+    branches:
+      - signalchart-cloudflare-free-migration
   workflow_dispatch:
     inputs:
       target:

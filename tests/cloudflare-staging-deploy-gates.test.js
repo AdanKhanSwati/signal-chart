@@ -5,9 +5,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const text = fs.readFileSync(path.join(__dirname,'../.github/workflows/cloudflare-staging-deploy.yml'),'utf8');
 
-test('Staging deployment is manual-only and restricted to migration branch',()=>{
+test('Staging deployment runs on reviewed branch push and offers optional dispatch',()=>{
  assert.match(text,/workflow_dispatch:/);
- assert.doesNotMatch(text,/\bpush:\s*\n/);
+ assert.match(text,/push:\s*\n\s*branches:\s*\n\s*- signalchart-cloudflare-free-migration/);
  assert.match(text,/github\.ref == 'refs\/heads\/signalchart-cloudflare-free-migration'/);
  assert.match(text,/concurrency:/);
 });
