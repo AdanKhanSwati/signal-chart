@@ -26,10 +26,48 @@ a,button,[role="button"]{-webkit-tap-highlight-color:transparent;touch-action:ma
 a:focus:not(:focus-visible),button:focus:not(:focus-visible),[role="button"]:focus:not(:focus-visible){outline:0!important;box-shadow:none}
 a:focus-visible,button:focus-visible,[role="button"]:focus-visible{outline:2px solid #ff9e52!important;outline-offset:3px!important}
 /* The globe image is retained as a safe, static reduced-motion fallback. */
-.world-visual canvas{position:absolute;top:0;left:-4%;width:118%;height:100%;aspect-ratio:660 / 575;pointer-events:none;opacity:0;transition:opacity .8s}
+.world-visual canvas{position:absolute;top:50%;left:-4%;width:118%;height:auto;aspect-ratio:660 / 575;transform:translateY(-50%);pointer-events:none;opacity:0;transition:opacity .8s}
 .world-visual.is-animated canvas{opacity:1}
 .world-visual.is-animated img{opacity:0}
 @media(max-width:1160px){.world-visual canvas{left:-8%;width:118%}}
 @media(max-width:900px){.world-visual canvas{left:0;width:115%}}
 @media(max-width:620px){.world-visual canvas{left:-6%;width:112%}}
 @media(prefers-reduced-motion:reduce){.world-visual canvas{display:none!important}.world-visual img{opacity:1!important}}
+
+
+/* Mobile artwork: preserve the original spherical proportions. The canvas
+   shares the source image's 660:575 ratio; never stretch to its parent's height. */
+@media(max-width:780px){
+ .world-inner{min-height:0}
+ .world-services{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;margin-top:8px}
+ .world-services .service-row{justify-content:flex-start;border-top:0;border-bottom:1px solid rgba(255,255,255,.15);min-height:60px}
+ .world-services .service-arrow{display:inline;margin-left:auto}
+ .research-inner{grid-template-columns:1fr;display:flex;flex-direction:column}
+ .research-image{min-height:315px}
+ .research-text{padding:50px 0 70px}
+ .membership-inner{grid-template-columns:1fr;gap:28px}
+ .membership-panel{width:min(100%,500px)}
+ .platform-head{gap:26px;grid-template-columns:1fr}
+ .platform-intro p{max-width:680px}
+}
+@media(max-width:620px){
+ .world-visual{box-sizing:border-box;width:100%;max-width:410px;aspect-ratio:660 / 575;align-self:center;margin:4px auto 0;flex:0 0 auto}
+ .world-visual img{position:relative;display:block;width:100%;height:auto;max-width:100%;left:0;aspect-ratio:660 / 575;object-fit:contain}
+ .world-visual canvas{top:50%;left:0;width:100%;height:auto;aspect-ratio:660 / 575;transform:translateY(-50%)}
+ .world-services{margin-top:5px;gap:0 12px}
+ .world-copy{min-width:0}
+ .world-copy h2{overflow-wrap:break-word}
+ .platform-inner,.platform-head,.platform-intro,.platform-bottom{min-width:0}
+ .platform-intro a,.inline-link{max-width:100%;flex-wrap:wrap;gap:12px}
+ .market-card{min-width:0}
+ .card-body{min-width:0}
+ .card-price{font-size:clamp(16px,5vw,22px)}
+ .info-site .info-head-grid{min-width:0}
+}
+@media(max-width:380px){
+ .world-visual{width:100%;max-width:330px}
+ .world-services{grid-template-columns:1fr 1fr;gap:0 9px}
+ .service-row{font-size:11px;gap:6px}
+ .service-icon{flex:0 0 18px;font-size:18px}
+ .market-card{padding:12px 10px}
+}

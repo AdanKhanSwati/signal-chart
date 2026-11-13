@@ -68,3 +68,21 @@
 @media(max-width:680px){.info-hero{padding:68px 0 64px}.info-head-grid{grid-template-columns:1fr;gap:28px}.info-hero h1{font-size:clamp(39px,9.3vw,55px)}.info-hero-visual{min-height:170px;max-width:100%}.info-hero-markets .info-hero-visual{display:none}.info-hero-research .info-research-photo{min-height:235px}.info-platform-aside{min-height:180px}.info-hero-actions{margin-top:26px}.info-section{padding:57px 0}.info-section-heading{grid-template-columns:1fr;gap:11px}.info-section-heading .info-index{grid-column:auto}.info-source-foot{flex-direction:column;gap:3px}.info-split-list,.info-disclosure{grid-template-columns:1fr;gap:15px}.info-three-steps{grid-template-columns:1fr;gap:20px}.info-link-row{padding:18px 0}.info-membership-price{padding:29px}.info-product-full .product-device{width:100%}.info-product-full .platform-bottom{width:100%}}
 @media(max-width:380px){.info-hero h1{font-size:37px}.info-hero-actions .button{width:100%;justify-content:center}.info-section h2{font-size:30px}}
 @media(prefers-reduced-motion:reduce){.info-link-row{transition:none}}
+
+/* Detail-page responsive refinements: avoid side overflow on small devices. */
+.info-head-grid>*{min-width:0}
+.info-hero-actions .button{max-width:100%}
+.info-platform-aside{min-width:0}
+@media(max-width:780px){
+ .info-head-grid{grid-template-columns:minmax(0,1fr)}
+ .info-hero-visual{max-width:100%}
+ .info-hero h1{overflow-wrap:break-word}
+ .info-section-heading,.info-split-list,.info-disclosure{grid-template-columns:minmax(0,1fr)}
+ .info-three-steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:620px){
+ .info-three-steps{grid-template-columns:minmax(0,1fr)}
+ .info-membership-price{max-width:100%}
+ .info-hero-actions{min-width:0}
+ .info-source-foot{overflow-wrap:anywhere}
+}
