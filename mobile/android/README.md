@@ -5,9 +5,9 @@ Separate customer and super-admin Android packages using Android Browser Helper'
 | Variant | Debug application ID | Entry point |
 | --- | --- | --- |
 | Customer | `pro.signalchart.app.debug` | `/app.html` |
-| Admin | `pro.signalchart.app.admin.debug` | `/admin-login.html` |
+| Admin | `pro.signalchart.app.admin.debug` | `/admin/login` |
 
-Both default to `https://signal-chart.auxwork3.workers.dev`. The admin flavor has a dedicated `/admin-login.html` entry point, separate browser authentication storage, and an API check of the server-configured administrator UID. This is role/session separation on the same staging origin; a dedicated administrator subdomain is required for production origin isolation. Release application IDs omit `.debug`. Production host selection requires the explicit Gradle property `-Pproduction=true`; this does not deploy or publish anything.
+Both default to `https://signal-chart.auxwork3.workers.dev`. The admin flavor has a dedicated `/admin/login` entry point, separate browser authentication storage, and an API check of the server-configured administrator UID. This is role/session separation on the same staging origin; a dedicated administrator subdomain is required for production origin isolation. Release application IDs omit `.debug`. Production host selection requires the explicit Gradle property `-Pproduction=true`; this does not deploy or publish anything.
 
 ## Build
 

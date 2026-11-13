@@ -44,7 +44,7 @@ async function authorize(token){
  if(!response.ok){message('Administrator verification is unavailable. Try again later.',true);return false}
  const result=await response.json();
  if(result.authorized!==true){message('Administrator authorization could not be verified.',true);return false}
- location.replace('/ops.html');return true;
+ location.replace('/admin/console');return true;
 }
 form.addEventListener('submit',async e=>{
  e.preventDefault();if(busy||!auth)return;
@@ -95,7 +95,7 @@ recovery.addEventListener('submit',async e=>{
   if(error)throw error;
   $('admin-new-password').value='';$('admin-confirm-password').value='';
   message('Password changed. Opening the administration console…');
-  location.replace('/ops.html');
+  location.replace('/admin/console');
  }catch(error){message(error.message||'Password update failed.',true)}
  finally{lock(false);btn.disabled=false}
 });

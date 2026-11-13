@@ -12,6 +12,9 @@ const endpoints=Object.freeze([
  {id:'adminAuthGuard',path:'/api/admin-session',expected:401,type:'adminGuard'},
  {id:'adminConsole',path:'/ops.html',expected:200,type:'adminConsole'},
  {id:'adminConsoleScript',path:'/ops-console.js',expected:200,type:'adminScript'},
+ {id:'privateAdminLogin',path:'/admin/login',expected:200,type:'adminLogin'},
+ {id:'privateAdminConsole',path:'/admin/console',expected:200,type:'adminConsole'},
+ {id:'privateAdminManifest',path:'/admin/manifest.webmanifest',expected:200,type:'adminManifest'},
  {id:'adminOverviewGuard',path:'/api/admin-overview',expected:401,type:'adminGuard'},
  {id:'marketingMarkets',path:'/markets.html',expected:200,type:'marketing'},
  {id:'marketingPlatform',path:'/platform.html',expected:200,type:'marketing'},
@@ -29,6 +32,10 @@ async function probe(item,fetchFn){
    redirect:'error',signal:AbortSignal.timeout(11000),cache:'no-store'
   });
   if(res.status!==item.expected)return {id:item.id,status:res.status,result:'UNEXPECTED_HTTP'};
+  if(item.type==='adminManifest'){
+   const manifest=await res.json();
+   return {id:item.id,status:res.status,result:manifest.id==='/admin/'&&manifest.scope==='/admin/'&&manifest.start_url==='/admin/login'?'PASS':'ADMIN_SCOPE_MISMATCH'};
+  }
   if(item.type==='adminScript'){
    const js=(await res.text()).slice(0,100000);
    return {id:item.id,status:res.status,result:js.includes('signalchart-superadmin-auth-v1')&&js.includes('/api/admin-overview')?'PASS':'INCOMPLETE_ADMIN_SCRIPT'};

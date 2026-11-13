@@ -26,7 +26,7 @@ async function abandonSession(){
  $('op-app').hidden=true;
  $('op-tickets').replaceChildren();$('op-messages').replaceChildren();
  try{if(sb)await sb.auth.signOut()}catch{}
- location.replace('/admin-login.html');
+ location.replace('/admin/login');
 }
 async function request(path,{method='GET',data,privateApi=true}={}){
  const headers={Accept:'application/json'};
