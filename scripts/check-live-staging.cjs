@@ -12,6 +12,7 @@ const endpoints=Object.freeze([
  {id:'adminAuthGuard',path:'/api/admin-session',expected:401,type:'adminGuard'},
  {id:'adminConsole',path:'/ops.html',expected:200,type:'adminConsole'},
  {id:'adminConsoleScript',path:'/ops-console.js',expected:200,type:'adminScript'},
+ {id:'privateAdminRoot',path:'/admin/',expected:302,type:'adminRedirect'},
  {id:'privateAdminLogin',path:'/admin/login',expected:200,type:'adminLogin'},
  {id:'privateAdminConsole',path:'/admin/console',expected:200,type:'adminConsole'},
  {id:'privateAdminManifest',path:'/admin/manifest.webmanifest',expected:200,type:'adminManifest'},
@@ -29,9 +30,10 @@ async function probe(item,fetchFn){
  try{
   const res=await fetchFn(ORIGIN+item.path,{
    method:'GET',headers:{Accept:item.type==='adminScript'?'text/javascript':item.type==='landing'||item.type==='app'||item.type==='marketing'||item.type==='adminLogin'||item.type==='adminConsole'?'text/html':'application/json'},
-   redirect:'error',signal:AbortSignal.timeout(11000),cache:'no-store'
+   redirect:item.type==='adminRedirect'?'manual':'error',signal:AbortSignal.timeout(11000),cache:'no-store'
   });
   if(res.status!==item.expected)return {id:item.id,status:res.status,result:'UNEXPECTED_HTTP'};
+  if(item.type==='adminRedirect')return {id:item.id,status:res.status,result:res.headers.get('Location')==='/admin/login'?'PASS':'BAD_ADMIN_REDIRECT'};
   if(item.type==='adminManifest'){
    const manifest=await res.json();
    return {id:item.id,status:res.status,result:manifest.id==='/admin/'&&manifest.scope==='/admin/'&&manifest.start_url==='/admin/login'?'PASS':'ADMIN_SCOPE_MISMATCH'};

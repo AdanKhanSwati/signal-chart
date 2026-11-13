@@ -1,6 +1,9 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),storageKey='signalchart-superadmin-auth-v1';
 let sb=null,active='overview',tickets=[],offset=0,filter='open',selected=null,inboxBusy=false,requestSeq=0,refreshing=false;
+let deferredInstall=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstall=event;const btn=$('op-install');if(btn&&!$('op-app').hidden)btn.hidden=false});
+window.addEventListener('appinstalled',()=>{deferredInstall=null;const btn=$('op-install');if(btn)btn.hidden=true});
 const VIEWS=['overview','inbox','payments','members','system'];
 const date=v=>{if(!v)return 'None recorded';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString():'Unavailable'};
 const text=(id,value)=>{const node=$(id);if(node)node.textContent=String(value??'—')};
@@ -201,6 +204,23 @@ async function boot(){
   const proof=await request('/api/admin-session');
   if(proof.authorized!==true)throw Error('Administrator authorization could not be verified.');
   $('op-app').hidden=false;$('op-auth').hidden=true;$('op-signout').hidden=false;
+  // Register only after the administrator identity has passed the backend gate.
+  // This service worker is restricted to /admin/ and deliberately never caches APIs.
+  if('serviceWorker'in navigator){
+   navigator.serviceWorker.register('/admin/sw.js',{scope:'/admin/'})
+    .catch(()=>notice('Admin app installation helper is unavailable in this browser.',true));
+  }
+  $('op-install').hidden=false;
+  $('op-install').onclick=async()=>{
+   if(deferredInstall){
+    const prompt=deferredInstall;deferredInstall=null;
+    try{await prompt.prompt();const choice=await prompt.userChoice;
+     if(choice?.outcome==='accepted')$('op-install').hidden=true;
+    }catch{notice('Use your browser menu to install the admin app.',true)}
+   }else{
+    notice('On Android Chrome, open the browser menu and select Install app or Add to Home screen. The administrator app is separate from the customer app.');
+   }
+  };
   const session=(await sb.auth.getSession()).data?.session;
   if(session?.user?.email)text('op-identity',session.user.email);
   document.querySelectorAll('[data-op-view]').forEach(b=>b.onclick=()=>showView(b.dataset.opView));

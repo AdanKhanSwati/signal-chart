@@ -671,6 +671,12 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
   async fetch(request,env){
    try{
     const url=new URL(request.url);
+    if(url.pathname==='/admin/'){
+     if(request.method!=='GET'&&request.method!=='HEAD')throw issue(405,'Method not allowed');
+     return new Response(null,{status:302,headers:{Location:'/admin/login',
+      'Cache-Control':'private, no-store, max-age=0',
+      'X-Robots-Tag':'noindex, nofollow'}});
+    }
     if(['/admin/login','/admin/console','/admin/manifest.webmanifest','/admin/sw.js'].includes(url.pathname)){
      if(request.method!=='GET'&&request.method!=='HEAD')throw issue(405,'Method not allowed');
      if(!env.ASSETS?.fetch)throw issue(503,'Administrator assets are unavailable');
