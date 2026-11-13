@@ -180,3 +180,61 @@ test('Unauthenticated support operations fail before DB reads/writes',async()=>{
  }
  assert.equal(calls.length,0);
 });
+
+test('Admin inbox denies anonymous and forged roles before private ticket reads',async()=>{
+ const calls=[],worker=await w(server({calls}));
+ assert.equal((await worker.fetch(req('admin_support',{token:null}),env)).status,401);
+ assert.equal((await worker.fetch(req('admin_support'),env)).status,403);
+ assert.equal((await worker.fetch(req('admin_support'),{...env,SC_SUPER_ADMIN_UID:OTHER})).status,403);
+ assert.equal(calls.some(x=>x.route==='/rest/v1/sc_support_tickets'),false);
+});
+test('Admin inbox is bounded, deterministically ordered and excludes unneeded private fields',async()=>{
+ const calls=[],tickets=Array.from({length:51},(_,n)=>({...ticket,
+  id:`fe13386e-c87a-4f15-92dd-${String(n).padStart(12,'0')}`,
+  user_id:OTHER,email:'private@example.test',receipt:'private-evidence'}));
+ const worker=await w(server({calls,tickets}));
+ const res=await worker.fetch(req('admin_support'),{...env,SC_SUPER_ADMIN_UID:USER});
+ assert.equal(res.status,200);assert.match(res.headers.get('Cache-Control'),/no-store/);
+ const data=await res.json();assert.equal(data.tickets.length,50);
+ assert.deepEqual(data.page,{status:'open',offset:0,nextOffset:50});
+ assert.equal(data.capabilities.billing,false);assert.equal(data.capabilities.push,false);
+ assert.doesNotMatch(JSON.stringify(data),/private@example|private-evidence|sb_secret/);
+ const query=new URLSearchParams(calls.find(x=>x.route==='/rest/v1/sc_support_tickets').query);
+ assert.equal(query.get('limit'),'51');assert.equal(query.get('offset'),'0');
+ assert.equal(query.get('status'),'eq.open');assert.equal(query.get('order'),'updated_at.desc,id.desc');
+ assert.equal(calls.length,2,'Only auth and ticket reads; no membership or payment coupling');
+});
+test('Resolved queue and page boundary use validated parameters',async()=>{
+ const calls=[],worker=await w(server({calls,tickets:[{...ticket,status:'closed'}]}));
+ const res=await worker.fetch(req('admin_support',{params:{status:'closed',offset:'50'}}),{...env,SC_SUPER_ADMIN_UID:USER});
+ assert.equal(res.status,200);
+ assert.deepEqual((await res.json()).page,{status:'closed',offset:50,nextOffset:null});
+ assert.ok(calls.find(x=>x.route==='/rest/v1/sc_support_tickets').query.includes('status=eq.closed'));
+});
+test('Admin inbox rejects malformed filters, offsets and methods without a database query',async()=>{
+ const calls=[],worker=await w(server({calls})),adminEnv={...env,SC_SUPER_ADMIN_UID:USER};
+ for(const params of [{status:'all'},{status:'open&select=*'},{offset:'-1'},{offset:'1.5'},{offset:'10001'}]){
+  assert.equal((await worker.fetch(req('admin_support',{params}),adminEnv)).status,400);
+ }
+ assert.equal((await worker.fetch(req('admin_support',{method:'POST'}),adminEnv)).status,405);
+ assert.equal(calls.some(x=>x.route==='/rest/v1/sc_support_tickets'),false);
+});
+test('Unexpected admin inbox rows fail closed and empty queue is represented honestly',async()=>{
+ const adminEnv={...env,SC_SUPER_ADMIN_UID:USER};
+ for(const bad of [{...ticket,user_id:'invalid'},{...ticket,status:'closed'}, {...ticket,updated_at:'invalid'}]){
+  const worker=await w(server({tickets:[bad]}));
+  assert.equal((await worker.fetch(req('admin_support'),adminEnv)).status,503);
+ }
+ const worker=await w(server({tickets:[]}));
+ const res=await worker.fetch(req('admin_support'),adminEnv);
+ assert.deepEqual((await res.json()).tickets,[]);
+});
+test('Configured admin can read and close another customer conversation; payment writes stay disabled',async()=>{
+ const calls=[],worker=await w(server({calls,tickets:[{...ticket,user_id:OTHER}]}));
+ const adminEnv={...env,SC_SUPER_ADMIN_UID:USER};
+ assert.equal((await worker.fetch(req('messages',{params:{ticketId:TICKET}}),adminEnv)).status,200);
+ assert.equal((await worker.fetch(req('close_ticket',{method:'POST',body:{ticketId:TICKET}}),adminEnv)).status,200);
+ const rpc=JSON.parse(calls.find(x=>x.route==='/rest/v1/rpc/sc_support_close').body);
+ assert.deepEqual(rpc,{p_actor:USER,p_ticket:TICKET,p_admin:true});
+ assert.equal((await worker.fetch(req('review_payment',{method:'POST',body:{decision:'approved'}}),adminEnv)).status,503);
+});

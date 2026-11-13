@@ -1,0 +1,9 @@
+<resources>
+    <string name="offline_title">Connect to the market.</string>
+    <string name="offline_message">SignalChart needs an internet connection for current charts, signals and your account. Check your connection and try again.</string>
+    <string name="retry">Try again</string>
+    <string name="connection_settings">Connection settings</string>
+    <string name="browser_title">A browser is needed</string>
+    <string name="browser_message">Install or enable a browser that supports Custom Tabs, then open SignalChart again.</string>
+    <string name="app_settings">App settings</string>
+</resources>

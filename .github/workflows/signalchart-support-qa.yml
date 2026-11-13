@@ -1,0 +1,27 @@
+name: SignalChart admin support QA
+on:
+  push:
+    branches: [signalchart-android-landing]
+    paths: ['cloudflare/**', 'site-app.js', 'ops.html', 'tests/**', 'scripts/check-admin-support-ui.cjs', '.github/workflows/signalchart-support-qa.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  support:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies and browser test runner
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false --no-save playwright@1.62.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run regression tests
+        run: node --test tests/*.test.js
+      - name: Verify admin support on mobile and desktop with synthetic data
+        run: node scripts/check-admin-support-ui.cjs
+      - name: Export public assets
+        run: node scripts/build-cloudflare-static.cjs

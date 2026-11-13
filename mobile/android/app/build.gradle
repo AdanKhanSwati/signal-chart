@@ -1,0 +1,49 @@
+plugins { id 'com.android.application' }
+
+def production = providers.gradleProperty('production').orNull == 'true'
+def portalHost = production ? 'signalchart.pro' : 'signal-chart.auxwork3.workers.dev'
+def origin = 'https://' + portalHost
+
+android {
+    namespace 'pro.signalchart.app'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'pro.signalchart.app'
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName '0.1.0'
+        buildConfigField 'String', 'PORTAL_ORIGIN', '"' + origin + '"'
+        resValue 'string', 'asset_statements', '[{\\"relation\\":[\\"delegate_permission/common.handle_all_urls\\"],\\"target\\":{\\"namespace\\":\\"web\\",\\"site\\":\\"' + origin + '\\"}}]'
+        manifestPlaceholders = [portalHost: portalHost]
+    }
+    buildFeatures { buildConfig true }
+    flavorDimensions 'audience'
+    productFlavors {
+        customer {
+            dimension 'audience'
+            resValue 'string', 'app_name', production ? 'SignalChart' : 'SignalChart Preview'
+            buildConfigField 'String', 'START_PATH', '"/app.html"'
+            buildConfigField 'boolean', 'ADMIN_APP', 'false'
+            manifestPlaceholders += [startUrl: origin + '/app.html', entryPath: '/app.html']
+        }
+        admin {
+            dimension 'audience'
+            applicationIdSuffix '.admin'
+            resValue 'string', 'app_name', production ? 'SignalChart Admin' : 'SignalChart Admin Preview'
+            buildConfigField 'String', 'START_PATH', '"/ops.html"'
+            buildConfigField 'boolean', 'ADMIN_APP', 'true'
+            manifestPlaceholders += [startUrl: origin + '/ops.html', entryPath: '/ops.html']
+        }
+    }
+    buildTypes {
+        debug { applicationIdSuffix '.debug'; versionNameSuffix '-preview' }
+        release { minifyEnabled false }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    lint { abortOnError true }
+}
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
+    testImplementation 'junit:junit:4.13.2'
+}
