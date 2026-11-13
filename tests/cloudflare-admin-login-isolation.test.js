@@ -43,11 +43,11 @@ test('Administrator sign in has no signup, trial or customer session reuse',()=>
 test('Customer app navigation has no admin access while admin APK has its own login',()=>{
  const policy=root('mobile/android/app/src/main/java/pro/signalchart/app/UrlPolicy.java');
  const gradle=root('mobile/android/app/build.gradle');
- assert.match(policy,/"\/admin-login.html", "\/admin\/console"/);
- assert.doesNotMatch(policy,/"\/admin\/console", "\/admin.html", "\/account.html"/);
- assert.match(gradle,/entryPath: '\/admin-login.html'/);
- assert.match(gradle,/START_PATH', '"\/admin-login.html"'/);
- assert.match(root('admin.html'),/url=\/admin-login.html/);
+ assert.match(policy,/"\/admin\/login", "\/admin\/console"/);
+ assert.doesNotMatch(policy,/"\/ops\.html", "\/admin\.html", "\/account\.html"/);
+ assert.match(gradle,/entryPath: '\/admin\/login'/);
+ assert.match(gradle,/START_PATH', '"\/admin\/login"'/);
+ assert.match(root('admin.html'),/url=\/admin\/login/);
 });
 test('Separate administrator files use reviewed allowlist',()=>{
  const list=JSON.parse(root('cloudflare/public-assets.json')).files;
