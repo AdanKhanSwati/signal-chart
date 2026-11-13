@@ -399,13 +399,27 @@ async function memberTickets(fetchFn,config,uid){
    category:row.category,status:row.status,lastAt:row.updated_at};
  });
 }
-function supportAdmin(user,env){
+async function supportAdmin(user,env,fetchFn){
+ // This mode is enabled only after the single-owner SQL table has been
+ // installed and populated. Auth user_metadata and client-provided flags are
+ // never treated as administrator authorization.
+ if(env.SC_ADMIN_OWNER_DB_ENABLED==='true'){
+  const config=secretConfig(env);
+  const rows=await rest(fetchFn,config,'GET',
+   'sc_admin_owner?singleton=eq.true&select=user_id&limit=2');
+  if(!Array.isArray(rows)||rows.length>1||
+     rows.some(row=>!UUID.test(String(row?.user_id||''))))
+   throw issue(503,'Administrator directory unavailable');
+  return rows.length===1&&rows[0].user_id===user.uid;
+ }
+ // Legacy migration mode: disabled on Cloudflare staging. Production
+ // deployments must enable the database-backed single-owner check.
  const target=String(env.SC_SUPER_ADMIN_UID||'').toLowerCase();
  return UUID.test(target)&&target===user.uid;
 }
 async function adminSupport(request,env,fetchFn,url){
  const user=await verifyUser(request,fetchFn,env);
- if(!supportAdmin(user,env))throw issue(403,'Administrator access required');
+ if(!(await supportAdmin(user,env,fetchFn)))throw issue(403,'Administrator access required');
  if(request.method!=='GET')throw issue(405,'Read the support inbox using GET');
  const status=url.searchParams.get('status')||'open';
  const rawOffset=url.searchParams.get('offset')||'0';
@@ -437,7 +451,7 @@ async function supportTicket(fetchFn,config,ticketId,user,env){
  const row=rows[0];
  // Other users' ticket existence is never disclosed.
  if(!row||row.id!==ticketId)return null;
- if(row.user_id!==user.uid&&!supportAdmin(user,env))return null;
+ if(row.user_id!==user.uid&&!(await supportAdmin(user,env,fetchFn)))return null;
  return {ticketId:row.id,uid:row.user_id,subject:row.subject,
   category:row.category,status:row.status,lastAt:row.updated_at};
 }
@@ -484,7 +498,7 @@ async function supportRequest(request,action,env,fetchFn,url){
  const ticketId=body?.ticketId;
  const ticket=await supportTicket(fetchFn,config,ticketId,user,env);
  if(!ticket)throw issue(404,'Support conversation not found');
- const admin=supportAdmin(user,env);
+ const admin=await supportAdmin(user,env,fetchFn);
  const params={p_actor:user.uid,p_ticket:ticketId,p_admin:admin};
  if(action==='reply'){
   const message=body?.message;
@@ -512,7 +526,7 @@ async function recoveryStatus(request,env,fetchFn){
  const user=await verifyUser(request,fetchFn,env);
  const adminUid=String(env.SC_SUPER_ADMIN_UID||'').toLowerCase();
  if(!UUID.test(adminUid))throw issue(503,'Recovery administrator is not configured');
- if(!supportAdmin(user,env))throw issue(403,'Administrator permission required');
+ if(!(await supportAdmin(user,env,fetchFn)))throw issue(403,'Administrator permission required');
  const config=secretConfig(env);
  const rows=await rest(fetchFn,config,'GET',
   'sc_legacy_recovery_items?select=id,item_kind,retrieval_status,review_status,content_sha256&limit=1001');
@@ -559,7 +573,7 @@ async function recoveryReviewNote(request,env,fetchFn){
  const user=await verifyUser(request,fetchFn,env);
  if(!UUID.test(String(env.SC_SUPER_ADMIN_UID||'').toLowerCase()))
   throw issue(503,'Recovery administrator is not configured');
- if(!supportAdmin(user,env))throw issue(403,'Administrator permission required');
+ if(!(await supportAdmin(user,env,fetchFn)))throw issue(403,'Administrator permission required');
  const len=Number(request.headers.get('Content-Length')||0);
  if(!Number.isFinite(len)||len<0||len>2500)
   throw issue(413,'Recovery review note is too large');
@@ -662,7 +676,7 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
     if(url.pathname==='/api/admin-session'){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
      const user=await verifyUser(request,fetchFn,env);
-     if(!supportAdmin(user,env))throw issue(403,'Administrator access required');
+     if(!(await supportAdmin(user,env,fetchFn)))throw issue(403,'Administrator access required');
      return reply({authorized:true,role:'super_admin'});
     }
     if(url.pathname==='/api/trial'){

@@ -24,6 +24,7 @@
   },
   "vars": {
     "SC_AUTO_RESEARCH_ENABLED": "true",
-    "SC_AUTO_PUBLISH_ENABLED": "false"
+    "SC_AUTO_PUBLISH_ENABLED": "false",
+    "SC_ADMIN_OWNER_DB_ENABLED": "true"
   }
 }
