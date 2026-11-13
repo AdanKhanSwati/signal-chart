@@ -10,6 +10,9 @@ const endpoints=Object.freeze([
  {id:'mobileApp',path:'/app.html',expected:200,type:'app'},
  {id:'adminLoginPage',path:'/admin-login.html',expected:200,type:'adminLogin'},
  {id:'adminAuthGuard',path:'/api/admin-session',expected:401,type:'adminGuard'},
+ {id:'adminConsole',path:'/ops.html',expected:200,type:'adminConsole'},
+ {id:'adminConsoleScript',path:'/ops-console.js',expected:200,type:'adminScript'},
+ {id:'adminOverviewGuard',path:'/api/admin-overview',expected:401,type:'adminGuard'},
  {id:'marketingMarkets',path:'/markets.html',expected:200,type:'marketing'},
  {id:'marketingPlatform',path:'/platform.html',expected:200,type:'marketing'},
  {id:'marketingResearch',path:'/research.html',expected:200,type:'marketing'},
@@ -22,13 +25,18 @@ const endpoints=Object.freeze([
 async function probe(item,fetchFn){
  try{
   const res=await fetchFn(ORIGIN+item.path,{
-   method:'GET',headers:{Accept:item.type==='landing'||item.type==='app'||item.type==='marketing'||item.type==='adminLogin'?'text/html':'application/json'},
+   method:'GET',headers:{Accept:item.type==='adminScript'?'text/javascript':item.type==='landing'||item.type==='app'||item.type==='marketing'||item.type==='adminLogin'||item.type==='adminConsole'?'text/html':'application/json'},
    redirect:'error',signal:AbortSignal.timeout(11000),cache:'no-store'
   });
   if(res.status!==item.expected)return {id:item.id,status:res.status,result:'UNEXPECTED_HTTP'};
-  if(item.type==='landing'||item.type==='app'||item.type==='marketing'||item.type==='adminLogin'){
+  if(item.type==='adminScript'){
+   const js=(await res.text()).slice(0,100000);
+   return {id:item.id,status:res.status,result:js.includes('signalchart-superadmin-auth-v1')&&js.includes('/api/admin-overview')?'PASS':'INCOMPLETE_ADMIN_SCRIPT'};
+  }
+  if(item.type==='landing'||item.type==='app'||item.type==='marketing'||item.type==='adminLogin'||item.type==='adminConsole'){
    const html=(await res.text()).slice(0,250000);
    if(!html.includes('SignalChart'))return {id:item.id,status:res.status,result:'UNEXPECTED_CONTENT'};
+   if(item.type==='adminConsole')return {id:item.id,status:res.status,result:html.includes('id="op-app" hidden')&&html.includes('src="/ops-console.js"')&&html.includes('PRIVATE OPERATIONS')?'PASS':'INCOMPLETE_ADMIN_CONSOLE'};
    if(item.type==='adminLogin')return {id:item.id,status:res.status,result:html.includes('id="admin-form"')&&html.includes('src="/admin-auth.js"')&&html.includes('noindex,nofollow')?'PASS':'INCOMPLETE_ADMIN_LOGIN'};
    if(item.type==='marketing')return {id:item.id,status:res.status,result:html.includes('<main id="main">')&&html.includes('aria-current="page"')?'PASS':'INCOMPLETE_PAGE'};
    const isNew=html.includes('Trade with<br><span>market context.');

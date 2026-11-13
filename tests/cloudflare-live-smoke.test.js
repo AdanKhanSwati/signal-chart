@@ -2,17 +2,20 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {runSmoke,endpoints}=require('../scripts/check-live-staging.cjs');
 const response=(data,status=200,contentType='application/json')=>new Response(
- contentType==='text/html'?data:JSON.stringify(data),
+ contentType==='text/html'||contentType==='text/javascript'?data:JSON.stringify(data),
  {status,headers:{'content-type':contentType}}
 );
 test('Live staging smoke performs only public GET checks, including launch and both markets',()=>{
  assert.ok(endpoints.some(x=>x.id==='rootLanding'));
  assert.ok(endpoints.some(x=>x.id==='adminLoginPage'));
  assert.ok(endpoints.some(x=>x.id==='adminAuthGuard'));
+ assert.ok(endpoints.some(x=>x.id==='adminConsole'));
+ assert.ok(endpoints.some(x=>x.id==='adminConsoleScript'));
+ assert.ok(endpoints.some(x=>x.id==='adminOverviewGuard'));
  for(const p of ['Markets','Platform','Research','Membership'])assert.ok(endpoints.some(x=>x.id==='marketing'+p));
  assert.ok(endpoints.some(x=>x.id==='cryptoBTC'));
  assert.ok(endpoints.some(x=>x.id==='forexEUR'));
- assert.ok(endpoints.every(x=>x.path.startsWith('/')&&(x.id==='adminLoginPage'||x.id==='adminAuthGuard'||!/unlock|checkout|payment|admin|trial/.test(x.path))));
+ assert.ok(endpoints.every(x=>x.path.startsWith('/')&&(['adminLoginPage','adminAuthGuard','adminConsole','adminConsoleScript','adminOverviewGuard'].includes(x.id)||!/unlock|checkout|payment|admin|trial/.test(x.path))));
 });
 test('Healthy research staging still requires launch gates to be passed independently',async()=>{
  const seen=[];
@@ -20,7 +23,9 @@ test('Healthy research staging still requires launch gates to be passed independ
   seen.push({url,opts});
   if(url.endsWith('/api/ready'))return response({productionReady:false},503);
   if(url.endsWith('/api/health'))return response({ok:true});
-  if(url.endsWith('/api/admin-session'))return response({error:'Sign in required'},401);
+  if(url.endsWith('/api/admin-session')||url.endsWith('/api/admin-overview'))return response({error:'Sign in required'},401);
+  if(url.endsWith('/ops.html'))return response('<html><title>SignalChart Ops</title><span>PRIVATE OPERATIONS</span><div id="op-app" hidden></div><script src="/ops-console.js"></script></html>',200,'text/html');
+  if(url.endsWith('/ops-console.js'))return response("const storageKey='signalchart-superadmin-auth-v1';const api='/api/admin-overview';",200,'text/javascript');
   if(url.endsWith('/admin-login.html'))return response('<html><title>SignalChart Admin</title><meta name="robots" content="noindex,nofollow"><form id="admin-form"></form><script src="/admin-auth.js"></script></html>',200,'text/html');
   if(url.includes('/api/markets'))return response({markets:Array.from({length:75},()=>({symbol:'BTCUSDT'}))});
   if(url.includes('EURUSD'))return response({source:'Historical broker OHLC',instrument:'historical_fx',exchange:'algospecial',candles:Array.from({length:24},(_,i)=>({time:1700000000+i*900,open:1,high:1,low:1,close:1}))});
