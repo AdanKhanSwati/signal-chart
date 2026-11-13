@@ -65,3 +65,12 @@ Validation: `node --test tests/*.test.js` and, with Playwright/Chromium installe
 identities and a mocked Supabase transport through the actual Worker handler,
 at 390px and 1280px. It is not a signed-in live-device test. The support QA
 workflow runs these checks without production secrets or a deployment.
+
+## Admin operations staging safeguards (November 2026)
+
+The Android super-admin flavor opens the dedicated `/admin/login` portal. It uses the same verified owner-only API as the private web console; no administrator secrets or customer transactions are bundled into the APK.
+
+- **Payment review:** the private SQL queue and append-only review ledger exist, but customer checkout, blockchain approval, and paid-plan activation remain **disabled** until wallet ownership, invoice reconciliation, independent on-chain verification and receipt storage have been validated. An empty SQL queue does not prove that old payments never existed.
+- **Complimentary access:** the administrator can issue or revoke short-lived, reason-logged grants to existing registered members on staging. These are distinct from paid subscriptions, do not overwrite trials, and do not bypass disabled premium signal publishing.
+- **Release testing:** build and lint both debug flavors, verify the separate admin login, test mobile screen layouts and service worker scope, then run an authorized staging session on a real Android device before signing for Play distribution.
+

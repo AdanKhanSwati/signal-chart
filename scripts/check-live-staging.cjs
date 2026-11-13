@@ -17,6 +17,8 @@ const endpoints=Object.freeze([
  {id:'privateAdminConsole',path:'/admin/console',expected:200,type:'adminConsole'},
  {id:'privateAdminManifest',path:'/admin/manifest.webmanifest',expected:200,type:'adminManifest'},
  {id:'adminOverviewGuard',path:'/api/admin-overview',expected:401,type:'adminGuard'},
+ {id:'adminPaymentsGuard',path:'/api/admin-payments',expected:401,type:'adminGuard'},
+ {id:'adminMembersGuard',path:'/api/admin-members',expected:401,type:'adminGuard'},
  {id:'marketingMarkets',path:'/markets.html',expected:200,type:'marketing'},
  {id:'marketingPlatform',path:'/platform.html',expected:200,type:'marketing'},
  {id:'marketingResearch',path:'/research.html',expected:200,type:'marketing'},
