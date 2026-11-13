@@ -19,6 +19,7 @@ const endpoints=Object.freeze([
  {id:'adminOverviewGuard',path:'/api/admin-overview',expected:401,type:'adminGuard'},
  {id:'adminPaymentsGuard',path:'/api/admin-payments',expected:401,type:'adminGuard'},
  {id:'adminMembersGuard',path:'/api/admin-members',expected:401,type:'adminGuard'},
+ {id:'adminControlsGuard',path:'/api/admin-control?action=overview',expected:401,type:'adminGuard'},
  {id:'marketingMarkets',path:'/markets.html',expected:200,type:'marketing'},
  {id:'marketingPlatform',path:'/platform.html',expected:200,type:'marketing'},
  {id:'marketingResearch',path:'/research.html',expected:200,type:'marketing'},

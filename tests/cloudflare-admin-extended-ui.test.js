@@ -9,7 +9,7 @@ test('Expanded private console has separate working controls for trials, signals
   assert.ok(js.includes("'"+view+"'"),view);
  }
  for(const method of ['loadTrialRegister','revokeTrial','loadResearchCenter','loadAuditHistory','changeControl','loadAdminSwitches'])
-  assert.match(js,new RegExp('(?:async )?function '+method+'\\('));
+  assert.match(js,new RegExp('(?:async )?function '+method+'\('));
 });
 test('High-risk member and publication controls are not bypassable from admin UI',()=>{
  const html=read('ops.html'),js=read('ops-console.js');
@@ -23,8 +23,8 @@ test('High-risk member and publication controls are not bypassable from admin UI
 test('Admin text rendering is safe and viewport rules cover large and small devices',()=>{
  const js=read('ops-console.js'),css=read('ops-console.css');
  assert.doesNotMatch(js,/innerHTML\s*=/);
- assert.match(js,/node\\.textContent/);
- assert.match(css,/@media\\(max-width:580px\\)/);
+ assert.match(js,/node\.textContent/);
+ assert.match(css,/@media\(max-width:580px\)/);
  assert.match(css,/\.op-review-grid/);
  assert.match(css,/\.op-sidebar/);
 });
