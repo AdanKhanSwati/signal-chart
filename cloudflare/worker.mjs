@@ -549,6 +549,116 @@ async function manualActiveGrant(fetchFn,config,uid){
  return until>Date.now()?grant.expiresAt:null;
 }
 
+
+/* Owner-verified control plane. Every write is independently checked by the
+   Supabase SQL owner function; client-provided owner IDs are ignored. */
+async function adminControl(request,env,fetchFn,url){
+ const owner=await verifyUser(request,fetchFn,env);
+ if(!(await supportAdmin(owner,env,fetchFn)))throw issue(403,'Administrator access required');
+ if(env.SC_ADMIN_OPS_READ_ENABLED!=='true')
+  throw issue(503,'Private administrator controls are not available');
+ const cfg=secretConfig(env),action=url.searchParams.get('action')||'overview';
+ if(request.method==='GET'){
+  if(action==='overview'){
+   const report=await rest(fetchFn,cfg,'POST','rpc/sc_admin_control_report',{p_actor:owner.uid});
+   if(!report||typeof report!=='object'||Array.isArray(report)||
+    !report.controls||!report.stats||!Array.isArray(report.recentScans))
+    throw issue(503,'Operations overview invalid');
+   const c=report.controls,s=report.stats;
+   if(typeof c.researchScans!=='boolean'||typeof c.supportIntake!=='boolean'||
+    ['pendingProposals','publishedSignalRecords','revokedSignals','trialActivations',
+    'riskEventsLast30Days','complimentaryActive'].some(x=>!Number.isSafeInteger(s[x])||s[x]<0))
+    throw issue(503,'Operations overview contained invalid values');
+   return reply({controls:{researchScans:c.researchScans,supportIntake:c.supportIntake,
+     premiumPublishing:false,manualPaymentApproval:false},
+    stats:Object.fromEntries(['pendingProposals','publishedSignalRecords','revokedSignals',
+     'trialActivations','riskEventsLast30Days','complimentaryActive'].map(k=>[k,s[k]])),
+    scans:report.recentScans.slice(0,12).map(x=>({
+     ranAt:x.ranAt,status:String(x.status||'unknown').slice(0,40),
+     scanned:Number(x.scanned)||0,qualified:Number(x.qualified)||0,
+     published:Number(x.published)||0,errors:Number(x.errors)||0
+    })),capabilities:{trialRevoke:true,automatedPublishing:false,
+     paidApproval:false,operationalSwitches:true}});
+  }
+  if(action==='trials'){
+   const query=String(url.searchParams.get('q')||'').trim();
+   if(query.length>100)throw issue(400,'Trial search too long');
+   const rows=await rest(fetchFn,cfg,'POST','rpc/sc_admin_trial_list',{
+    p_query:query||null,p_limit:75});
+   if(!Array.isArray(rows)||rows.length>75)throw issue(503,'Trial register unavailable');
+   for(const t of rows)if(!UUID.test(String(t?.user_id||''))||
+     !['active','revoked','expired','exhausted'].includes(t.trial_status)||
+     !Number.isInteger(t.signals_consumed)||t.signals_consumed<0||t.signals_consumed>3)
+    throw issue(503,'Trial register contained invalid values');
+   return reply({trials:rows.map(t=>({userId:t.user_id,
+    activatedAt:t.activated_at,expiresAt:t.expires_at,
+    signalsUsed:t.signals_consumed,status:t.trial_status,
+    paidUntil:t.paid_until||null,riskFlag:t.risk_flag===true})),
+    capabilities:{revokeTrial:true,resetTrial:false,trialExceptions:false}});
+  }
+  if(action==='proposals'){
+   const rows=await rest(fetchFn,cfg,'POST','rpc/sc_signal_proposal_queue',{p_limit:35});
+   if(!Array.isArray(rows)||rows.length>35)throw issue(503,'Signal proposal queue unavailable');
+   for(const x of rows)if(!UUID.test(String(x?.proposalId||''))||
+     !['crypto','forex'].includes(x.market)||typeof x.signalKey!=='string')
+    throw issue(503,'Signal queue contained invalid values');
+   return reply({proposals:rows.map(x=>({proposalId:x.proposalId,
+    signalKey:x.signalKey,market:x.market,asset:String(x.asset||'').slice(0,36),
+    source:String(x.source||'').slice(0,100),candleClosedAt:x.candleClosedAt,
+    proposedAt:x.proposedAt})),
+    publication:{enabled:false,mode:'DRY_RUN',manualApproval:false}});
+  }
+  if(action==='audit'){
+   const rows=await rest(fetchFn,cfg,'POST','rpc/sc_admin_audit_feed',{
+    p_actor:owner.uid,p_limit:75});
+   if(!Array.isArray(rows)||rows.length>75)throw issue(503,'Admin audit unavailable');
+   for(const x of rows)if(!UUID.test(String(x?.actorId||''))||
+    typeof x.action!=='string'||typeof x.reason!=='string'||
+    !Number.isFinite(Date.parse(String(x.at||''))))
+     throw issue(503,'Admin audit contained invalid entries');
+   return reply({events:rows.map(x=>({source:String(x.kind||'').slice(0,30),
+    actorId:x.actorId,subjectId:UUID.test(String(x.subjectId||''))?x.subjectId:null,
+    action:x.action.slice(0,100),reason:x.reason.slice(0,500),at:x.at}))});
+  }
+  throw issue(400,'Unsupported control report');
+ }
+ if(request.method!=='POST'||!['toggle','revoke_trial'].includes(action))
+  throw issue(405,'Unsupported administrator operation');
+ if(!String(request.headers.get('Content-Type')||'').toLowerCase().startsWith('application/json'))
+  throw issue(415,'Expected JSON');
+ const raw=await request.text();
+ if(raw.length>1300)throw issue(413,'Administrator operation is too large');
+ let body;try{body=JSON.parse(raw)}catch{throw issue(400,'Invalid administrator request')}
+ if(!body||typeof body!=='object'||Array.isArray(body))throw issue(400,'Invalid administrator request');
+ const reason=body.reason;
+ if(typeof reason!=='string'||reason.trim().length<5||reason.trim().length>500)
+  throw issue(400,'Administrator reason must be 5–500 characters');
+ if(action==='toggle'){
+  if(Object.keys(body).some(k=>!['key','enabled','reason'].includes(k))||
+   !['research_scans','support_intake'].includes(body.key)||
+   typeof body.enabled!=='boolean')throw issue(400,'Unsupported control toggle');
+  const result=await rest(fetchFn,cfg,'POST','rpc/sc_admin_runtime_toggle',{
+   p_actor:owner.uid,p_key:body.key,p_enabled:body.enabled,p_reason:reason.trim()});
+  if(result?.key!==body.key||result?.enabled!==body.enabled||
+    typeof result.changed!=='boolean')throw issue(503,'Control change could not be verified');
+  return reply({recorded:true,key:result.key,enabled:result.enabled,changed:result.changed},201);
+ }
+ if(Object.keys(body).some(k=>!['userId','reason'].includes(k))||
+  !UUID.test(String(body.userId||'')))throw issue(400,'Valid trial owner required');
+ const outcome=await rest(fetchFn,cfg,'POST','rpc/sc_admin_trial_revoke_owner',{
+  p_actor:owner.uid,p_user:body.userId,p_reason:reason.trim()});
+ if(!['revoked','not_active'].includes(outcome?.result))
+  throw issue(503,'Trial revocation could not be confirmed');
+ return reply({result:outcome.result},outcome.result==='revoked'?201:200);
+}
+async function operationalControlSnapshot(fetchFn,env){
+ if(env.SC_ADMIN_OPS_READ_ENABLED!=='true')return {researchScans:true,supportIntake:true};
+ const snap=await rest(fetchFn,secretConfig(env),'POST','rpc/sc_admin_runtime_state',{});
+ if(!snap||typeof snap.researchScans!=='boolean'||typeof snap.supportIntake!=='boolean')
+  throw issue(503,'Admin policy is temporarily unavailable');
+ return snap;
+}
+
 async function adminOverview(request,env,fetchFn){
  const user=await verifyUser(request,fetchFn,env);
  if(!(await supportAdmin(user,env,fetchFn)))throw issue(403,'Administrator access required');
@@ -638,6 +748,8 @@ async function supportRequest(request,action,env,fetchFn,url){
  try{const text=await request.text();if(text.length>5000)throw Error('large');body=JSON.parse(text)}
  catch{throw issue(400,'Invalid support request')}
  if(action==='new_ticket'){
+  const policy=await operationalControlSnapshot(fetchFn,env);
+  if(!policy.supportIntake)throw issue(503,'New support requests are paused temporarily');
   const subject=body?.subject,category=body?.category,message=body?.message;
   if(typeof subject!=='string'||subject.trim().length<4||subject.trim().length>140||
      !SUPPORT_CATEGORIES.has(category)||typeof message!=='string'||
@@ -845,6 +957,8 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
      return reply({ok:true,brand:'SignalChart',phase:'cloudflare-staging',productionReady:false});
     }
+    if(url.pathname==='/api/admin-control')
+     return await adminControl(request,env,fetchFn,url);
     if(url.pathname==='/api/admin-payments')
      return await privateAdminRequest(request,env,fetchFn,url,'payments');
     if(url.pathname==='/api/admin-members')
@@ -929,7 +1043,16 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
   },
   async scheduled(_controller,env,ctx){
    // Hourly Cloudflare Cron runs a disabled-by-default, publish-free scanner.
-   const task=scanner.scheduled(env,_controller?.scheduledTime);
+   const task=(async()=>{
+    try{
+     const policy=await operationalControlSnapshot(fetchFn,env);
+     if(!policy.researchScans)return {status:'PAUSED_BY_ADMIN',published:0};
+     return scanner.scheduled(env,_controller?.scheduledTime);
+    }catch{
+     // Missing admin policy fails closed: never publish, never bypass pauses.
+     return {status:'BLOCKED_ADMIN_POLICY',published:0};
+    }
+   })();
    if(ctx?.waitUntil)ctx.waitUntil(task);
    else await task;
   }
