@@ -15,12 +15,13 @@ test('Live staging smoke performs only public GET checks, including launch and b
  for(const p of ['Markets','Platform','Research','Membership'])assert.ok(endpoints.some(x=>x.id==='marketing'+p));
  assert.ok(endpoints.some(x=>x.id==='cryptoBTC'));
  assert.ok(endpoints.some(x=>x.id==='forexEUR'));
- assert.ok(endpoints.every(x=>x.path.startsWith('/')&&(['adminLoginPage','adminAuthGuard','adminConsole','adminConsoleScript','adminOverviewGuard','privateAdminLogin','privateAdminConsole','privateAdminManifest'].includes(x.id)||!/unlock|checkout|payment|admin|trial/.test(x.path))));
+ assert.ok(endpoints.every(x=>x.path.startsWith('/')&&(['adminLoginPage','adminAuthGuard','adminConsole','adminConsoleScript','adminOverviewGuard','privateAdminRoot','privateAdminLogin','privateAdminConsole','privateAdminManifest'].includes(x.id)||!/unlock|checkout|payment|admin|trial/.test(x.path))));
 });
 test('Healthy research staging still requires launch gates to be passed independently',async()=>{
  const seen=[];
  const r=await runSmoke({fetchFn:async(url,opts)=>{
   seen.push({url,opts});
+  if(url.endsWith('/admin/'))return new Response(null,{status:302,headers:{Location:'/admin/login'}});
   if(url.endsWith('/api/ready'))return response({productionReady:false},503);
   if(url.endsWith('/api/health'))return response({ok:true});
   if(url.endsWith('/api/admin-session')||url.endsWith('/api/admin-overview'))return response({error:'Sign in required'},401);
