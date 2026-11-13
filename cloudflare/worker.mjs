@@ -417,6 +417,28 @@ async function supportAdmin(user,env,fetchFn){
  const target=String(env.SC_SUPER_ADMIN_UID||'').toLowerCase();
  return UUID.test(target)&&target===user.uid;
 }
+async function adminOverview(request,env,fetchFn){
+ const user=await verifyUser(request,fetchFn,env);
+ if(!(await supportAdmin(user,env,fetchFn)))throw issue(403,'Administrator access required');
+ const data=await rest(fetchFn,secretConfig(env),'POST','rpc/sc_admin_overview',{});
+ const names=['registeredUsers','openTickets','resolvedTickets','activePaidAccess','unreconciledAccounts'];
+ if(!data||typeof data!=='object'||Array.isArray(data)||
+    names.some(name=>!Number.isSafeInteger(data[name])||data[name]<0))
+  throw issue(503,'Administrator overview temporarily unavailable');
+ if(data.lastTicketAt!==null&&data.lastTicketAt!==undefined&&
+    !Number.isFinite(Date.parse(data.lastTicketAt)))
+  throw issue(503,'Administrator overview contains invalid timestamps');
+ return reply({overview:{
+  registeredUsers:data.registeredUsers,
+  openTickets:data.openTickets,
+  resolvedTickets:data.resolvedTickets,
+  activePaidAccess:data.activePaidAccess,
+  unreconciledAccounts:data.unreconciledAccounts,
+  lastTicketAt:data.lastTicketAt||null
+ },capabilities:{support:true,paymentReview:false,subscriptionChanges:false,memberActions:false,
+  remotePush:false,hourlyPublishing:false},asOf:new Date().toISOString()});
+}
+
 async function adminSupport(request,env,fetchFn,url){
  const user=await verifyUser(request,fetchFn,env);
  if(!(await supportAdmin(user,env,fetchFn)))throw issue(403,'Administrator access required');
@@ -672,6 +694,10 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
     if(url.pathname==='/api/health'){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
      return reply({ok:true,brand:'SignalChart',phase:'cloudflare-staging',productionReady:false});
+    }
+    if(url.pathname==='/api/admin-overview'){
+     if(request.method!=='GET')throw issue(405,'Method not allowed');
+     return await adminOverview(request,env,fetchFn);
     }
     if(url.pathname==='/api/admin-session'){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
