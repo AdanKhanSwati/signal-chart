@@ -1,41 +1,129 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0e1118"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/premium.css"><title>SignalChart Ops — Super Admin</title><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><link rel="manifest" href="/ops.webmanifest"><link rel="icon" type="image/svg+xml" href="/signalchart-mark.svg"><link rel="stylesheet" href="/signalchart.css"><link rel="stylesheet" href="/signalchart-legacy.css"><link rel="stylesheet" href="/signalchart-polish.css"><link rel="stylesheet" href="/signalchart-finish.css"><link rel="stylesheet" href="/signalchart-layout-v5.css"><link rel="stylesheet" href="/sc-release.css"></head><body data-cand-page="ops"><header class="cand-header"><div class="cand-header-inner"><a href="/ops.html" class="cand-brand"><span class="cand-mark">⌁</span><span>SIGNALCHART<small>OPERATIONS</small></span></a><nav class="cand-nav" aria-label="Private administration"><span>PRIVATE ADMINISTRATION</span></nav><button class="cand-sign" id="ops-signout" type="button">Sign out</button></div></header><main class="cand-page"><header class="cand-page-header"><div><span class="cand-eyebrow">SUPER ADMIN / OPERATIONS</span><h1>Operations</h1><p>Manage customer conversations and available account services.</p></div><div class="cand-ops-action"><button class="cand-btn-secondary" id="ops-push" type="button">Enable notifications</button><button class="cand-btn-secondary" id="ops-test-push" type="button">Send test push</button><button class="cand-btn-secondary" id="ops-install" type="button">Install admin app</button></div></header>
-<div id="cand-notice" aria-live="polite"></div><section id="cand-signin" class="cand-glass cand-card" hidden><h2>Administrator authentication required</h2><p class="cand-muted">Sign in with the verified super-admin account.</p><a class="cand-btn" href="/admin-login.html">Administrator sign in ↗</a></section>
-<div id="ops-main" hidden>
-<div class="cand-kpis"><div class="cand-glass cand-kpi"><span>Awaiting BTC review</span><strong id="ops-pending">0</strong></div><div class="cand-glass cand-kpi"><span>Open conversations</span><strong id="ops-tickets">0</strong></div><div class="cand-glass cand-kpi"><span>Payment submissions</span><strong id="ops-total">0</strong></div></div>
-<div class="cand-health-grid"><section class="cand-glass cand-card"><div class="cand-panel-title"><strong>Hourly research publishing</strong><span class="cand-pill" id="ops-publishing">CHECKING</span></div><p class="cand-note" id="ops-publishing-detail">Checking scheduled runs…</p><p class="cand-note">Performance: <span id="ops-performance">Checking validation…</span></p></section><section class="cand-glass cand-card"><div class="cand-panel-title"><strong>Economic-calendar coverage</strong><span class="cand-pill" id="ops-calendar">CHECKING</span></div><p class="cand-note" id="ops-calendar-detail">Checking date-stamped sources…</p><a class="cand-btn-secondary" href="/analytics.html#sc-validation-panel">Review strategy validation ↗</a></section></div><div class="cand-tabset" role="tablist"><button data-ops-tab="payments" class="active" type="button">BTC payments</button><button data-ops-tab="messages" type="button">Messages & complaints</button><button data-ops-tab="settings" type="button">Subscription settings</button><button data-ops-tab="members" type="button">Member access</button><button data-ops-tab="trials" type="button">Trial & Access</button></div>
-<section id="ops-tab-payments"><div class="cand-op-grid"><div class="cand-glass cand-card"><div class="cand-panel-title"><strong>Payment queue</strong><span class="cand-pill">BTC</span></div><div class="cand-list" id="ops-payment-list" style="margin-top:13px"></div></div><div class="cand-glass cand-card"><div class="cand-panel-title"><strong>Payment review</strong><span class="cand-pill">PRIVATE</span></div><div id="ops-payment-detail"><p class="cand-note" style="margin-top:18px">Select a payment to inspect the transaction ID, customer receipt and blockchain status.</p></div></div></div></section>
-<section id="ops-tab-members" hidden><div class="cand-op-grid">
-<div class="cand-glass cand-card"><div class="cand-panel-title"><strong>Search existing members</strong><span class="cand-pill">SUPER ADMIN</span></div>
-<form id="ops-member-search-form" style="display:flex;gap:9px;align-items:end;flex-wrap:wrap;margin:14px 0"><label class="cand-field" style="flex:1;min-width:180px">Name, email or member ID<input id="ops-member-search" type="search" placeholder="Search registered members" maxlength="100" autocomplete="off"></label><button type="submit" class="cand-btn-secondary">Search</button></form>
-<div id="ops-member-list" class="cand-list" aria-live="polite"><p class="cand-note">Search for a member to manage complimentary access.</p></div></div>
-<div class="cand-glass cand-card"><div class="cand-panel-title"><strong>Grant custom access</strong><span class="cand-pill">NO PAYMENT REQUIRED</span></div>
-<p class="cand-note" id="ops-grant-member" style="margin:12px 0">Select a member from the search results.</p>
-<form id="ops-grant-form" hidden><label class="cand-field">Access expires on<input id="ops-grant-expiry" type="datetime-local" required></label>
-<label class="cand-field">Reason for granting access<textarea id="ops-grant-reason" rows="2" maxlength="500" required placeholder="Promotion, complimentary access, support extension…"></textarea></label>
-<button class="cand-btn" type="submit">Grant access until this date</button></form>
-<div id="ops-grant-list" class="cand-list" style="margin-top:18px" aria-live="polite"></div></div></div></section><section id="ops-tab-trials" hidden>
-<div class="cand-op-grid">
-<div class="cand-glass cand-card"><div class="cand-panel-title"><strong>Trial conversion & eligibility</strong><span class="cand-pill">LIVE DATABASE</span></div>
-<div id="sc-trial-metrics" class="cand-list" style="margin-top:14px" aria-live="polite"><p class="cand-note">Awaiting database statistics.</p></div>
-<p class="cand-note">Metrics are calculated from real trial, verification and payment records. No estimated conversions.</p>
-<button id="sc-trial-refresh" class="cand-btn-secondary" type="button">Refresh statistics</button></div>
-<div class="cand-glass cand-card"><div class="cand-panel-title"><strong>Trial accounts & risk flags</strong><span class="cand-pill">ADMIN ONLY</span></div>
-<form id="sc-trial-search-form" style="display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin:13px 0">
-<label class="cand-field" style="flex:1;min-width:180px">Member UUID<input id="sc-trial-search" placeholder="Search member ID" maxlength="100"></label><button type="submit" class="cand-btn-secondary">Search</button></form>
-<div id="sc-trial-users" class="cand-list" aria-live="polite"><p class="cand-note">Search or refresh trial accounts.</p></div></div>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090a0e"><meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<meta name="description" content="SignalChart private administrator operations workspace">
+<title>Operations | SignalChart Admin</title>
+<link rel="icon" href="/signalchart-mark.svg" type="image/svg+xml">
+<link rel="manifest" href="/ops.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ops-console.css"><script src="/ops-console.js" defer></script>
+</head>
+<body>
+<header class="op-top">
+ <div class="op-brand"><img src="/signalchart-wordmark.svg" alt="SignalChart" width="142" height="48"><span>PRIVATE OPERATIONS</span></div>
+ <div class="op-top-actions"><span class="op-env">STAGING WORKSPACE</span><button type="button" id="op-signout" class="op-outline" hidden>Sign out</button></div>
+</header>
+<section class="op-auth" id="op-auth" role="status" aria-live="polite">
+ <span class="op-eyebrow">SIGNALCHART / ADMINISTRATION</span><h1>Verifying administrator session…</h1>
+ <p id="op-auth-message">Checking your private authorization before loading account data.</p>
+ <button id="op-auth-retry" class="op-button" type="button" hidden>Retry connection</button>
+</section>
+<div class="op-layout" id="op-app" hidden>
+ <aside class="op-sidebar" aria-label="Administrator navigation">
+  <div class="op-side-label">WORKSPACE</div>
+  <nav class="op-nav" aria-label="Console modules">
+   <button type="button" class="active" data-op-view="overview" aria-current="page"><span class="op-nav-icon" aria-hidden="true">◫</span>Overview</button>
+   <button type="button" data-op-view="inbox"><span class="op-nav-icon" aria-hidden="true">▤</span>Customer inbox</button>
+   <button type="button" data-op-view="payments"><span class="op-nav-icon" aria-hidden="true">◈</span>Payments <small>Pending</small></button>
+   <button type="button" data-op-view="members"><span class="op-nav-icon" aria-hidden="true">◎</span>Members <small>Read-only</small></button>
+   <button type="button" data-op-view="system"><span class="op-nav-icon" aria-hidden="true">⌁</span>System status</button>
+  </nav>
+  <div class="op-sidebar-foot">
+   <span class="op-side-label">ADMIN SESSION</span>
+   <span class="op-identity" id="op-identity">Verified administrator</span>
+   <span>Customer accounts cannot enter this workspace.</span>
+  </div>
+ </aside>
+ <main class="op-main" id="main">
+  <div class="op-main-meta"><span>OPERATIONS / PRIVATE WORKSPACE</span><span id="op-last-sync">Not yet synchronized</span></div>
+  <div class="op-toast" id="op-notice" role="status" aria-live="polite" hidden></div>
+
+  <section class="op-view" id="op-view-overview" aria-labelledby="op-overview-heading">
+   <div class="op-view-head"><div><span class="op-eyebrow">01 / OVERVIEW</span><h1 id="op-overview-heading">Operations at a glance<span>.</span></h1><p>Account and support activity from the private database. No fabricated transactions or signal results.</p></div><button type="button" id="op-refresh-overview" class="op-outline">Refresh overview</button></div>
+   <div class="op-kpis">
+    <article class="op-glass"><span>Registered members</span><strong id="op-kpi-members">—</strong><small>Verified database records</small></article>
+    <article class="op-glass"><span>Open conversations</span><strong id="op-kpi-open">—</strong><small>Awaiting support review</small></article>
+    <article class="op-glass"><span>Resolved conversations</span><strong id="op-kpi-resolved">—</strong><small>Closed tickets</small></article>
+    <article class="op-glass"><span>Active paid access</span><strong id="op-kpi-paid">—</strong><small>Verified access records only</small></article>
+   </div>
+   <div class="op-columns">
+    <article class="op-panel">
+     <div class="op-panel-head"><span class="op-eyebrow">OPERATIONS STATUS</span><span class="op-dim">CURRENT CAPABILITIES</span></div>
+     <h2>What you can manage now.</h2>
+     <div class="op-capability"><span><b class="op-dot success"></b>Customer support</span><span class="op-state live">AVAILABLE</span></div>
+     <div class="op-capability"><span><b class="op-dot"></b>Payment verification</span><span class="op-state waiting">NOT CONNECTED</span></div>
+     <div class="op-capability"><span><b class="op-dot"></b>Membership changes</span><span class="op-state waiting">NOT CONNECTED</span></div>
+     <div class="op-capability"><span><b class="op-dot"></b>Remote push alerts</span><span class="op-state waiting">NOT CONNECTED</span></div>
+     <p class="op-muted">Staging safeguards remain active. No payment approval, plan activation or automated trading publication can be initiated here.</p>
+    </article>
+    <article class="op-panel op-panel-accent">
+     <div class="op-panel-head"><span class="op-eyebrow">YOUR NEXT ACTION</span><span class="op-dim">SUPPORT</span></div>
+     <h2>Stay on top of customer messages.</h2>
+     <p>The private inbox can list conversations, display message history, send replies and resolve tickets with your verified administrator session.</p>
+     <button type="button" id="op-go-inbox" class="op-button">Open customer inbox <span aria-hidden="true">↗</span></button>
+     <div class="op-panel-footer">Last support activity <strong id="op-last-ticket">—</strong></div>
+    </article>
+   </div>
+   <div class="op-footnote" id="op-overview-note">Loading verified operational summary…</div>
+  </section>
+
+  <section class="op-view" id="op-view-inbox" aria-labelledby="op-inbox-heading" hidden>
+   <div class="op-view-head"><div><span class="op-eyebrow">02 / CUSTOMER SUPPORT</span><h1 id="op-inbox-heading">Your inbox<span>.</span></h1><p>Review private messages, reply to customers and resolve conversations.</p></div><button id="op-refresh-inbox" type="button" class="op-outline">Refresh inbox</button></div>
+   <div class="op-inbox-toolbar">
+    <label for="op-filter">Show conversations <select id="op-filter"><option value="open">Open</option><option value="closed">Resolved</option></select></label>
+    <div class="op-pagination"><button type="button" id="op-previous" class="op-outline" disabled>Previous</button><span id="op-page">Page 1</span><button type="button" id="op-next" class="op-outline" disabled>Next</button></div>
+   </div>
+   <div class="op-inbox-grid">
+    <div class="op-panel op-ticket-panel">
+     <div class="op-panel-head"><strong>Conversations</strong><span class="op-dim" id="op-list-count">—</span></div>
+     <div id="op-inbox-error" role="status" hidden></div>
+     <div id="op-tickets" class="op-tickets" role="list"><p class="op-muted">Select Inbox to load your messages.</p></div>
+    </div>
+    <div class="op-panel op-thread-panel">
+     <div class="op-panel-head"><span class="op-eyebrow">CONVERSATION</span><span id="op-thread-status" class="op-state">SELECT ONE</span></div>
+     <h2 id="op-thread-title">Select a conversation.</h2>
+     <div id="op-thread-meta" class="op-muted">Message details appear here after you select a customer conversation.</div>
+     <div class="op-messages" id="op-messages" aria-live="polite"><p class="op-empty">No conversation selected.</p></div>
+     <form id="op-reply-form" hidden>
+      <label for="op-reply-text">Reply to customer</label>
+      <textarea id="op-reply-text" maxlength="2000" rows="3" placeholder="Write a clear response…" required></textarea>
+      <div class="op-form-actions"><button id="op-send-reply" class="op-button" type="submit">Send reply</button><button id="op-close-thread" class="op-outline" type="button">Mark resolved</button></div>
+     </form>
+    </div>
+   </div>
+  </section>
+
+  <section class="op-view" id="op-view-payments" aria-labelledby="op-payments-heading" hidden>
+   <div class="op-view-head"><div><span class="op-eyebrow">03 / TRANSACTIONS</span><h1 id="op-payments-heading">Payment review<span>.</span></h1><p>Manual crypto verification will operate here after the secure billing migration is complete.</p></div><span class="op-state waiting">IN DEVELOPMENT</span></div>
+   <article class="op-panel op-limit-panel"><span class="op-eyebrow">PAYMENT SAFETY GATE</span><h2>No payment approvals are available on staging.</h2><p>Receiving wallet verification, blockchain confirmation, receipt evidence, duplicate-transaction controls and subscription activation must be validated before enabling this module.</p><div class="op-capability"><span>Monthly subscription</span><strong>USD $20 / 30 days</strong></div><div class="op-capability"><span>Checkout and approvals</span><strong>Disabled</strong></div><div class="op-capability"><span>Historical ledger migration</span><strong>Not yet verified</strong></div></article>
+  </section>
+
+  <section class="op-view" id="op-view-members" aria-labelledby="op-members-heading" hidden>
+   <div class="op-view-head"><div><span class="op-eyebrow">04 / CUSTOMER ACCESS</span><h1 id="op-members-heading">Members<span>.</span></h1><p>Verified membership statistics without exposing private member records.</p></div><span class="op-state waiting">READ-ONLY</span></div>
+   <div class="op-kpis three">
+    <article class="op-glass"><span>Registered members</span><strong id="op-member-count">—</strong><small>Database records</small></article>
+    <article class="op-glass"><span>Active paid access</span><strong id="op-member-paid">—</strong><small>Verified entitlements</small></article>
+    <article class="op-glass"><span>Legacy accounts to review</span><strong id="op-member-reconcile">—</strong><small>Unreconciled status</small></article>
+   </div>
+   <article class="op-panel op-limit-panel"><span class="op-eyebrow">ACCESS CONTROL</span><h2>Member modifications are disabled.</h2><p>Search, manual grants, suspensions, trial overrides and subscription changes require the migrated and audited administrator APIs. This dashboard will not claim those actions succeeded until they are verified.</p></article>
+  </section>
+
+  <section class="op-view" id="op-view-system" aria-labelledby="op-system-heading" hidden>
+   <div class="op-view-head"><div><span class="op-eyebrow">05 / OPERATIONS HEALTH</span><h1 id="op-system-heading">System status<span>.</span></h1><p>Source-aware reporting for staging integrations and release safeguards.</p></div><button class="op-outline" type="button" id="op-refresh-system">Check services</button></div>
+   <div class="op-columns">
+    <article class="op-panel"><div class="op-panel-head"><span>Research scheduler</span><span class="op-state" id="op-scheduler-state">CHECKING</span></div><p class="op-muted" id="op-scheduler-detail">Checking current scheduler configuration…</p></article>
+    <article class="op-panel"><div class="op-panel-head"><span>Economic calendar</span><span class="op-state" id="op-calendar-state">CHECKING</span></div><p class="op-muted" id="op-calendar-detail">Checking event-source coverage…</p></article>
+    <article class="op-panel"><div class="op-panel-head"><span>Website API</span><span class="op-state" id="op-api-state">CHECKING</span></div><p class="op-muted" id="op-api-detail">Checking public service health…</p></article>
+    <article class="op-panel"><div class="op-panel-head"><span>Production readiness</span><span class="op-state waiting">NOT APPROVED</span></div><p class="op-muted">Trading signals, payment approvals and verified historical performance still have independent release gates.</p></article>
+   </div>
+   <p class="op-footnote">A healthy website API does not establish that paid signals, forex market data, notifications or subscriptions are production ready.</p>
+  </section>
+ </main>
 </div>
-<div class="cand-glass cand-card" style="margin-top:12px">
-<div class="cand-panel-title"><strong>Super Admin recovery actions</strong><span class="cand-pill">AUDITED</span></div>
-<p class="cand-note">Actions require a reason and an authenticated administrator session. Phone-reassignment exceptions never erase previous trial history.</p>
-<form id="sc-trial-admin-form" class="cand-op-grid" style="margin-top:12px">
-<label class="cand-field">Existing member UUID<input id="sc-trial-admin-user" required placeholder="11111111-1111-4111-8111-111111111111"></label>
-<label class="cand-field">Action<select id="sc-trial-admin-action"><option value="admin_resolve_risk">Resolve risk review</option><option value="admin_revoke">Revoke active free trial</option><option value="admin_exception">One-time reassigned phone exception</option></select></label>
-<label class="cand-field">Phone (only for exception)<input id="sc-trial-admin-phone" type="tel" placeholder="+923001234567" autocomplete="off"></label>
-<label class="cand-field">Exception expires (only for exception)<input id="sc-trial-admin-expiry" type="datetime-local"></label>
-<label class="cand-field" style="grid-column:1/-1">Reason<textarea id="sc-trial-admin-reason" rows="2" minlength="5" maxlength="500" required placeholder="Describe the evidence or customer support case"></textarea></label>
-<button type="submit" class="cand-btn-secondary">Submit audited action</button>
-</form></div></section>
-<section id="ops-tab-messages" hidden><div class="cand-op-grid"><div class="cand-glass cand-card"><div class="cand-panel-title"><strong>Customer inbox</strong><span class="cand-pill">PRIVATE</span></div><div id="ops-ticket-list" class="cand-list" style="margin-top:12px"></div></div><div class="cand-glass cand-card"><div class="cand-panel-title"><strong id="ops-thread-title">Select a conversation</strong><span class="cand-pill" id="ops-thread-state">SUPPORT</span></div><div class="cand-messages" id="ops-messages"><p class="cand-note">Select a customer conversation.</p></div><form id="ops-reply-form" hidden><label class="cand-field">Reply to customer<textarea id="ops-reply" rows="3" maxlength="2000" required></textarea></label><div class="cand-ops-action"><button type="submit" class="cand-btn">Send reply ↗</button><button type="button" class="cand-btn-secondary" id="ops-close-ticket">Mark resolved</button></div></form></div></div></section>
-<section id="ops-tab-settings" hidden><div class="cand-columns"><div class="cand-glass cand-card"><h2>Monthly subscription pricing</h2><p class="cand-muted">The payment form will remain closed until a specific BTC price is published.</p><form id="ops-settings-form"><button class="cand-btn-secondary" type="button" id="ops-live-rate" style="margin:10px 0">Use current $20 BTC rate</button><p id="ops-rate-info" class="cand-note">Refresh the BTC conversion before enabling new payments.</p><label class="cand-field">Monthly price (BTC)<input id="ops-price" type="number" required min="0.00000001" max="10" step="0.00000001" placeholder="0.00050000"></label><label class="cand-field" style="display:flex;align-items:center;gap:9px"><input id="ops-enable" type="checkbox" style="width:auto;min-height:0"> Accept new payment submissions</label><button class="cand-btn" type="submit">Save subscription pricing ↗</button></form></div><div class="cand-glass cand-card"><h2>Receiving network</h2><div class="cand-info-row"><span>Asset</span><strong>Bitcoin (BTC)</strong></div><div class="cand-info-row"><span>Network</span><strong>Bitcoin mainnet</strong></div><div class="cand-info-row"><span>Renewal</span><strong>30 days</strong></div><div class="cand-info-row"><span>Review target</span><strong>Within 30 minutes after confirmation</strong></div><p class="cand-note" style="margin-top:12px">Payment approvals require confirmed blockchain evidence matching this wallet and quoted amount.</p></div></div></section>
-<div class="cand-banner" style="margin-top:14px">Enable notifications and install the admin web app on Android. Device-alert testing is available; server-delivered payment and message notifications require a real subscribed device and end-to-end verification.</div>
-</div></main><script src="/site-app.js" defer></script><script src="/signalchart-shell.js" defer></script><script src="/sc-risk.js" defer></script></body></html>
+</body>
+</html>

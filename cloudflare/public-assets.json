@@ -49,6 +49,8 @@
     "membership.css",
     "membership.html",
     "membership.js",
+    "ops-console.css",
+    "ops-console.js",
     "ops-icon-192.png",
     "ops-icon-512.png",
     "ops-icon.svg",
