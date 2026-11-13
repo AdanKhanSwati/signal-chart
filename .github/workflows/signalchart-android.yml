@@ -1,7 +1,7 @@
 name: SignalChart Android previews
 on:
   push:
-    branches: [signalchart-android-landing]
+    branches: [signalchart-android-landing, signalchart-cloudflare-free-migration]
     paths: ['mobile/**', '.github/workflows/signalchart-android.yml']
   pull_request:
     paths: ['mobile/**', '.github/workflows/signalchart-android.yml']
@@ -40,5 +40,20 @@ jobs:
             mobile/android/app/build/outputs/apk/**/*.apk
             mobile/android/app/build/outputs/bundle/**/*.aab
             mobile/android/app/build/reports/lint-results-*.html
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload installable customer debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: signalchart-customer-debug-apk
+          path: mobile/android/app/build/outputs/apk/customer/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload installable super-admin debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: signalchart-superadmin-debug-apk
+          path: mobile/android/app/build/outputs/apk/admin/debug/*.apk
           if-no-files-found: error
           retention-days: 30
