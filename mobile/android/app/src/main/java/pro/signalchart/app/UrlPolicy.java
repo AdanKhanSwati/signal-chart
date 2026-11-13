@@ -11,7 +11,7 @@ public final class UrlPolicy {
         "/app.html", "/terminal.html", "/dashboard.html", "/signals.html", "/account.html",
         "/billing.html", "/support.html", "/watchlist.html", "/analytics.html"));
     private static final Set<String> ADMIN_PATHS = new HashSet<>(Arrays.asList(
-        "/ops.html", "/admin.html", "/account.html", "/support.html"));
+        "/admin-login.html", "/ops.html"));
     public static String sanitize(String value, String origin, String defaultPath, boolean admin) {
         String fallback = origin + defaultPath;
         if (value == null || value.length() > 8192) return fallback;

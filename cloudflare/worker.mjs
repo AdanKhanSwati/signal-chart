@@ -659,6 +659,12 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
      return reply({ok:true,brand:'SignalChart',phase:'cloudflare-staging',productionReady:false});
     }
+    if(url.pathname==='/api/admin-session'){
+     if(request.method!=='GET')throw issue(405,'Method not allowed');
+     const user=await verifyUser(request,fetchFn,env);
+     if(!supportAdmin(user,env))throw issue(403,'Administrator access required');
+     return reply({authorized:true,role:'super_admin'});
+    }
     if(url.pathname==='/api/trial'){
      const action=url.searchParams.get('action');
      if(request.method==='GET'&&action==='state'){

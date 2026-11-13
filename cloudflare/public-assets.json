@@ -3,6 +3,9 @@
   "files": [
     "account-link.js",
     "account.html",
+    "admin-auth.css",
+    "admin-auth.js",
+    "admin-login.html",
     "admin.html",
     "analytics-pulse.js",
     "analytics.html",

@@ -15,7 +15,8 @@ public class UrlPolicyTest {
             assertEquals(ORIGIN + "/app.html", customer(bad));
     }
     @Test public void adminHasSeparateEntry() {
-        assertEquals(ORIGIN + "/ops.html", UrlPolicy.sanitize(null, ORIGIN, "/ops.html", true));
-        assertEquals(ORIGIN + "/ops.html#messages", UrlPolicy.sanitize(ORIGIN + "/ops.html#messages", ORIGIN, "/ops.html", true));
+        assertEquals(ORIGIN + "/admin-login.html", UrlPolicy.sanitize(null, ORIGIN, "/admin-login.html", true));
+        assertEquals(ORIGIN + "/ops.html#messages", UrlPolicy.sanitize(ORIGIN + "/ops.html#messages", ORIGIN, "/admin-login.html", true));
+        assertEquals(ORIGIN + "/admin-login.html", UrlPolicy.sanitize(ORIGIN + "/account.html", ORIGIN, "/admin-login.html", true));
     }
 }

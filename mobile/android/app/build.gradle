@@ -33,7 +33,7 @@ android {
             resValue 'string', 'app_name', production ? 'SignalChart Admin' : 'SignalChart Admin Preview'
             buildConfigField 'String', 'START_PATH', '"/ops.html"'
             buildConfigField 'boolean', 'ADMIN_APP', 'true'
-            manifestPlaceholders += [startUrl: origin + '/ops.html', entryPath: '/ops.html']
+            manifestPlaceholders += [startUrl: origin + '/admin-login.html', entryPath: '/admin-login.html']
         }
     }
     buildTypes {

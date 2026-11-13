@@ -20,7 +20,7 @@ async function initializeAuth(){
  if(!c.authReady)throw Error('Account configuration is not ready.');
  serviceConfig=c;
  await new Promise((resolve,reject)=>{if(window.supabase?.createClient)return resolve();const x=document.createElement('script');x.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';x.onload=resolve;x.onerror=()=>reject(Error('Cannot load sign-in library'));document.head.append(x)});
- sb=window.supabase.createClient(c.supabaseUrl,c.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
+ sb=window.supabase.createClient(c.supabaseUrl,c.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:page!=='ops',flowType:'pkce',...(page==='ops'?{storageKey:'signalchart-superadmin-auth-v1'}:{})}});
  const state=await sb.auth.getSession();authToken=state.data.session?.access_token;
  return !!authToken;
 }
@@ -441,11 +441,21 @@ async function opsSetup(){
 async function boot(){
  try{
  const signed=await initializeAuth();
- if(!signed){show('#cand-signin',true);return}
+ if(!signed){if(page==='ops'){location.replace('/admin-login.html');return}show('#cand-signin',true);return}
+ if(page==='ops'){
+  const session=(await sb.auth.getSession()).data.session;
+  const check=await fetch('/api/admin-session',{cache:'no-store',credentials:'same-origin',headers:{Authorization:'Bearer '+session.access_token}});
+  if(check.status===401||check.status===403){
+   await sb.auth.signOut();location.replace('/admin-login.html');return;
+  }
+  if(!check.ok||(await check.json()).authorized!==true)throw Error('Administrator authorization is unavailable.');
+  const signout=$('#ops-signout');
+  if(signout)signout.onclick=async()=>{await sb.auth.signOut();location.replace('/admin-login.html')};
+  await opsSetup();return;
+ }
  if(page==='billing')await billingSetup();
  else if(page==='support')await supportSetup();
- else if(page==='ops')await opsSetup();
- }catch(e){note(e.message,true);if(e.message.includes('Administrator')||e.message.includes('403'))show('#cand-signin',true)}
+ }catch(e){note(e.message,true);if(page==='ops')show('#cand-signin',true);else if(e.message.includes('Administrator')||e.message.includes('403'))show('#cand-signin',true)}
 }
 if(page)boot();
 })();

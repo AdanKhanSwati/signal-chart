@@ -1,0 +1,41 @@
+:root{--orange:#ff9856;--text:#f3f1ee;--muted:#a6a8ad;--line:rgba(255,255,255,.15);--font:'Manrope',Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html{min-height:100%;background:#090a0d}
+body{min-height:100vh;margin:0;color:var(--text);background:radial-gradient(ellipse 40% 50% at 96% 48%,rgba(226,107,41,.11),transparent 75%),#090a0d;font:500 14px/1.7 var(--font);-webkit-font-smoothing:antialiased}
+button,input{font:inherit}button{cursor:pointer}
+button,a,input{-webkit-tap-highlight-color:transparent}
+button:focus:not(:focus-visible),a:focus:not(:focus-visible),input:focus:not(:focus-visible){outline:0}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:3px}
+.admin-gate{width:min(1230px,calc(100% - 88px));margin:auto;min-height:100vh;display:flex;flex-direction:column}
+.admin-gate-header{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:30px 0;border-bottom:1px solid var(--line)}
+.admin-gate-header img{display:block;width:170px;height:auto;max-height:60px;object-fit:contain}
+.admin-gate-header span,.gate-panel-head,.gate-kicker{font-size:10px;font-weight:800;letter-spacing:.17em;color:#d0c9c3}
+.gate-layout{flex:1;display:grid;grid-template-columns:minmax(0,1.04fr) minmax(345px,.74fr);align-items:center;gap:9%;padding:80px 0 110px}
+.gate-kicker{display:flex;gap:12px;align-items:center}.gate-kicker span{width:23px;height:2px;background:var(--orange)}
+.gate-intro h1{font-size:clamp(48px,5.35vw,79px);line-height:1.12;letter-spacing:-.065em;font-weight:600;margin:29px 0}
+.gate-intro h1 em{color:var(--orange);font-style:normal}
+.gate-intro>p{max-width:480px;color:#b9b5b7;font-size:15px;line-height:1.95}
+.gate-line{width:52px;height:1px;background:var(--orange);margin:38px 0 23px}
+.gate-intro .gate-note{font-size:12px;max-width:400px;color:#878a91}
+.gate-panel{min-width:0;background:linear-gradient(144deg,rgba(255,255,255,.075),rgba(255,255,255,.018));border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:39px;box-shadow:0 25px 90px #0009,inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(20px)}
+.gate-panel-head{display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between;color:#ffb27c}
+.gate-lock{color:#a6a4a6}
+.gate-panel h2{font-size:27px;letter-spacing:-.04em;font-weight:600;margin:32px 0 8px}
+.gate-panel p{color:#a4a4ae;font-size:12px;line-height:1.8}
+#admin-status{font-size:12px;color:#c8b2a3;min-height:20px;margin:20px 0}
+#admin-status[data-error="true"]{color:#ffad9f}
+#admin-form{display:flex;flex-direction:column}
+#admin-form label{font-size:11px;font-weight:800;margin:10px 0 8px}
+#admin-form input{width:100%;min-height:48px;padding:12px 14px;color:#fff;background:rgba(8,9,12,.7);border:1px solid rgba(255,255,255,.25);border-radius:8px;outline:none}
+#admin-form input:focus-visible{outline:2px solid #ff9e52;outline-offset:2px}
+#admin-form input::placeholder{color:#777b84}
+#admin-submit{width:100%;margin-top:25px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:15px;color:#100e0d;background:linear-gradient(110deg,#ffad68,#f68a40);font-weight:800;border:0;border-radius:8px}
+#admin-submit:hover{filter:brightness(1.07)}
+#admin-submit:disabled,#admin-email-link:disabled{opacity:.55;cursor:wait}
+.gate-text-button{background:none;border:0;padding:16px 0 0;color:#f0af7f;font-weight:800;font-size:12px;text-align:left}
+.gate-text-button:hover{text-decoration:underline}
+.gate-panel .gate-disclaimer{font-size:10px;margin:23px 0 0;color:#808189}
+.admin-gate footer{border-top:1px solid var(--line);padding:24px 0 30px;display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;font-size:10px;color:#8f9098}
+@media(max-width:850px){.admin-gate{width:calc(100% - 52px)}.gate-layout{grid-template-columns:minmax(0,1fr);gap:30px;padding:60px 0 75px}.gate-intro h1{font-size:54px}.gate-intro>p{font-size:13px}.gate-panel{max-width:530px;width:100%}}
+@media(max-width:480px){.admin-gate{width:calc(100% - 32px)}.admin-gate-header{padding:17px 0}.admin-gate-header img{width:136px}.admin-gate-header span{font-size:8px;letter-spacing:.1em}.gate-layout{padding:42px 0 55px;gap:25px}.gate-intro h1{font-size:clamp(39px,11vw,53px);margin:19px 0}.gate-intro>p{font-size:12px;line-height:1.8}.gate-line{margin:19px 0 11px}.gate-panel{padding:25px 20px;border-radius:12px}.gate-panel h2{font-size:24px;margin-top:25px}.gate-panel-head{font-size:9px}.admin-gate footer{font-size:9px;padding:17px 0 25px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
