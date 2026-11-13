@@ -125,6 +125,9 @@ async function algoForex(fetchFn,symbol,interval,now){
  const result=await provider(fetchFn,url);
  if(result?.symbol&&String(result.symbol).toUpperCase()!==symbol)
   throw Error('Historical pair mismatch');
+ // Never present a different broker timeframe as the requested candle size.
+ if(result?.timeframe&&String(result.timeframe).toUpperCase()!==tf)
+  throw Error('Historical timeframe mismatch');
  if(!Array.isArray(result?.data)||result.data.length>2200)
   throw Error('Invalid broker history');
  let bars=cleanBars(result.data.map(row=>({

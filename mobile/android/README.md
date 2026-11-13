@@ -42,3 +42,26 @@ The `SignalChart Android previews` workflow builds both debug APKs and unsigned 
 ## Landing page and concurrent work
 
 The current migration branch already serves `launch.html` at `/` and links to `/dashboard.html`, `/terminal.html` and `/app.html`. This Android change does not replace that landing page, alter its ongoing redesign, or deploy to the production domain. Add a download/Play button only when a signed, tested release actually exists.
+
+## Admin support continuation (November 13)
+
+The web surface used by the admin APK can now use the dedicated
+`GET /api/cv-ops?action=admin_support` route when `/api/config` advertises
+`adminSupportEnabled`. This removes the support inbox's dependency on the
+unmigrated billing endpoint. The server verifies the signed-in Supabase user
+against `SC_SUPER_ADMIN_UID`; user-editable profile metadata cannot grant access.
+The inbox has open/resolved filters, 50-ticket pages, reply and resolve controls,
+and visible refresh failures. Billing, member/trial administration and push
+controls stay unavailable in this support-only mode. No live payment processing
+or notification delivery is implied.
+
+No APK rebuild is required for this web change, but the Worker and public assets
+must be deployed together before existing APKs receive it. This branch does not
+deploy automatically. Existing SQL support tables/RPCs are reused; no database
+migration or customer-data write is part of this change.
+
+Validation: `node --test tests/*.test.js` and, with Playwright/Chromium installed,
+`node scripts/check-admin-support-ui.cjs`. The browser test uses synthetic
+identities and a mocked Supabase transport through the actual Worker handler,
+at 390px and 1280px. It is not a signed-in live-device test. The support QA
+workflow runs these checks without production secrets or a deployment.

@@ -10,6 +10,7 @@ const note=(s,bad=false)=>{const n=$('#cand-notice');if(!n)return;n.textContent=
 const formatBTC=n=>n==null?'Price not set':Number(n).toFixed(8)+' BTC';
 const fmtDate=s=>s?new Date(s).toLocaleString():'—';
 let sb,authToken,currentThread=null,currentUid=null,opsData=null,userData=null,appPrompt=null,refreshTimer=null,receiptUrl=null;
+let serviceConfig={},supportOffset=0,supportStatus='open',supportLoading=false,threadRequest=0;
 function el(tag,cls,t){const x=document.createElement(tag);if(cls)x.className=cls;if(t!==undefined)x.textContent=t;return x}
 function empty(node,msg){node.replaceChildren();node.append(el('p','cand-note',msg))}
 function action(label,onclick,style){const b=el('button',style||'cand-btn-secondary',label);b.type='button';b.onclick=onclick;return b}
@@ -17,6 +18,7 @@ function entryRow(label,value){const d=el('div','cand-info-row');d.append(el('sp
 async function initializeAuth(){
  const c=await fetch('/api/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Account service unavailable')));
  if(!c.authReady)throw Error('Account configuration is not ready.');
+ serviceConfig=c;
  await new Promise((resolve,reject)=>{if(window.supabase?.createClient)return resolve();const x=document.createElement('script');x.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';x.onload=resolve;x.onerror=()=>reject(Error('Cannot load sign-in library'));document.head.append(x)});
  sb=window.supabase.createClient(c.supabaseUrl,c.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
  const state=await sb.auth.getSession();authToken=state.data.session?.access_token;
@@ -108,13 +110,17 @@ async function billingSetup(){
 function ticketButton(ticket,click){const b=el('button','cand-listitem');b.type='button';b.append(el('strong','',ticket.subject||'Support message'),el('small','',(ticket.category||'general')+' · '+(ticket.status||'open')+' · '+dt(ticket.lastAt)));b.onclick=click;return b}
 function renderMessages(events,root){root.replaceChildren();for(const m of events){const d=el('div','cand-bubble'+(m.from==='admin'?' admin':''));d.append(el('span','cand-sender',(m.from==='admin'?'SignalChart Support':'Customer')+' · '+dt(m.at)),el('p','',m.text));root.append(d)}root.scrollTop=root.scrollHeight}
 async function openThread(ticket){
+ if(!ticket)return;
+ const requestId=++threadRequest;
  currentThread=ticket.ticketId;currentUid=ticket.uid;
  const args='messages&ticketId='+encodeURIComponent(currentThread)+(page==='ops'?'&uid='+encodeURIComponent(currentUid):'');
  const r=await call(args);
+ if(requestId!==threadRequest)return;
+ currentUid=r.ticket.uid;
  txt(page==='ops'?'#ops-thread-title':'#thread-title',r.ticket.subject||'Conversation');
  txt(page==='ops'?'#ops-thread-state':'#thread-state',r.ticket.status.toUpperCase());
  const root=$(page==='ops'?'#ops-messages':'#thread-messages');renderMessages(r.messages,root);
- show(page==='ops'?'#ops-reply-form':'#thread-reply-form',true);
+ show(page==='ops'?'#ops-reply-form':'#thread-reply-form',r.ticket.status==='open');
 }
 async function loadSupport(){
  userData=await call('me');show('#support-main',true);
@@ -136,6 +142,7 @@ async function supportSetup(){
  refreshTimer=setInterval(()=>{if(document.visibilityState==='visible')loadSupport().catch(()=>{})},22000);
 }
 function switchTab(name){
+ if(page==='ops'&&serviceConfig.adminSupportEnabled&&name!=='messages')return;
  document.querySelectorAll('[data-ops-tab]').forEach(b=>b.classList.toggle('active',b.dataset.opsTab===name));
  for(const x of ['payments','messages','settings','members','trials'])show('#ops-tab-'+x,x===name);
  if(name==='trials')loadTrialOps().catch(e=>note(e.message,true));
@@ -213,6 +220,7 @@ async function updateResearchOps(){
  }catch{txt('#ops-calendar','SOURCE UNAVAILABLE')}
 }
 async function loadOps(){
+ if(serviceConfig.adminSupportEnabled)return loadSupportOps();
  const info=await call('admin');opsData=info;show('#ops-main',true);updateResearchOps().catch(()=>{});
  txt('#ops-pending',info.stats.pendingPayments);txt('#ops-tickets',info.stats.openTickets);txt('#ops-total',info.stats.totalPayments);
  const payments=$('#ops-payment-list');payments.replaceChildren();
@@ -224,6 +232,53 @@ async function loadOps(){
  if(!document.activeElement?.closest('#ops-settings-form')){$('#ops-price').value=info.billing.btcMonthly||'';$('#ops-enable').checked=!!info.billing.enabled;}
  if(qs.has('payment')){const p=info.payments.find(x=>x.id===qs.get('payment'));if(p)openPayment(p)}
  if(qs.has('ticket')){const t=info.tickets.find(x=>x.ticketId===qs.get('ticket'));if(t){switchTab('messages');await openThread(t)}}
+}
+async function loadSupportOps(){
+ if(supportLoading)return;
+ supportLoading=true;
+ const controls=$('#ops-support-controls');
+ controls?.querySelectorAll('button,select').forEach(control=>control.disabled=true);
+ try{
+ const info=await call('admin_support&status='+supportStatus+'&offset='+supportOffset);
+ opsData=info;show('#ops-main',true);switchTab('messages');
+ txt('#ops-pending','Unavailable');txt('#ops-total','Unavailable');
+ txt('#ops-tickets',supportStatus==='open'?info.tickets.length:'—');
+ const countLabel=$('#ops-tickets')?.previousElementSibling;
+ if(countLabel)countLabel.textContent='Open on this page';
+ for(const name of ['payments','settings','members','trials']){
+  const button=$('[data-ops-tab="'+name+'"]');if(button){button.hidden=true;button.disabled=true;}
+ }
+ for(const id of ['#ops-push','#ops-test-push'])show(id,false);
+ const banner=$('#ops-main > .cand-banner');
+ if(banner)banner.textContent='Support is available. Payments, membership changes and remote notifications are not available during migration.';
+ if(!$('#ops-support-controls')){
+  const controls=el('div','cand-ops-action');controls.id='ops-support-controls';
+  const label=el('label','cand-field','Conversations');
+  const filter=el('select');filter.id='ops-support-filter';
+  for(const [value,title] of [['open','Open'],['closed','Resolved']]){const option=el('option','',title);option.value=value;filter.append(option)}
+  filter.onchange=()=>{supportStatus=filter.value;supportOffset=0;loadSupportOps().catch(e=>note(e.message,true))};
+  label.append(filter);controls.append(label);
+  const prev=action('Previous',()=>{supportOffset=Math.max(0,supportOffset-50);loadSupportOps().catch(e=>note(e.message,true))});prev.id='ops-support-prev';
+  const next=action('Next',()=>{supportOffset=opsData.page.nextOffset;loadSupportOps().catch(e=>note(e.message,true))});next.id='ops-support-next';
+  controls.append(prev,next,action('Refresh',()=>{supportOffset=0;loadSupportOps().catch(e=>note(e.message,true))}));
+  $('#ops-ticket-list').before(controls);
+ }
+ $('#ops-support-prev').disabled=info.page.offset===0;
+ $('#ops-support-next').disabled=info.page.nextOffset===null;
+ $('#ops-support-controls').querySelectorAll('select,button:not(#ops-support-prev):not(#ops-support-next)').forEach(control=>control.disabled=false);
+ const tickets=$('#ops-ticket-list');tickets.replaceChildren();
+ if(!info.tickets.length)empty(tickets,supportStatus==='open'?'No open conversations on this page.':'No resolved conversations on this page.');
+ for(const ticket of info.tickets)tickets.append(ticketButton(ticket,()=>openThread(ticket).catch(e=>note(e.message,true))));
+ // Refresh the selected conversation even when resolution moves it out of this page.
+ const deepLink=qs.get('ticket');
+ const selected=currentThread||deepLink;
+ if(selected)await openThread({ticketId:selected,uid:currentUid||''});
+ }catch(error){
+  // Never leave private data visible after an expired session or changed admin role.
+  show('#ops-main',false);opsData=null;threadRequest++;
+  for(const selector of ['#ops-ticket-list','#ops-messages'])$(selector)?.replaceChildren();
+  throw error;
+ }finally{supportLoading=false;}
 }
 function openPayment(p){
  const root=$('#ops-payment-detail');root.replaceChildren();
@@ -374,13 +429,14 @@ async function opsSetup(){
  };
  $('#ops-reply-form').onsubmit=async e=>{
  e.preventDefault();if(!currentThread)return;
- try{await call('reply','POST',{ticketId:currentThread,uid:currentUid,message:$('#ops-reply').value});$('#ops-reply').value='';const t=opsData.tickets.find(x=>x.ticketId===currentThread);await openThread(t);note('Reply delivered.')}catch(e){note(e.message,true)}
+ const button=e.target.querySelector('button[type=submit]');button.disabled=true;
+ try{await call('reply','POST',{ticketId:currentThread,uid:currentUid,message:$('#ops-reply').value});$('#ops-reply').value='';await openThread({ticketId:currentThread,uid:currentUid});note('Reply delivered.')}catch(e){note(e.message,true)}finally{button.disabled=false}
  };
  $('#ops-close-ticket').onclick=async()=>{
  if(!currentThread)return;
  try{await call('close_ticket','POST',{ticketId:currentThread,uid:currentUid});note('Conversation marked resolved.');await loadOps();switchTab('messages')}catch(e){note(e.message,true)}
  };
- await loadOps();refreshTimer=setInterval(()=>{if(document.visibilityState==='visible')loadOps().catch(()=>{})},25000);
+ await loadOps();refreshTimer=setInterval(()=>{if(document.visibilityState==='visible')loadOps().catch(e=>note('Inbox refresh failed: '+e.message,true))},25000);
 }
 async function boot(){
  try{

@@ -8,6 +8,10 @@ const endpoints=Object.freeze([
  {id:'rootLanding',path:'/',expected:200,type:'landing'},
  {id:'landingAsset',path:'/launch.html',expected:200,type:'landing'},
  {id:'mobileApp',path:'/app.html',expected:200,type:'app'},
+ {id:'marketingMarkets',path:'/markets.html',expected:200,type:'marketing'},
+ {id:'marketingPlatform',path:'/platform.html',expected:200,type:'marketing'},
+ {id:'marketingResearch',path:'/research.html',expected:200,type:'marketing'},
+ {id:'marketingMembership',path:'/membership.html',expected:200,type:'marketing'},
  {id:'marketDirectory',path:'/api/markets',expected:200,type:'markets'},
  {id:'cryptoBTC',path:'/api/candles?market=crypto&symbol=BTCUSDT&interval=1h',expected:200,type:'candles'},
  {id:'cryptoADA',path:'/api/candles?market=crypto&symbol=ADAUSDT&interval=1h',expected:200,type:'candles'},
@@ -16,14 +20,15 @@ const endpoints=Object.freeze([
 async function probe(item,fetchFn){
  try{
   const res=await fetchFn(ORIGIN+item.path,{
-   method:'GET',headers:{Accept:item.type==='landing'||item.type==='app'?'text/html':'application/json'},
+   method:'GET',headers:{Accept:item.type==='landing'||item.type==='app'||item.type==='marketing'?'text/html':'application/json'},
    redirect:'error',signal:AbortSignal.timeout(11000),cache:'no-store'
   });
   if(res.status!==item.expected)return {id:item.id,status:res.status,result:'UNEXPECTED_HTTP'};
-  if(item.type==='landing'||item.type==='app'){
+  if(item.type==='landing'||item.type==='app'||item.type==='marketing'){
    const html=(await res.text()).slice(0,250000);
    if(!html.includes('SignalChart'))return {id:item.id,status:res.status,result:'UNEXPECTED_CONTENT'};
-   const isNew=html.includes('Know the market.');
+   if(item.type==='marketing')return {id:item.id,status:res.status,result:html.includes('<main id="main">')&&html.includes('aria-current="page"')?'PASS':'INCOMPLETE_PAGE'};
+   const isNew=html.includes('Trade with<br><span>market context.');
    return {id:item.id,status:res.status,result:item.type==='landing'&&!isNew?'OLD_DEPLOYMENT':'PASS'};
   }
   const data=await res.json();
@@ -32,7 +37,17 @@ async function probe(item,fetchFn){
   if(item.type==='markets')return {id:item.id,status:res.status,result:Array.isArray(data.markets)&&data.markets.length>=30?'PASS':'CATALOG_INCOMPLETE',
    count:Array.isArray(data.markets)?data.markets.length:null};
   const valid=Array.isArray(data.candles)&&data.candles.length>=12&&typeof data.source==='string';
-  return {id:item.id,status:res.status,result:valid?'PASS':'INVALID_HISTORY',
+  // A USD spot reference is useful for a public chart but does not prove
+  // USDT perpetual-market coverage or suitability for automated signals.
+  const referenceOnly=valid&&(
+   (item.id.startsWith('crypto')&&
+    (data.instrument!=='perpetual'||data.aliasOnly===true||
+     !['binance','bybit','okx'].includes(String(data.exchange||'').toLowerCase())))||
+   (item.id.startsWith('forex')&&
+    (data.instrument!=='historical_fx'&&data.instrument!=='indicative_fx'))
+  );
+  return {id:item.id,status:res.status,
+   result:!valid?'INVALID_HISTORY':referenceOnly?'REFERENCE_ONLY':'PASS',
    instrument:valid?String(data.instrument||'unknown').slice(0,24):undefined,
    exchange:valid?String(data.exchange||'none').slice(0,20):undefined,
    count:valid?data.candles.length:0};

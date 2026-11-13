@@ -7,6 +7,7 @@ const response=(data,status=200,contentType='application/json')=>new Response(
 );
 test('Live staging smoke performs only public GET checks, including launch and both markets',()=>{
  assert.ok(endpoints.some(x=>x.id==='rootLanding'));
+ for(const p of ['Markets','Platform','Research','Membership'])assert.ok(endpoints.some(x=>x.id==='marketing'+p));
  assert.ok(endpoints.some(x=>x.id==='cryptoBTC'));
  assert.ok(endpoints.some(x=>x.id==='forexEUR'));
  assert.ok(endpoints.every(x=>x.path.startsWith('/')&&!/unlock|checkout|payment|admin|trial/.test(x.path)));
@@ -18,9 +19,10 @@ test('Healthy research staging still requires launch gates to be passed independ
   if(url.endsWith('/api/ready'))return response({productionReady:false},503);
   if(url.endsWith('/api/health'))return response({ok:true});
   if(url.includes('/api/markets'))return response({markets:Array.from({length:75},()=>({symbol:'BTCUSDT'}))});
+  if(url.includes('EURUSD'))return response({source:'Historical broker OHLC',instrument:'historical_fx',exchange:'algospecial',candles:Array.from({length:24},(_,i)=>({time:1700000000+i*900,open:1,high:1,low:1,close:1}))});
   if(url.includes('/api/candles'))return response({source:'Bybit USDT linear perpetual',instrument:'perpetual',exchange:'bybit',
    candles:Array.from({length:24},()=>({time:1700000000,open:1,high:1,low:1,close:1}))});
-  return response('<html><title>SignalChart</title><h1>Know the market.</h1></html>',200,'text/html');
+  return response('<html><title>SignalChart</title><main id="main"><a aria-current="page" href="/markets.html">Markets</a><h1>Trade with<br><span>market context.</span></h1></main></html>',200,'text/html');
  }});
  assert.equal(r.verdict,'PUBLIC_SMOKE_PASSED');
  assert.equal(r.passed,endpoints.length);
@@ -40,4 +42,51 @@ test('Old deployment and forex 502 are reported, not hidden by green source test
  assert.equal(r.verdict,'STAGING_REQUIRES_ATTENTION');
  assert.ok(r.checks.find(x=>x.id==='rootLanding').result==='OLD_DEPLOYMENT');
  assert.ok(r.checks.find(x=>x.id==='forexEUR').result==='UNEXPECTED_HTTP');
+});
+
+test('USD spot-reference crypto data cannot certify perpetual staging readiness',async()=>{
+ const r=await runSmoke({fetchFn:async url=>{
+  if(url.endsWith('/api/ready'))return response({productionReady:false},503);
+  if(url.endsWith('/api/health'))return response({ok:true});
+  if(url.includes('/api/markets'))return response({markets:Array.from({length:77},()=>({symbol:'BTCUSDT'}))});
+  if(url.includes('/api/candles'))return response({
+   source:'Coinbase Exchange USD spot reference (NOT USDT futures)',
+   instrument:'spot_reference',exchange:'coinbase',aliasOnly:true,
+   candles:Array.from({length:24},(_,i)=>({time:1700000000+i*3600,open:1,high:1,low:1,close:1}))
+  });
+  return response('<title>SignalChart</title><h1>See the market.</h1>',200,'text/html');
+ }});
+ assert.equal(r.verdict,'STAGING_REQUIRES_ATTENTION');
+ assert.equal(r.checks.find(x=>x.id==='cryptoBTC').result,'REFERENCE_ONLY');
+ assert.equal(r.checks.find(x=>x.id==='cryptoADA').result,'REFERENCE_ONLY');
+ assert.equal(r.checks.find(x=>x.id==='forexEUR').result,'REFERENCE_ONLY');
+});
+
+test('Spot or unverified venue cannot pass perpetual coverage even with HTTP 200',async()=>{
+ for(const instrument of ['spot','unknown','perpetual']){
+  const r=await runSmoke({fetchFn:async url=>{
+   if(url.endsWith('/api/ready'))return response({productionReady:false},503);
+   if(url.endsWith('/api/health'))return response({ok:true});
+   if(url.includes('/api/markets'))return response({markets:Array.from({length:77},()=>({symbol:'BTCUSDT'}))});
+   if(url.includes('/api/candles'))return response({
+    source:'public market history',instrument,exchange:instrument==='perpetual'?'unknown':'binance',
+    candles:Array.from({length:24},(_,i)=>({time:1700000000+i*3600,open:1,high:1,low:1,close:1}))
+   });
+   return response('<title>SignalChart</title><h1>The chart<br>comes</h1>',200,'text/html');
+  }});
+  assert.equal(r.checks.find(x=>x.id==='cryptoBTC').result,'REFERENCE_ONLY',instrument);
+  assert.equal(r.verdict,'STAGING_REQUIRES_ATTENTION');
+ }
+});
+
+test('Only explicitly identified FX history can pass a public forex smoke',async()=>{
+ const r=await runSmoke({fetchFn:async url=>{
+  if(url.endsWith('/api/ready'))return response({productionReady:false},503);
+  if(url.endsWith('/api/health'))return response({ok:true});
+  if(url.includes('/api/markets'))return response({markets:Array.from({length:77},()=>({symbol:'BTCUSDT'}))});
+  if(url.includes('EURUSD'))return response({source:'Historical broker OHLC',instrument:'historical_fx',exchange:'algospecial',candles:Array.from({length:24},(_,i)=>({time:1700000000+i*900,open:1,high:1,low:1,close:1}))});
+  if(url.includes('/api/candles'))return response({source:'Bybit USDT linear perpetual',instrument:'perpetual',exchange:'bybit',candles:Array.from({length:24},(_,i)=>({time:1700000000+i*3600,open:1,high:1,low:1,close:1}))});
+  return response('<title>SignalChart</title><h1>The chart<br>comes</h1>',200,'text/html');
+ }});
+ assert.equal(r.checks.find(x=>x.id==='forexEUR').result,'PASS');
 });

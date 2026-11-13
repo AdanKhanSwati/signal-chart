@@ -263,7 +263,8 @@ function apiConfig(env){
   renewalDays:30,monthlyUSD:20,priceCurrency:'USD',
   walletNetwork:'BTC mainnet',
   paymentMethod:'Manual BTC transfer after administrator verification',
-  signalsEnabled:false,paymentsEnabled:false,hourlySignals:'disabled'
+  signalsEnabled:false,paymentsEnabled:false,hourlySignals:'disabled',
+  adminSupportEnabled:true
  };
 }
 async function getMember(request,env,fetchFn){
@@ -401,6 +402,31 @@ async function memberTickets(fetchFn,config,uid){
 function supportAdmin(user,env){
  const target=String(env.SC_SUPER_ADMIN_UID||'').toLowerCase();
  return UUID.test(target)&&target===user.uid;
+}
+async function adminSupport(request,env,fetchFn,url){
+ const user=await verifyUser(request,fetchFn,env);
+ if(!supportAdmin(user,env))throw issue(403,'Administrator access required');
+ if(request.method!=='GET')throw issue(405,'Read the support inbox using GET');
+ const status=url.searchParams.get('status')||'open';
+ const rawOffset=url.searchParams.get('offset')||'0';
+ if(!['open','closed'].includes(status)||!/^\d{1,5}$/.test(rawOffset)||Number(rawOffset)>10000)
+  throw issue(400,'Invalid support inbox page');
+ const offset=Number(rawOffset);
+ const query='sc_support_tickets?status=eq.'+status+
+  '&select=id,user_id,subject,category,status,updated_at&order=updated_at.desc,id.desc'+
+  '&limit=51&offset='+offset;
+ const rows=await rest(fetchFn,secretConfig(env),'GET',query);
+ if(!Array.isArray(rows)||rows.length>51)throw issue(503,'Support inbox is unavailable');
+ for(const row of rows){
+  if(!UUID.test(row?.id||'')||!UUID.test(row?.user_id||'')||row.status!==status||
+     typeof row.subject!=='string'||!SUPPORT_CATEGORIES.has(row.category)||
+     !Number.isFinite(Date.parse(row.updated_at)))
+   throw issue(503,'Support inbox contains invalid records');
+ }
+ return reply({tickets:rows.slice(0,50).map(row=>({ticketId:row.id,uid:row.user_id,
+  subject:row.subject,category:row.category,status:row.status,lastAt:row.updated_at})),
+  page:{status,offset,nextOffset:rows.length>50&&offset<10000?offset+50:null},
+  capabilities:{support:true,billing:false,push:false,memberAccess:false,trialAdmin:false}});
 }
 async function supportTicket(fetchFn,config,ticketId,user,env){
  if(!UUID.test(ticketId||''))throw issue(400,'Invalid support conversation reference');
@@ -663,6 +689,7 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
     }
     if(url.pathname==='/api/cv-ops'){
      const action=url.searchParams.get('action');
+     if(action==='admin_support')return await adminSupport(request,env,fetchFn,url);
      if(request.method==='GET'&&action==='me'){
       const member=await getMember(request,env,fetchFn);
       const tickets=await memberTickets(fetchFn,secretConfig(env),member.account.uid);

@@ -1,35 +1,75 @@
 <!doctype html>
-<html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0d0f16"><meta name="description" content="SignalChart — source-attributed crypto and forex market charts, technical research and a clear mobile workspace.">
-<title>SignalChart — Crypto &amp; Forex Market Intelligence</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090a0d">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="SignalChart — a focused crypto and forex market intelligence platform, with sourced market charts, research and risk context.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SignalChart — Trade with market context">
+<meta property="og:description" content="Explore crypto and forex markets with transparent data sources and a focused research workspace.">
+<title>SignalChart — Trade with market context</title>
 <link rel="icon" type="image/svg+xml" href="/signalchart-mark.svg">
-<link rel="stylesheet" href="/launch.css"></head><body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/launch.css">
+<script defer src="/launch.js"></script>
+<script defer src="/signalchart-globe-rotate.js"></script>
+</head>
+<body>
 <a class="skip" href="#main">Skip to content</a>
-<header class="nav"><a href="/" aria-label="SignalChart homepage"><img src="/signalchart-wordmark.svg" width="161" height="44" alt="SignalChart"></a>
-<nav aria-label="Site"><a href="#platform">Platform</a><a href="#method">Method</a><a href="#membership">Membership</a></nav>
-<div class="nav-actions"><a class="login" href="/account.html">Sign in</a><a class="nav-button" href="/dashboard.html">Open portal ↗</a></div></header>
+<header class="site-header" id="top">
+  <div class="nav-shell">
+    <a href="/" class="brand" aria-label="SignalChart home"><img src="/signalchart-wordmark.svg" width="158" height="53" alt="SignalChart"></a>
+    <nav class="nav-links" aria-label="Main navigation"><a href="/markets.html">Markets</a><a href="/platform.html">Platform</a><a href="/research.html">Research</a><a href="/membership.html">Membership</a></nav>
+    <div class="nav-actions"><a class="sign-in" href="/account.html">Sign in</a><a class="nav-cta" href="/dashboard.html">Open platform <span aria-hidden="true">↗</span></a><button class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu"><span></span><span></span><span></span></button></div>
+  </div>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation" hidden><a href="/markets.html">Markets</a><a href="/platform.html">Platform</a><a href="/research.html">Research</a><a href="/membership.html">Membership</a><a href="/account.html">Sign in</a></nav>
+</header>
 <main id="main">
-<section class="hero"><div class="hero-inner">
-<div class="hero-copy"><p class="eyebrow"><i></i> CRYPTO + FOREX / MARKET INTELLIGENCE</p>
-<h1>Know the market.<br><em>Not the hype.</em></h1>
-<p class="lead">Source-attributed market charts, research context and a focused place to understand price action. Built for people who want evidence before making a trading decision.</p>
-<div class="actions"><a class="btn primary" href="/terminal.html">Explore charts <span>↗</span></a><a class="btn secondary" href="/app.html">Open mobile workspace</a></div>
-<p class="caution">No automatic trade execution. Source availability and pricing can vary by market.</p></div>
-<div class="market-card" aria-label="Market data preview">
-<div class="market-top"><span>MARKET DESK / SNAPSHOT</span><span id="lp-status">Checking providers</span></div>
-<div class="market-heading"><h2>Real sources.<br>Clear context.</h2><p>Historical OHLC preview · not executable broker quotes</p></div>
-<div class="quote"><div><span class="coin">₿</span><span><strong>BTC / USDT</strong><small>Crypto market · 1-hour history</small></span></div><div><strong id="lp-btc">—</strong><small id="lp-btc-source">Checking source…</small></div></div>
-<div class="quote"><div><span class="coin fx">€</span><span><strong>EUR / USD</strong><small>Forex market · indicative history</small></span></div><div><strong id="lp-eur">—</strong><small id="lp-eur-source">Checking source…</small></div></div>
-<div class="market-foot"><span>Provider-attributed prices</span><a href="/terminal.html">Interactive terminal ↗</a></div>
-</div></div><div class="hero-bottom"><span>BETTER CONTEXT, BETTER RISK AWARENESS.</span><span>01 / MARKET RESEARCH</span></div></section>
-<section class="section" id="platform"><div class="intro"><span class="eyebrow">THE WORKSPACE</span><h2>Everything you need to<br><span>understand the setup.</span></h2><p>Purpose-built workflows for crypto and forex research. We never substitute invented prices when a data source fails.</p></div>
-<div class="features"><article><span class="num">01 / CHARTING</span><div class="illustration lines"><span>PRICE ACTION</span></div><h3>Interactive market charts</h3><p>Browse crypto and forex pairs, explore timeframes, and inspect price history with a disclosed data source.</p><a href="/terminal.html">Explore charts ↗</a></article>
-<article><span class="num">02 / RESEARCH</span><div class="illustration formulas">EMA 20 / EMA 50<br>RSI 14 / RANGE<br>EVENT CONTEXT</div><h3>Research that shows its limits</h3><p>Technical measures and dated economic events, without unverified win-rate or profitability claims.</p><a href="/analytics.html">Research workspace ↗</a></article>
-<article><span class="num">03 / MOBILE</span><div class="illustration chips"><b>CRYPTO</b><b>FOREX</b><b>WATCHLIST</b></div><h3>Focused mobile experience</h3><p>Access charts, account information, market research and support from your Android browser.</p><a href="/app.html">Open mobile app ↗</a></article></div></section>
-<section class="section steps-area" id="method"><div class="intro"><span class="eyebrow">OUR APPROACH</span><h2>Trade research, not promises.</h2><p>A consistent research sequence helps you assess markets without mistaking market commentary for guaranteed outcomes.</p></div>
-<div class="steps"><div><span>01</span><h3>Choose your market</h3><p>Search supported assets, with source and instrument type clearly shown.</p></div><div><span>02</span><h3>Review the context</h3><p>Study chart history, indicators and economic calendar coverage.</p></div><div><span>03</span><h3>Decide your risk</h3><p>Set your own limits. SignalChart never controls or places your trades.</p></div></div></section>
-<section class="section membership" id="membership"><div><span class="eyebrow">MEMBERSHIP</span><h2>Launch-ready when<br><span>the evidence is.</span></h2><p>The planned subscription is <strong>USD 20 per 30 days</strong>. Checkout, automatic premium signals and trial activation remain unavailable pending final verification. Never send cryptocurrency to an unverified payment address.</p><div class="actions"><a class="btn primary" href="/account.html">My account ↗</a><a class="btn secondary" href="/billing.html">Membership status</a></div></div><aside><span>PRE-LAUNCH CONTROL</span><strong>Research access first.<br>Premium activation later.</strong><p>Our planned 72-hour trial will only be available after eligibility and anti-abuse checks pass.</p><a href="/support.html">Contact support ↗</a></aside></section>
-<section class="risk" id="risk"><div><span class="eyebrow">RISK DISCLOSURE</span><h2>Trading can result in loss.</h2></div><p>Crypto and forex are speculative. You may lose some or all of your capital. SignalChart provides research and indicative market information, not personalised investment advice or trade execution. Prices may be stale or differ from broker quotes. No trading strategy or risk control guarantees profit, and simulated results do not prove live performance.</p></section>
-</main><footer><img src="/signalchart-wordmark.svg" width="143" height="42" alt="SignalChart"><span>© 2026 SignalChart · Independent market research</span><nav aria-label="Footer"><a href="/support.html">Support</a><a href="/app.html">Mobile</a><a href="/account.html">Account</a></nav></footer>
-<script src="/launch.js" defer></script></body></html>
+<section class="hero" aria-labelledby="hero-title">
+ <div class="hero-photo" aria-hidden="true"></div><div class="hero-shade" aria-hidden="true"></div>
+ <div class="hero-content wrap">
+  <div class="hero-eyebrow"><span class="orange-rule"></span> CRYPTO &amp; FOREX MARKET INTELLIGENCE</div>
+  <h1 id="hero-title">Trade with<br><span>market context.</span></h1>
+  <p class="hero-description">Market charts, technical research and the context behind the price. A considered workspace for crypto and forex traders.</p>
+  <div class="hero-ctas"><a class="button button-primary" href="/dashboard.html">Open SignalChart <span aria-hidden="true">↗</span></a><a class="button button-secondary" href="/terminal.html">Explore markets <span aria-hidden="true">↗</span></a></div>
+  <div class="hero-quiet"><span class="quiet-dot" aria-hidden="true"></span> RESEARCH / NOT TRADE EXECUTION</div>
+ </div>
+ <div class="hero-market-shell wrap" id="markets" aria-label="Market price reference cards">
+  <div class="market-cards">
+   <article class="market-card" aria-label="Bitcoin USDT market reference"><div class="card-head"><span class="market-symbol coin-btc" aria-hidden="true">₿</span><span class="card-pair">BTC / USDT<small>BITCOIN</small></span><span class="card-time">1H</span></div><div class="card-body"><strong class="card-price" id="lp-btc" aria-live="polite">—</strong><svg viewBox="0 0 110 43" class="card-line" id="lp-btc-chart" aria-label="Bitcoin historical candle trend" role="img"><path d=""/></svg></div><div class="card-caption" id="lp-btc-source">Checking market source…</div></article>
+   <article class="market-card" aria-label="Ethereum USDT market reference"><div class="card-head"><span class="market-symbol coin-eth" aria-hidden="true">◆</span><span class="card-pair">ETH / USDT<small>ETHEREUM</small></span><span class="card-time">1H</span></div><div class="card-body"><strong class="card-price" id="lp-eth" aria-live="polite">—</strong><svg viewBox="0 0 110 43" class="card-line" id="lp-eth-chart" aria-label="Ethereum historical candle trend" role="img"><path d=""/></svg></div><div class="card-caption" id="lp-eth-source">Checking market source…</div></article>
+   <article class="market-card" aria-label="Euro US dollar forex reference"><div class="card-head"><span class="market-symbol coin-eur" aria-hidden="true">€</span><span class="card-pair">EUR / USD<small>FOREX</small></span><span class="card-time">FX</span></div><div class="card-body"><strong class="card-price" id="lp-eur" aria-live="polite">—</strong><svg viewBox="0 0 110 43" class="card-line" id="lp-eur-chart" aria-label="Euro dollar historical candle trend" role="img"><path d=""/></svg></div><div class="card-caption" id="lp-eur-source">Checking market source…</div></article>
+   <article class="market-card" aria-label="British pound US dollar forex reference"><div class="card-head"><span class="market-symbol coin-gbp" aria-hidden="true">£</span><span class="card-pair">GBP / USD<small>FOREX</small></span><span class="card-time">FX</span></div><div class="card-body"><strong class="card-price" id="lp-gbp" aria-live="polite">—</strong><svg viewBox="0 0 110 43" class="card-line" id="lp-gbp-chart" aria-label="British pound dollar historical candle trend" role="img"><path d=""/></svg></div><div class="card-caption" id="lp-gbp-source">Checking market source…</div></article>
+  </div>
+  <div class="cards-note"><span id="lp-status" aria-live="polite">Checking market sources</span><span>Historical / indicative data. Not executable broker quotes.</span></div>
+ </div>
+</section>
+<section class="world-section" id="global-markets" aria-labelledby="world-title">
+ <div class="world-inner wrap">
+  <div class="world-copy"><div class="section-eyebrow"><span class="orange-rule"></span> ONE CONNECTED WORKSPACE</div><h2 id="world-title">One platform<br>for global markets.</h2><p>Crypto, forex, economic events and technical research. The context you need to evaluate a market—not a promise about where it goes next.</p><a href="/terminal.html" class="inline-link">Explore all markets <span aria-hidden="true">↗</span></a></div>
+  <div class="world-visual"><img src="/signalchart-globe.svg" alt="Black dotted globe with continents illuminated by warm orange light" width="660" height="575" loading="lazy" decoding="async"><canvas id="rotating-globe" width="660" height="575" aria-hidden="true"></canvas></div>
+  <div class="world-services" aria-label="Research coverage">
+   <a href="/crypto.html" class="service-row"><span class="service-icon">₿</span><span>Crypto</span><span class="service-arrow" aria-hidden="true">↗</span></a>
+   <a href="/forex.html" class="service-row"><span class="service-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V12M9 19V8M14 19V4M19 19V10"/></svg></span><span>Forex</span><span class="service-arrow" aria-hidden="true">↗</span></a>
+   <a href="/analytics.html" class="service-row"><span class="service-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="15" rx="2"/><path d="M8 3v6M16 3v6M4 11h16"/></svg></span><span>Economic events</span><span class="service-arrow" aria-hidden="true">↗</span></a>
+   <a href="/analytics.html" class="service-row"><span class="service-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 9 6-9 6-9-6 9-6Zm-9 11 9 6 9-6M3 17l9 5 9-5"/></svg></span><span>Market research</span><span class="service-arrow" aria-hidden="true">↗</span></a>
+  </div>
+ </div>
+</section>
+<section class="platform-section" id="platform" aria-labelledby="platform-title">
+ <div class="platform-inner wrap"><div class="platform-head"><div><div class="section-eyebrow"><span class="orange-rule"></span> THE SIGNALCHART PLATFORM</div><h2 id="platform-title">Market intelligence,<br>without the clutter.</h2></div><div class="platform-intro"><p>Move between markets, examine price history and follow your research in one focused interface. The preview below loads the actual SignalChart market terminal.</p><a href="/terminal.html" class="inline-link">Open the full platform <span aria-hidden="true">↗</span></a></div></div>
+ <div class="product-device" id="terminal-frame-wrap"><div class="device-top"><div class="device-lights" aria-hidden="true"><span></span><span></span><span></span></div><div class="device-label">SignalChart / Market terminal</div><a href="/terminal.html">Open <span aria-hidden="true">↗</span></a></div><div class="device-screen"><div class="device-loading" id="terminal-placeholder"><img src="/signalchart-mark.svg" width="42" height="42" alt=""><span>Explore the actual platform</span><a href="/terminal.html">Open interactive markets ↗</a></div><iframe id="terminal-preview" title="Actual SignalChart interactive market terminal preview" data-src="/terminal.html" data-mobile-src="/app.html" loading="lazy" referrerpolicy="same-origin"></iframe><a href="/terminal.html" class="device-tap" aria-label="Explore SignalChart terminal"></a></div></div>
+ <div class="platform-bottom"><span><span class="live-dot"></span> ACTUAL APPLICATION PREVIEW</span><span>External price feeds can be delayed or temporarily unavailable.</span><a href="/app.html">Open mobile workspace ↗</a></div></div>
+</section>
+<section class="research-section" id="research" aria-labelledby="research-title"><div class="research-inner wrap"><div class="research-image" role="img" aria-label="Real photograph of financial market charts displayed on a monitor"></div><div class="research-text"><div class="section-eyebrow"><span class="orange-rule"></span> RESEARCH BEFORE EXECUTION</div><h2 id="research-title">A sharper view.<br>A clearer decision.</h2><p>Source-labelled history, technical observations and economic context in one place. When a provider fails, the platform shows the limitation rather than inventing a price.</p><div class="research-points"><div><span>01</span> Source-attributed market data</div><div><span>02</span> Crypto and forex coverage</div><div><span>03</span> Risk-aware research workflow</div></div><a href="/analytics.html" class="inline-link">See the research tools <span aria-hidden="true">↗</span></a></div></div></section>
+<section class="membership-section" id="membership" aria-labelledby="membership-title"><div class="membership-inner wrap"><div><div class="section-eyebrow"><span class="orange-rule"></span> MEMBERSHIP</div><h2 id="membership-title">An elevated workspace.<br><span>Clear terms.</span></h2><p>Explore the platform while we complete the final verification of automated premium features, trial eligibility and payment processing.</p></div><div class="membership-panel"><div class="price-top"><span>PLANNED MEMBERSHIP</span><span class="price-state">PRE-LAUNCH</span></div><div class="price-display">$20 <span>USD / 30 DAYS</span></div><p>Crypto + forex intelligence, research and premium signals when verified for release.</p><div class="price-divider"></div><p class="release-note">Checkout, automatic premium signals and trial activation remain unavailable pending final verification.</p><div class="price-actions"><a href="/account.html" class="button button-primary">My account <span aria-hidden="true">↗</span></a><a href="/support.html" class="support-link">Support</a></div><small>Planned trial: 72 hours, subject to eligibility.</small></div></div></section>
+<section class="disclaimer" id="risk"><div class="wrap"><span>IMPORTANT / RISK DISCLOSURE</span><h2>Trading can result in loss.</h2><p>Crypto and forex trading is speculative and can lead to partial or total loss of capital. SignalChart provides research, not personalized financial advice or brokerage execution. Historical and reference prices may be delayed, incomplete or differ from executable quotes. No strategy or risk control guarantees profits; simulated outcomes do not establish live performance.</p></div></section>
+</main>
+<footer class="footer"><div class="wrap"><div class="footer-top"><a href="/" class="footer-brand" aria-label="SignalChart homepage"><img src="/signalchart-wordmark.svg" width="153" height="52" alt="SignalChart"></a><nav aria-label="Footer navigation"><a href="/platform.html">Platform</a><a href="/markets.html">Markets</a><a href="/research.html">Research</a><a href="/membership.html">Membership</a><a href="/app.html">Mobile</a><a href="/account.html">Account</a><a href="/support.html">Support</a></nav></div><div class="footer-bottom"><span>© 2026 SignalChart</span><span>Independent crypto and forex market research. Not a broker.</span></div></div></footer>
+</body>
+</html>
