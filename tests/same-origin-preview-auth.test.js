@@ -8,7 +8,7 @@ const vm=require('node:vm');
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 
 test('all first-party browser API calls preserve preview access cookies',()=>{
- const expected={'candriva-v2.js':2,'crypto-ui.js':1,'sc-trial-ui.js':2,'site-app.js':3};
+ const expected={'candriva-v2.js':2,'crypto-ui.js':1,'sc-trial-ui.js':2,'site-app.js':4};
  for(const [file,count] of Object.entries(expected)){
   const source=read(file);
   const occurrences=source.match(/credentials\s*[:=]\s*['"]same-origin['"]/g)||[];
