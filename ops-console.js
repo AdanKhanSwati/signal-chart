@@ -62,6 +62,7 @@ function showView(name){
  if(name==='settings')loadAdminSwitches().catch(err=>notice(errorMessage(err),true));
  if(name==='system')refreshSystem().catch(err=>notice(errorMessage(err),true));
  if(name==='overview'||name==='members')refreshOverview().catch(err=>notice(errorMessage(err),true));
+ if(name==='members')searchMembers(null,true).catch(err=>notice(errorMessage(err),true));
 }
 function renderOverview(data){
  const v=data.overview||{};
@@ -266,22 +267,24 @@ async function recordPaymentReview(event){
  }catch(error){notice(errorMessage(error),true)}
  finally{btn.disabled=false}
 }
-async function searchMembers(event){
+async function searchMembers(event,all=false){
  if(event)event.preventDefault();
- const query=$('op-member-search').value.trim(),root=$('op-member-results');
- if(query.length<2)return notice('Enter at least two characters to search.',true);
- root.replaceChildren(element('p','op-muted','Searching verified customer profiles…'));
+ const query=all?'':$('op-member-search').value.trim(),root=$('op-member-results');
+ if(query.length===1)return notice('Enter two or more characters or use Show all.',true);
+ root.replaceChildren(element('p','op-muted','Loading private authentication directory…'));
  try{
   const data=await request('/api/admin-members?q='+encodeURIComponent(query));
   if(!Array.isArray(data.members))throw Error('Invalid customer search response.');
   grantWriteEnabled=data.capabilities?.complimentaryGrants===true;
   root.replaceChildren();
-  if(!data.members.length)root.append(element('p','op-empty','No registered customer matches.'));
+  if(!data.members.length)root.append(element('p','op-empty','No matching authentication accounts.'));
   else for(const member of data.members){
    const item=element('button','op-record');item.type='button';
    item.append(element('strong','',member.email||member.userId),
-    element('small','',member.name||'No public name'),
-    element('small','',String(member.legacyStatus||'Unreconciled')));
+    element('small','',member.emailVerified?'Email verified':'Email not verified'),
+    element('small','',member.hasProfile?'Profile linked · '+String(member.legacyStatus||'Unreconciled'):'Profile not linked · action needed'),
+    element('small','',String(member.trialStatus||'Trial not started')+
+     (member.paidUntil?' · Paid until '+date(member.paidUntil):' · No verified paid grant')));
    item.onclick=()=>selectMember(member);
    root.append(item);
   }
@@ -293,6 +296,19 @@ async function selectMember(member){
  text('op-grant-state','LOADING');
  const root=$('op-member-grants');root.replaceChildren(element('p','op-muted','Checking grant history…'));
  $('op-grant-form').hidden=true;
+ if(!member.hasProfile){
+  root.replaceChildren(element('p','op-empty','This authentication account has not been linked to a SignalChart profile.'));
+  text('op-grant-state','PROFILE NOT LINKED');
+  if(member.emailVerified&&grantWriteEnabled){
+   const button=element('button','op-outline','Reconcile profile');button.type='button';
+   button.onclick=()=>reconcileProfile(member);
+   root.append(button);
+   text('op-grant-note','Reconciliation creates only the missing profile. No paid plan, trial or special privilege is granted.');
+  }else{
+   text('op-grant-note','Verify the account email before creating a customer profile.');
+  }
+  return;
+ }
  try{
   const data=await request('/api/admin-members?action=grants&userId='+encodeURIComponent(member.userId));
   if(selectedMember?.userId!==member.userId)return;
@@ -322,6 +338,23 @@ async function selectMember(member){
   text('op-grant-state','UNAVAILABLE');notice(errorMessage(error),true);
  }
 }
+
+async function reconcileProfile(member){
+ if(!member.emailVerified||member.hasProfile||!grantWriteEnabled)return;
+ if(!confirm('Create the missing customer profile for '+(member.email||member.userId)+'? This does not grant trial, premium signals or a paid subscription.'))return;
+ const reason=prompt('Reason for account reconciliation (5–500 characters):');
+ if(reason===null)return;
+ if(reason.trim().length<5||reason.trim().length>500){notice('Provide a 5–500 character explanation.',true);return}
+ try{
+  const result=await request('/api/admin-members?action=reconcile',{method:'POST',
+   data:{userId:member.userId,reason:reason.trim()}});
+  if(result.recorded!==true&&result.alreadyLinked!==true)throw Error('Profile reconciliation was not confirmed');
+  notice(result.recorded?'Verified profile linked without granting access.':'Profile was already linked.');
+  member.hasProfile=true;member.legacyStatus='unreconciled';await selectMember(member);
+  await searchMembers(null,true);
+ }catch(error){notice(errorMessage(error),true)}
+}
+
 async function grantMember(event){
  event.preventDefault();
  if(!selectedMember||!grantWriteEnabled)return;
@@ -547,6 +580,7 @@ async function boot(){
   $('op-refresh-payments').onclick=()=>loadPaymentRecords().catch(e=>notice(errorMessage(e),true));
   $('op-payment-review-form').onsubmit=recordPaymentReview;
   $('op-member-search-form').onsubmit=searchMembers;
+  $('op-load-all-members').onclick=()=>searchMembers(null,true);
   $('op-grant-form').onsubmit=grantMember;
   await Promise.allSettled([refreshOverview(),refreshSystem()]);
   window.addEventListener('focus',()=>{if(active==='inbox'&&!inboxBusy)loadInbox().catch(err=>notice(errorMessage(err),true))});

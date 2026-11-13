@@ -471,19 +471,24 @@ async function privateAdminRequest(request,env,fetchFn,url,area){
      revokeReason:g.revokeReason||null,active:g.active===true
     }))});
    }
-   if(action!=='list')throw issue(400,'Unsupported member search action');
+   if(action!=='list')throw issue(400,'Unsupported member directory action');
    const query=String(url.searchParams.get('q')||'').trim();
-   if(query.length<2||query.length>100)throw issue(400,'Search with at least two characters');
-   const people=await rest(fetchFn,config,'POST','rpc/sc_admin_member_search',{
-    p_actor:user.uid,p_query:query});
-   if(!Array.isArray(people)||people.length>25)throw issue(503,'Member search unavailable');
+   if(query.length>100)throw issue(400,'Member directory query too long');
+   const people=await rest(fetchFn,config,'POST','rpc/sc_admin_member_directory',{
+    p_actor:user.uid,p_query:query||null,p_limit:50});
+   if(!Array.isArray(people)||people.length>50)throw issue(503,'Member directory unavailable');
    for(const item of people)if(!UUID.test(String(item?.userId||''))||
-    typeof item.email!=='string')throw issue(503,'Invalid member search response');
+    typeof item.email!=='string'||typeof item.hasProfile!=='boolean'||
+    typeof item.emailVerified!=='boolean')throw issue(503,'Member directory contained invalid records');
    return reply({members:people.map(p=>({
     userId:p.userId,email:p.email,name:p.name,
-    joinedAt:p.joinedAt,legacyStatus:p.legacyStatus
+    joinedAt:p.joinedAt,lastSignInAt:p.lastSignInAt,
+    legacyStatus:p.legacyStatus,hasProfile:p.hasProfile,
+    emailVerified:p.emailVerified,trialStatus:p.trialStatus,
+    paidUntil:p.paidUntil||null
    })),capabilities:{complimentaryGrants:env.SC_ADMIN_COMPLIMENTARY_WRITE_ENABLED==='true',
-    paidSubscriptionChanges:false}});
+    profileReconciliation:env.SC_ADMIN_COMPLIMENTARY_WRITE_ENABLED==='true',
+    paidSubscriptionChanges:false},limit:50});
   }
  }
  if(request.method!=='POST')throw issue(405,'Only GET and POST operations supported');
@@ -493,7 +498,7 @@ async function privateAdminRequest(request,env,fetchFn,url,area){
   if(env.SC_ADMIN_PAYMENT_REVIEW_ENABLED!=='true')
    throw issue(503,'Payment review is not activated');
  }else{
-  if(!['grant','revoke'].includes(action))throw issue(400,'Unsupported member action');
+  if(!['grant','revoke','reconcile'].includes(action))throw issue(400,'Unsupported member action');
   if(env.SC_ADMIN_COMPLIMENTARY_WRITE_ENABLED!=='true')
    throw issue(503,'Complimentary access management is not activated');
  }
@@ -504,7 +509,7 @@ async function privateAdminRequest(request,env,fetchFn,url,area){
  let body;try{body=JSON.parse(raw)}catch{throw issue(400,'Malformed operation request')}
  if(!body||typeof body!=='object'||Array.isArray(body))throw issue(400,'Invalid request data');
  const keys=isPayment?['paymentId','action','reason']:action==='grant'?
-  ['userId','expiresAt','reason']:['grantId','reason'];
+  ['userId','expiresAt','reason']:action==='reconcile'?['userId','reason']:['grantId','reason'];
  if(Object.keys(body).some(k=>!keys.includes(k)))throw issue(400,'Unexpected operation field');
  const reason=body.reason;
  if(typeof reason!=='string'||reason.trim().length<5||reason.trim().length>500)
@@ -517,6 +522,17 @@ async function privateAdminRequest(request,env,fetchFn,url,area){
   if(result?.recorded!==true||!UUID.test(result?.eventId||''))
    throw issue(503,'Payment review was not recorded');
   return reply({recorded:true,eventId:result.eventId,action:body.action},201);
+ }
+ if(action==='reconcile'){
+  if(!UUID.test(String(body.userId||'')))throw issue(400,'Valid registered account required');
+  const result=await rest(fetchFn,config,'POST','rpc/sc_admin_reconcile_member',{
+   p_actor:user.uid,p_user:body.userId,p_reason:reason.trim()});
+  if(result?.recorded===true&&result.profileCreated===true)
+   return reply({recorded:true,userId:body.userId,profileCreated:true,
+    paidAccessGranted:false,trialGranted:false},201);
+  if(result?.alreadyLinked===true)
+   return reply({recorded:false,alreadyLinked:true});
+  throw issue(503,'Account reconciliation could not be verified');
  }
  if(action==='grant'){
   const expires=Date.parse(String(body.expiresAt||''));

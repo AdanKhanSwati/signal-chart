@@ -18,7 +18,8 @@ function stub({owner=ADMIN,user=ADMIN,rows=[],grants=[],payments=[],result=null}
    ok({id:user,email:'owner@signalchart.test',email_confirmed_at:'2026-11-12T12:00:00Z'}):new Response('denied',{status:401});
   if(p==='/rest/v1/sc_admin_owner')return ok(owner?[{user_id:owner}]:[]);
   if(p==='/rest/v1/rpc/sc_admin_payment_queue')return ok(payments);
-  if(p==='/rest/v1/rpc/sc_admin_member_search')return ok([{userId:MEMBER,email:'customer@test.invalid',name:'Customer',joinedAt:'2026-11-12T12:00:00Z',legacyStatus:'reviewed'}]);
+  if(p==='/rest/v1/rpc/sc_admin_member_directory')return ok([{userId:MEMBER,email:'customer@test.invalid',name:'Customer',joinedAt:'2026-11-12T12:00:00Z',legacyStatus:'reviewed',hasProfile:true,emailVerified:true,trialStatus:'not_activated',lastSignInAt:null,paidUntil:null}]);
+  if(p==='/rest/v1/rpc/sc_admin_reconcile_member')return ok(result||{recorded:true,userId:MEMBER,profileCreated:true,paidAccessGranted:false,trialGranted:false});
   if(p==='/rest/v1/rpc/sc_admin_member_grants')return ok(grants);
   if(p==='/rest/v1/rpc/sc_admin_access_grant')return ok(result||{recorded:true,grantId:'d1111111-1111-4111-8111-111111111111',expiresAt:'2026-12-01T00:00:00Z'});
   if(p==='/rest/v1/rpc/sc_admin_access_revoke')return ok(result||{recorded:true,revoked:true});
@@ -49,7 +50,7 @@ test('Empty SQL queue and verified customer search return only allowlisted field
  assert.equal(queue.capabilities.customerCheckout,false);
  const m=await run('/api/admin-members?q=cus');
  assert.equal(m.status,200);const members=await m.json();
- assert.equal(members.members.length,1);assert.deepEqual(Object.keys(members.members[0]).sort(),['email','joinedAt','legacyStatus','name','userId'].sort());
+ assert.equal(members.members.length,1);assert.deepEqual(Object.keys(members.members[0]).sort(),['email','joinedAt','lastSignInAt','legacyStatus','name','userId','hasProfile','emailVerified','trialStatus','paidUntil'].sort());
 });
 test('Private payment approval cannot be sent while review flag is off or turned on',async()=>{
  const p={paymentId:'d1111111-1111-4111-8111-111111111111',action:'approve',reason:'Unverified payment review'};
