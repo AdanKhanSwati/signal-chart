@@ -26,6 +26,9 @@
   "vars": {
     "SC_AUTO_RESEARCH_ENABLED": "true",
     "SC_AUTO_PUBLISH_ENABLED": "false",
-    "SC_ADMIN_OWNER_DB_ENABLED": "true"
+    "SC_ADMIN_OWNER_DB_ENABLED": "true",
+    "SC_ADMIN_OPS_READ_ENABLED": "true",
+    "SC_ADMIN_PAYMENT_REVIEW_ENABLED": "false",
+    "SC_ADMIN_COMPLIMENTARY_WRITE_ENABLED": "true"
   }
 }

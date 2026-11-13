@@ -271,19 +271,21 @@ async function getMember(request,env,fetchFn){
  const user=await verifyUser(request,fetchFn,env);
  const config=secretConfig(env);
  const saved=await profile(fetchFn,config,user);
- const [state,paidUntil]=await Promise.all([
+ const [state,paidUntil,manualEndsAt]=await Promise.all([
   trialState(fetchFn,config,user.uid),
-  sqlPaid(fetchFn,config,user.uid)
+  sqlPaid(fetchFn,config,user.uid),
+  env.SC_ADMIN_COMPLIMENTARY_WRITE_ENABLED==='true'?
+   manualActiveGrant(fetchFn,config,user.uid):Promise.resolve(null)
  ]);
  const activeTrial=trialAllows(state),paid=!!paidUntil;
- const status=paid?'active':activeTrial?'trial':'locked';
+ const status=paid?'active':manualEndsAt?'granted':activeTrial?'trial':'locked';
  const account={
   uid:user.uid,email:user.email,name:saved.display_name||user.name,
-  status,access:paid||activeTrial,isAdmin:false,paidUntil,
-  manualEndsAt:null,trialStatus:state.trialStatus,
+  status,access:paid||!!manualEndsAt||activeTrial,isAdmin:false,paidUntil,
+  manualEndsAt,trialStatus:state.trialStatus,
   trialStartedAt:state.activatedAt||null,trialEndsAt:state.expiresAt||null,
   signalsUsed:state.signalsUsed,signalsRemaining:state.signalsRemaining,
-  accessUntil:paid?paidUntil:activeTrial?state.expiresAt:null,
+  accessUntil:paid?paidUntil:manualEndsAt|| (activeTrial?state.expiresAt:null),
   legacyHistoryStatus:saved.legacy_status,
   legacyRecoveryPending:saved.legacy_status==='unreconciled'
  };
@@ -344,9 +346,13 @@ async function premiumUnlock(request,env,fetchFn){
  // For paid members, SQL verifies an active, unrevoked verified grant;
  // for trial members, sc_unlock_trial itself is transactional and prevents a
  // fourth unique signal across concurrent devices while permitting reopen.
- const paidUntil=await sqlPaid(fetchFn,config,user.uid);
+ const [paidUntil,manualEndsAt]=await Promise.all([
+  sqlPaid(fetchFn,config,user.uid),
+  env.SC_ADMIN_COMPLIMENTARY_WRITE_ENABLED==='true'?
+    manualActiveGrant(fetchFn,config,user.uid):Promise.resolve(null)
+ ]);
  let result;
- if(paidUntil){
+ if(paidUntil||manualEndsAt){
   const detail=await rest(fetchFn,config,'POST','rpc/sc_signal_detail_server',{
    p_signal_key:signalKey
   });
@@ -417,6 +423,132 @@ async function supportAdmin(user,env,fetchFn){
  const target=String(env.SC_SUPER_ADMIN_UID||'').toLowerCase();
  return UUID.test(target)&&target===user.uid;
 }
+
+/**
+ * Owner-only operations. The Supabase service key never reaches the browser,
+ * and the SQL functions independently recheck the single admin owner row.
+ * No customer checkout, blockchain approval or paid membership is created here.
+ */
+async function privateAdminRequest(request,env,fetchFn,url,area){
+ const user=await verifyUser(request,fetchFn,env);
+ if(!(await supportAdmin(user,env,fetchFn)))throw issue(403,'Administrator access required');
+ if(env.SC_ADMIN_OPS_READ_ENABLED!=='true')
+  throw issue(503,'Private operations have not been enabled for staging');
+ const config=secretConfig(env);
+ const action=url.searchParams.get('action')||'list';
+ if(request.method==='GET'){
+  if(area==='payments'){
+   if(action!=='list')throw issue(400,'Unsupported review operation');
+   const rows=await rest(fetchFn,config,'POST','rpc/sc_admin_payment_queue',{p_actor:user.uid,p_limit:30});
+   if(!Array.isArray(rows)||rows.length>30)throw issue(503,'Payment ledger not verified');
+   for(const item of rows){
+    if(!UUID.test(String(item?.id||''))||!UUID.test(String(item.userId||''))||
+      typeof item.txid!=='string'||!/^[0-9a-f]{64}$/.test(item.txid)||
+      !Number.isSafeInteger(Number(item.amountSats))||Number(item.amountSats)<=0)
+     throw issue(503,'Payment ledger contains invalid entries');
+   }
+   return reply({payments:rows.map(p=>({
+    id:p.id,userId:p.userId,email:String(p.email||'').slice(0,254),
+    invoiceRef:p.invoiceRef,txid:p.txid,network:p.network,amountSats:p.amountSats,
+    receivingWallet:p.receivingWallet,submittedAt:p.submittedAt,
+    lastReviewAction:p.lastReviewAction||null,lastReviewReason:p.lastReviewReason||null,
+    lastReviewedAt:p.lastReviewedAt||null})),
+    capabilities:{canApprove:false,canReview:env.SC_ADMIN_PAYMENT_REVIEW_ENABLED==='true',
+      receiptDownload:false,customerCheckout:false},
+    migration:{legacyLedgerReconciled:false},
+    note:'This staging list contains only migrated SQL records, never reconstructed legacy payments.'});
+  }
+  if(area==='members'){
+   if(action==='grants'){
+    const userId=url.searchParams.get('userId');
+    if(!UUID.test(userId||''))throw issue(400,'A valid member ID is required');
+    const grants=await rest(fetchFn,config,'POST','rpc/sc_admin_member_grants',{
+     p_actor:user.uid,p_user:userId});
+    if(!Array.isArray(grants)||grants.length>30)throw issue(503,'Grant history unavailable');
+    return reply({grants:grants.map(g=>({
+     grantId:g.grantId,userId:g.userId,startsAt:g.startsAt,expiresAt:g.expiresAt,
+     issuedAt:g.issuedAt,reason:g.reason,revokedAt:g.revokedAt||null,
+     revokeReason:g.revokeReason||null,active:g.active===true
+    }))});
+   }
+   if(action!=='list')throw issue(400,'Unsupported member search action');
+   const query=String(url.searchParams.get('q')||'').trim();
+   if(query.length<2||query.length>100)throw issue(400,'Search with at least two characters');
+   const people=await rest(fetchFn,config,'POST','rpc/sc_admin_member_search',{
+    p_actor:user.uid,p_query:query});
+   if(!Array.isArray(people)||people.length>25)throw issue(503,'Member search unavailable');
+   for(const item of people)if(!UUID.test(String(item?.userId||''))||
+    typeof item.email!=='string')throw issue(503,'Invalid member search response');
+   return reply({members:people.map(p=>({
+    userId:p.userId,email:p.email,name:p.name,
+    joinedAt:p.joinedAt,legacyStatus:p.legacyStatus
+   })),capabilities:{complimentaryGrants:env.SC_ADMIN_COMPLIMENTARY_WRITE_ENABLED==='true',
+    paidSubscriptionChanges:false}});
+  }
+ }
+ if(request.method!=='POST')throw issue(405,'Only GET and POST operations supported');
+ const isPayment=area==='payments';
+ if(isPayment){
+  if(action!=='review')throw issue(400,'Invalid review action');
+  if(env.SC_ADMIN_PAYMENT_REVIEW_ENABLED!=='true')
+   throw issue(503,'Payment review is not activated');
+ }else{
+  if(!['grant','revoke'].includes(action))throw issue(400,'Unsupported member action');
+  if(env.SC_ADMIN_COMPLIMENTARY_WRITE_ENABLED!=='true')
+   throw issue(503,'Complimentary access management is not activated');
+ }
+ const type=String(request.headers.get('Content-Type')||'').toLowerCase();
+ if(!type.startsWith('application/json'))throw issue(415,'Expected JSON data');
+ const raw=await request.text();
+ if(raw.length>2000)throw issue(413,'Private operation request too large');
+ let body;try{body=JSON.parse(raw)}catch{throw issue(400,'Malformed operation request')}
+ if(!body||typeof body!=='object'||Array.isArray(body))throw issue(400,'Invalid request data');
+ const keys=isPayment?['paymentId','action','reason']:action==='grant'?
+  ['userId','expiresAt','reason']:['grantId','reason'];
+ if(Object.keys(body).some(k=>!keys.includes(k)))throw issue(400,'Unexpected operation field');
+ const reason=body.reason;
+ if(typeof reason!=='string'||reason.trim().length<5||reason.trim().length>500)
+  throw issue(400,'An explanation of 5 to 500 characters is required');
+ if(isPayment){
+  if(!UUID.test(String(body.paymentId||''))||!['hold','reject'].includes(body.action))
+   throw issue(400,'Payment approval is not available. Only hold and reject are supported.');
+  const result=await rest(fetchFn,config,'POST','rpc/sc_admin_payment_review',{
+   p_actor:user.uid,p_payment:body.paymentId,p_action:body.action,p_reason:reason.trim()});
+  if(result?.recorded!==true||!UUID.test(result?.eventId||''))
+   throw issue(503,'Payment review was not recorded');
+  return reply({recorded:true,eventId:result.eventId,action:body.action},201);
+ }
+ if(action==='grant'){
+  const expires=Date.parse(String(body.expiresAt||''));
+  if(!UUID.test(String(body.userId||''))||!Number.isFinite(expires)||
+    expires<Date.now()+15*60*1000||expires>Date.now()+90*86400000)
+   throw issue(400,'Valid member ID and expiry within 90 days required');
+  const result=await rest(fetchFn,config,'POST','rpc/sc_admin_access_grant',{
+   p_actor:user.uid,p_user:body.userId,p_expires:new Date(expires).toISOString(),
+   p_reason:reason.trim()});
+  if(result?.recorded!==true||!UUID.test(result?.grantId||''))
+   throw issue(503,'Grant could not be confirmed');
+  return reply({recorded:true,grantId:result.grantId,userId:body.userId,
+   expiresAt:result.expiresAt},201);
+ }
+ if(!UUID.test(String(body.grantId||'')))throw issue(400,'Valid grant reference required');
+ const result=await rest(fetchFn,config,'POST','rpc/sc_admin_access_revoke',{
+  p_actor:user.uid,p_grant:body.grantId,p_reason:reason.trim()});
+ if(result?.recorded!==true||result?.revoked!==true)
+  throw issue(503,'Revocation could not be confirmed');
+ return reply({recorded:true,revoked:true,grantId:body.grantId},201);
+}
+async function manualActiveGrant(fetchFn,config,uid){
+ const grant=await rest(fetchFn,config,'POST','rpc/sc_active_manual_grant',{p_user:uid});
+ if(!grant||typeof grant!=='object'||Array.isArray(grant))
+  throw issue(503,'Private access validation unavailable');
+ if(!grant.grantId)return null;
+ if(!UUID.test(grant.grantId)||!Number.isFinite(Date.parse(grant.expiresAt)))
+  throw issue(503,'Malformed complimentary grant');
+ const until=Date.parse(grant.expiresAt);
+ return until>Date.now()?grant.expiresAt:null;
+}
+
 async function adminOverview(request,env,fetchFn){
  const user=await verifyUser(request,fetchFn,env);
  if(!(await supportAdmin(user,env,fetchFn)))throw issue(403,'Administrator access required');
@@ -713,6 +845,10 @@ export function createWorker({fetchFn=globalThis.fetch}={}){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
      return reply({ok:true,brand:'SignalChart',phase:'cloudflare-staging',productionReady:false});
     }
+    if(url.pathname==='/api/admin-payments')
+     return await privateAdminRequest(request,env,fetchFn,url,'payments');
+    if(url.pathname==='/api/admin-members')
+     return await privateAdminRequest(request,env,fetchFn,url,'members');
     if(url.pathname==='/api/admin-overview'){
      if(request.method!=='GET')throw issue(405,'Method not allowed');
      return await adminOverview(request,env,fetchFn);
