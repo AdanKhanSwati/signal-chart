@@ -1,6 +1,7 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),storageKey='signalchart-superadmin-auth-v1';
 let sb=null,active='overview',tickets=[],offset=0,filter='open',selected=null,inboxBusy=false,requestSeq=0,refreshing=false;
+let paymentRecords=[],paymentCapabilities={},selectedPayment=null,selectedMember=null,grantWriteEnabled=false;
 let deferredInstall=null;
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstall=event;const btn=$('op-install');if(btn&&!$('op-app').hidden)btn.hidden=false});
 window.addEventListener('appinstalled',()=>{deferredInstall=null;const btn=$('op-install');if(btn)btn.hidden=true});
@@ -54,6 +55,7 @@ function showView(name){
  });
  VIEWS.forEach(view=>{$('op-view-'+view).hidden=view!==name});
  if(name==='inbox'&&!inboxBusy)loadInbox().catch(err=>notice(errorMessage(err),true));
+ if(name==='payments')loadPaymentRecords().catch(err=>notice(errorMessage(err),true));
  if(name==='system')refreshSystem().catch(err=>notice(errorMessage(err),true));
  if(name==='overview'||name==='members')refreshOverview().catch(err=>notice(errorMessage(err),true));
 }
@@ -191,6 +193,166 @@ async function refreshSystem(){
   catch{ text(statusId,'UNAVAILABLE');text(detailId,'The source could not be verified. Retry later.')}
  }));
 }
+
+function summaryLine(label,value){
+ const row=element('div','op-review-row');
+ row.append(element('span','op-muted',label),element('strong','',value??'—'));
+ return row;
+}
+function selectPayment(item){
+ selectedPayment=item;
+ const root=$('op-payment-details');root.replaceChildren();
+ const lines=[
+  ['Invoice reference',item.invoiceRef],['Account',item.email||item.userId],
+  ['Blockchain',item.network],['Transaction ID',item.txid],
+  ['Amount (satoshis)',Number(item.amountSats).toLocaleString('en-US')],
+  ['Destination supplied',item.receivingWallet],
+  ['Submission time',date(item.submittedAt)],
+  ['Last review',item.lastReviewAction||'Pending'],
+  ['Last review note',item.lastReviewReason||'None']
+ ];
+ lines.forEach(([label,value])=>root.append(summaryLine(label,value)));
+ text('op-payment-state',String(item.lastReviewAction||'PENDING').toUpperCase());
+ const ready=paymentCapabilities.canReview===true&&item.lastReviewAction!=='reject';
+ $('op-payment-review-form').hidden=!ready;
+ text('op-payment-disabled',ready?
+  'Hold/reject actions are recorded permanently. Approving a payment is disabled.':
+  'Review actions are currently disabled; no subscription will be activated.');
+}
+async function loadPaymentRecords(){
+ const root=$('op-payment-list');
+ text('op-payment-count','Loading…');
+ root.replaceChildren(element('p','op-muted','Loading verified SQL ledger…'));
+ try{
+  const data=await request('/api/admin-payments');
+  if(!Array.isArray(data.payments))throw Error('Invalid payment queue');
+  paymentRecords=data.payments;paymentCapabilities=data.capabilities||{};
+  text('op-payment-count',paymentRecords.length+' submitted');
+  root.replaceChildren();
+  if(!paymentRecords.length)root.append(element('p','op-empty','No migrated payment submissions. Earlier receipts have not been imported or verified.'));
+  else for(const p of paymentRecords){
+   const row=element('button','op-record');row.type='button';
+   row.append(element('strong','',p.email||p.userId),
+    element('small','',String(p.invoiceRef)+' · '+date(p.submittedAt)),
+    element('small','',p.lastReviewAction||'Pending review'));
+   row.onclick=()=>selectPayment(p);root.append(row);
+  }
+  if(selectedPayment){
+   const same=paymentRecords.find(p=>p.id===selectedPayment.id);
+   if(same)selectPayment(same);else{selectedPayment=null;$('op-payment-review-form').hidden=true;}
+  }
+ }catch(error){
+  paymentRecords=[];root.replaceChildren(element('p','op-empty','Private payment ledger unavailable. Nothing was inferred.'));
+  text('op-payment-count','Unavailable');throw error;
+ }
+}
+async function recordPaymentReview(event){
+ event.preventDefault();if(!selectedPayment||!paymentCapabilities.canReview)return;
+ const btn=$('op-payment-submit'),action=$('op-payment-action').value,
+  reason=$('op-payment-reason').value.trim();
+ if(reason.length<5){notice('Provide a review reason of at least five characters.',true);return}
+ if(action==='reject'&&!confirm('Reject this submitted payment? This audit event cannot be undone.'))return;
+ btn.disabled=true;
+ try{
+  const outcome=await request('/api/admin-payments?action=review',{method:'POST',
+   data:{paymentId:selectedPayment.id,action,reason}});
+  if(outcome.recorded!==true)throw Error('The server did not confirm the review event.');
+  notice('Payment review event recorded. No subscription was activated.');
+  $('op-payment-reason').value='';await loadPaymentRecords();
+ }catch(error){notice(errorMessage(error),true)}
+ finally{btn.disabled=false}
+}
+async function searchMembers(event){
+ if(event)event.preventDefault();
+ const query=$('op-member-search').value.trim(),root=$('op-member-results');
+ if(query.length<2)return notice('Enter at least two characters to search.',true);
+ root.replaceChildren(element('p','op-muted','Searching verified customer profiles…'));
+ try{
+  const data=await request('/api/admin-members?q='+encodeURIComponent(query));
+  if(!Array.isArray(data.members))throw Error('Invalid customer search response.');
+  grantWriteEnabled=data.capabilities?.complimentaryGrants===true;
+  root.replaceChildren();
+  if(!data.members.length)root.append(element('p','op-empty','No registered customer matches.'));
+  else for(const member of data.members){
+   const item=element('button','op-record');item.type='button';
+   item.append(element('strong','',member.email||member.userId),
+    element('small','',member.name||'No public name'),
+    element('small','',String(member.legacyStatus||'Unreconciled')));
+   item.onclick=()=>selectMember(member);
+   root.append(item);
+  }
+ }catch(error){root.replaceChildren(element('p','op-empty','Member search unavailable.'));notice(errorMessage(error),true)}
+}
+async function selectMember(member){
+ selectedMember=member;
+ text('op-selected-member',member.email+' · '+member.userId);
+ text('op-grant-state','LOADING');
+ const root=$('op-member-grants');root.replaceChildren(element('p','op-muted','Checking grant history…'));
+ $('op-grant-form').hidden=true;
+ try{
+  const data=await request('/api/admin-members?action=grants&userId='+encodeURIComponent(member.userId));
+  if(selectedMember?.userId!==member.userId)return;
+  root.replaceChildren();
+  if(!Array.isArray(data.grants))throw Error('Grant history response invalid');
+  if(!data.grants.length)root.append(element('p','op-empty','No complimentary access grants recorded.'));
+  for(const grant of data.grants){
+   const row=element('div','op-grant-record');
+   row.append(element('strong','',grant.active?'ACTIVE UNTIL '+date(grant.expiresAt):grant.revokedAt?'REVOKED':'EXPIRED'),
+    element('small','',grant.reason),
+    element('small','',grant.revokedAt?'Revoked '+date(grant.revokedAt):'Issued '+date(grant.issuedAt)));
+   if(grant.active&&grantWriteEnabled){
+    const revoke=element('button','op-outline op-revoke','Revoke grant');revoke.type='button';
+    revoke.onclick=()=>revokeGrant(grant);row.append(revoke);
+   }
+   root.append(row);
+  }
+  const hasActive=data.grants.some(x=>x.active);
+  $('op-grant-form').hidden=!grantWriteEnabled||hasActive;
+  text('op-grant-state',hasActive?'ACTIVE GRANT':'NO ACTIVE GRANT');
+  text('op-grant-note',hasActive?
+   'An active grant must be revoked before another is issued.':
+   grantWriteEnabled?'Complimentary access expires automatically. Paid status is unchanged.':
+   'Complimentary membership actions are disabled on this environment.');
+ }catch(error){
+  root.replaceChildren(element('p','op-empty','Grant history unavailable.'));
+  text('op-grant-state','UNAVAILABLE');notice(errorMessage(error),true);
+ }
+}
+async function grantMember(event){
+ event.preventDefault();
+ if(!selectedMember||!grantWriteEnabled)return;
+ const button=$('op-grant-submit'),reason=$('op-grant-reason').value.trim();
+ const raw=$('op-grant-expiry').value,expires=Date.parse(raw);
+ if(reason.length<5||!Number.isFinite(expires)||expires<=Date.now()+15*60*1000||expires>Date.now()+90*86400000){
+  notice('Use a reason of at least five characters and an expiry within 90 days.',true);return;
+ }
+ if(!confirm('Grant time-limited complimentary access to '+selectedMember.email+'?'))return;
+ button.disabled=true;
+ try{
+  const result=await request('/api/admin-members?action=grant',{method:'POST',
+   data:{userId:selectedMember.userId,reason,expiresAt:new Date(expires).toISOString()}});
+  if(result.recorded!==true)throw Error('The server did not confirm this grant.');
+  notice('Complimentary membership grant recorded for '+selectedMember.email+'.');
+  $('op-grant-reason').value='';await selectMember(selectedMember);
+ }catch(error){notice(errorMessage(error),true)}
+ finally{button.disabled=false}
+}
+async function revokeGrant(grant){
+ if(!selectedMember||!grantWriteEnabled)return;
+ const reason=prompt('Reason for revoking this complimentary grant (5–500 characters):');
+ if(reason===null)return;
+ if(reason.trim().length<5||reason.trim().length>500){
+  notice('Revocation reason must be between 5 and 500 characters.',true);return;
+ }
+ if(!confirm('Revoke this complimentary grant? This action is audited and cannot be undone.'))return;
+ try{
+  const result=await request('/api/admin-members?action=revoke',{method:'POST',
+   data:{grantId:grant.grantId,reason:reason.trim()}});
+  if(result.revoked!==true)throw Error('Revocation was not confirmed.');
+  notice('Complimentary grant revoked.');await selectMember(selectedMember);
+ }catch(error){notice(errorMessage(error),true)}
+}
+
 async function boot(){
  try{
   const config=await request('/api/config',{privateApi:false});
@@ -234,6 +396,10 @@ async function boot(){
   $('op-next').onclick=()=>{const next=Number($('op-next').dataset.nextOffset);if(Number.isSafeInteger(next)&&next>offset){offset=next;clearThread();loadInbox().catch(err=>notice(errorMessage(err),true))}};
   $('op-reply-form').onsubmit=reply;$('op-close-thread').onclick=closeThread;
   $('op-refresh-system').onclick=()=>refreshSystem();
+  $('op-refresh-payments').onclick=()=>loadPaymentRecords().catch(e=>notice(errorMessage(e),true));
+  $('op-payment-review-form').onsubmit=recordPaymentReview;
+  $('op-member-search-form').onsubmit=searchMembers;
+  $('op-grant-form').onsubmit=grantMember;
   await Promise.allSettled([refreshOverview(),refreshSystem()]);
   window.addEventListener('focus',()=>{if(active==='inbox'&&!inboxBusy)loadInbox().catch(err=>notice(errorMessage(err),true))});
  }catch(error){

@@ -6,3 +6,26 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 
 @media(max-width:580px){#op-install{font-size:10px;padding:8px 10px}.op-top-actions{gap:6px}}
+
+/* Administrator review workspace: compact but legible on phones. */
+.op-review-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+.op-review-grid>.op-panel{min-width:0}
+.op-review-list{display:flex;flex-direction:column;gap:10px;margin-top:15px}
+.op-record,.op-grant-record{width:100%;display:flex;flex-direction:column;gap:5px;text-align:left;background:rgba(255,255,255,.025);color:var(--text);border:1px solid var(--line);border-radius:11px;padding:13px 14px;min-width:0;overflow-wrap:anywhere}
+.op-record:hover,.op-record:focus-visible{border-color:rgba(255,156,90,.7);background:rgba(250,145,78,.09)}
+.op-record strong,.op-grant-record strong{font-size:12px;font-weight:800}
+.op-record small,.op-grant-record small{font-size:10px;color:var(--muted);line-height:1.55}
+.op-review-row{display:grid;grid-template-columns:minmax(95px,.45fr) minmax(0,1fr);gap:12px;border-bottom:1px solid var(--line);padding:11px 0;overflow-wrap:anywhere}
+.op-review-row>strong{font-size:11px;font-weight:750;word-break:break-word}
+.op-review-form{display:flex;flex-direction:column;gap:12px;margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
+.op-review-form label,.op-search-form label{font-size:11px;font-weight:800;display:flex;flex-direction:column;gap:8px}
+.op-review-form textarea,.op-review-form input,.op-review-form select,.op-search-form input{width:100%;background:#101216;color:#f5f1ec;border:1px solid rgba(255,255,255,.24);border-radius:7px;padding:12px;font:inherit;min-height:44px}
+.op-review-form textarea{min-height:84px;resize:vertical}
+.op-review-form :focus-visible,.op-search-form :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.op-search-form{margin-top:18px}
+.op-inline-input{display:flex;gap:9px;margin:9px 0}
+.op-inline-input input{min-width:0;flex:1}
+.op-inline-input button{flex:none}
+.op-grant-record .op-revoke{margin-top:6px;align-self:flex-start}
+@media(max-width:980px){.op-review-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:580px){.op-inline-input{flex-direction:column}.op-inline-input button{align-self:stretch}.op-review-row{grid-template-columns:minmax(85px,.47fr) minmax(0,1fr)}}

@@ -18,7 +18,7 @@ test('Operations view shows real statistics and honest locked billing states',()
  for(const id of ['op-kpi-members','op-kpi-open','op-kpi-resolved','op-kpi-paid','op-member-reconcile','op-inbox-error','op-auth-message'])
   assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/No payment approvals are available on staging/);
- assert.match(html,/Member modifications are disabled/);
+ assert.match(html,/Paid subscription changes remain disabled/);
  assert.match(js,/\/api\/admin-overview/);
  assert.match(js,/response\.status===401\|\|response\.status===403/);
  assert.doesNotMatch(js,/Math\.random|fakeMembers|demoPayments/);

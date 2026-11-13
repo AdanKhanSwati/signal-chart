@@ -57,7 +57,7 @@
      <h2>What you can manage now.</h2>
      <div class="op-capability"><span><b class="op-dot success"></b>Customer support</span><span class="op-state live">AVAILABLE</span></div>
      <div class="op-capability"><span><b class="op-dot"></b>Payment verification</span><span class="op-state waiting">NOT CONNECTED</span></div>
-     <div class="op-capability"><span><b class="op-dot"></b>Membership changes</span><span class="op-state waiting">NOT CONNECTED</span></div>
+     <div class="op-capability"><span><b class="op-dot success"></b>Complimentary access</span><span class="op-state live">AUDITED</span></div><div class="op-capability"><span><b class="op-dot"></b>Paid subscription changes</span><span class="op-state waiting">DISABLED</span></div>
      <div class="op-capability"><span><b class="op-dot"></b>Remote push alerts</span><span class="op-state waiting">NOT CONNECTED</span></div>
      <p class="op-muted">Staging safeguards remain active. No payment approval, plan activation or automated trading publication can be initiated here.</p>
     </article>
@@ -99,18 +99,44 @@
   </section>
 
   <section class="op-view" id="op-view-payments" aria-labelledby="op-payments-heading" hidden>
-   <div class="op-view-head"><div><span class="op-eyebrow">03 / TRANSACTIONS</span><h1 id="op-payments-heading">Payment review<span>.</span></h1><p>Manual crypto verification will operate here after the secure billing migration is complete.</p></div><span class="op-state waiting">IN DEVELOPMENT</span></div>
-   <article class="op-panel op-limit-panel"><span class="op-eyebrow">PAYMENT SAFETY GATE</span><h2>No payment approvals are available on staging.</h2><p>Receiving wallet verification, blockchain confirmation, receipt evidence, duplicate-transaction controls and subscription activation must be validated before enabling this module.</p><div class="op-capability"><span>Monthly subscription</span><strong>USD $20 / 30 days</strong></div><div class="op-capability"><span>Checkout and approvals</span><strong>Disabled</strong></div><div class="op-capability"><span>Historical ledger migration</span><strong>Not yet verified</strong></div></article>
+   <div class="op-view-head"><div><span class="op-eyebrow">03 / TRANSACTIONS</span><h1 id="op-payments-heading">Payment review<span>.</span></h1><p>View submitted BTC transfer references and leave a recorded review note. Only migrated SQL records are displayed.</p></div><button type="button" class="op-outline" id="op-refresh-payments">Refresh ledger</button></div>
+   <article class="op-panel op-limit-panel"><span class="op-eyebrow">PAYMENT SAFETY GATE</span><h2>No payment approvals are available on staging.</h2><p>Verification requires receipt evidence, independently confirmed on-chain destination, amount, confirmations, invoice reconciliation and duplicate-transaction protection. No action here grants paid access.</p><div class="op-capability"><span>Monthly subscription</span><strong>USD $20 / 30 days</strong></div><div class="op-capability"><span>Checkout and approvals</span><strong>Disabled</strong></div><div class="op-capability"><span>Historical ledger migration</span><strong>Unreconciled</strong></div></article>
+   <div class="op-columns op-review-grid">
+    <article class="op-panel"><div class="op-panel-head"><strong>Submitted payments</strong><span id="op-payment-count" class="op-dim">Not loaded</span></div><div id="op-payment-list" class="op-review-list" aria-live="polite"><p class="op-muted">Loading owner-only records…</p></div></article>
+    <article class="op-panel"><div class="op-panel-head"><strong>Review details</strong><span id="op-payment-state" class="op-state">NO SELECTION</span></div><div id="op-payment-details"><p class="op-muted">Choose a payment to inspect its submission information.</p></div>
+     <form id="op-payment-review-form" class="op-review-form" hidden>
+       <label>Review action<select id="op-payment-action" required><option value="hold">Request further verification</option><option value="reject">Reject submission</option></select></label>
+       <label>Review reason<textarea id="op-payment-reason" rows="3" minlength="5" maxlength="500" required placeholder="Describe the reason for this decision"></textarea></label>
+       <button class="op-button" type="submit" id="op-payment-submit">Record review</button>
+     </form>
+     <p class="op-muted" id="op-payment-disabled">Approval and payment collection remain disabled. A transfer screenshot alone is not evidence of a confirmed payment.</p>
+    </article>
+   </div>
   </section>
 
   <section class="op-view" id="op-view-members" aria-labelledby="op-members-heading" hidden>
-   <div class="op-view-head"><div><span class="op-eyebrow">04 / CUSTOMER ACCESS</span><h1 id="op-members-heading">Members<span>.</span></h1><p>Verified membership statistics without exposing private member records.</p></div><span class="op-state waiting">READ-ONLY</span></div>
+   <div class="op-view-head"><div><span class="op-eyebrow">04 / CUSTOMER ACCESS</span><h1 id="op-members-heading">Members<span>.</span></h1><p>Search verified customer profiles and manage audited complimentary access separately from paid subscriptions.</p></div><span class="op-state live">PRIVATE ACCESS</span></div>
    <div class="op-kpis three">
     <article class="op-glass"><span>Registered members</span><strong id="op-member-count">—</strong><small>Database records</small></article>
     <article class="op-glass"><span>Active paid access</span><strong id="op-member-paid">—</strong><small>Verified entitlements</small></article>
     <article class="op-glass"><span>Legacy accounts to review</span><strong id="op-member-reconcile">—</strong><small>Unreconciled status</small></article>
    </div>
-   <article class="op-panel op-limit-panel"><span class="op-eyebrow">ACCESS CONTROL</span><h2>Member modifications are disabled.</h2><p>Search, manual grants, suspensions, trial overrides and subscription changes require the migrated and audited administrator APIs. This dashboard will not claim those actions succeeded until they are verified.</p></article>
+   <article class="op-panel op-limit-panel"><span class="op-eyebrow">MEMBERSHIP SAFETY GATE</span><h2>Paid subscription changes remain disabled.</h2><p>Complimentary access is a time-limited, audited grant; it is not a payment approval. Existing paid and trial records are never overwritten. Premium publication is still disabled.</p></article>
+   <div class="op-columns op-review-grid">
+    <article class="op-panel"><div class="op-panel-head"><strong>Find a registered member</strong><span class="op-dim">PRIVATE SEARCH</span></div>
+     <form id="op-member-search-form" class="op-search-form"><label for="op-member-search">Email or member ID</label><div class="op-inline-input"><input id="op-member-search" type="search" placeholder="Search customer email" autocomplete="off" minlength="2" maxlength="100" required><button class="op-outline" type="submit">Search</button></div></form>
+     <div id="op-member-results" class="op-review-list" aria-live="polite"><p class="op-muted">Search for an existing customer to view access history.</p></div>
+    </article>
+    <article class="op-panel"><div class="op-panel-head"><strong>Complimentary access</strong><span id="op-grant-state" class="op-state">SELECT A MEMBER</span></div><p class="op-muted" id="op-selected-member">Select a customer from the search results.</p>
+     <div id="op-member-grants" class="op-review-list" aria-live="polite"></div>
+     <form id="op-grant-form" class="op-review-form" hidden>
+      <label for="op-grant-expiry">Access expires</label><input id="op-grant-expiry" type="datetime-local" required>
+      <label for="op-grant-reason">Reason for complimentary access</label><textarea id="op-grant-reason" rows="3" minlength="5" maxlength="500" required placeholder="Example: Courtesy access after confirmed support issue"></textarea>
+      <button class="op-button" type="submit" id="op-grant-submit">Grant complimentary access</button>
+     </form>
+     <p class="op-muted" id="op-grant-note">Only authorized administrators can issue and revoke audited complimentary grants.</p>
+    </article>
+   </div>
   </section>
 
   <section class="op-view" id="op-view-system" aria-labelledby="op-system-heading" hidden>
