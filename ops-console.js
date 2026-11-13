@@ -25,7 +25,7 @@ async function adminToken(){
 async function abandonSession(){
  $('op-app').hidden=true;
  $('op-tickets').replaceChildren();$('op-messages').replaceChildren();
- try{await sb?.auth?.signOut()}catch{}
+ try{if(sb)await sb.auth.signOut()}catch{}
  location.replace('/admin-login.html');
 }
 async function request(path,{method='GET',data,privateApi=true}={}){
@@ -90,7 +90,7 @@ function clearThread(){
 }
 function ticketRow(t){
  const b=element('button','op-ticket'),strong=element('strong','',t.subject||'Customer conversation');
- b.type='button';b.setAttribute('role','listitem');
+ b.type='button';b.dataset.ticketId=t.ticketId;b.setAttribute('role','listitem');
  if(t.ticketId===selected?.ticketId)b.classList.add('selected');
  b.append(strong,element('small','',String(t.category||'general').toUpperCase()+' · '+date(t.lastAt)));
  b.onclick=()=>openTicket(t).catch(err=>notice(errorMessage(err),true));
@@ -148,7 +148,7 @@ async function openTicket(t){
  $('op-reply-form').hidden=data.ticket.status!=='open';
  document.querySelectorAll('.op-ticket').forEach(b=>b.classList.remove('selected'));
  // The selected card may have been re-rendered while messages were loading.
- for(const b of $('op-tickets').children)if(b.textContent.includes(t.subject||'§'))b.classList.add('selected');
+ for(const b of $('op-tickets').children)if(b.dataset.ticketId===t.ticketId)b.classList.add('selected');
 }
 async function reply(event){
  event.preventDefault();if(!selected||selected.status!=='open')return;
@@ -201,8 +201,8 @@ async function boot(){
   const proof=await request('/api/admin-session');
   if(proof.authorized!==true)throw Error('Administrator authorization could not be verified.');
   $('op-app').hidden=false;$('op-auth').hidden=true;$('op-signout').hidden=false;
-  const user=(await sb.auth.getUser()).data?.user;
-  if(user?.email)text('op-identity',user.email);
+  const session=(await sb.auth.getSession()).data?.session;
+  if(session?.user?.email)text('op-identity',session.user.email);
   document.querySelectorAll('[data-op-view]').forEach(b=>b.onclick=()=>showView(b.dataset.opView));
   $('op-signout').onclick=()=>abandonSession();
   $('op-auth-retry').onclick=()=>location.reload();

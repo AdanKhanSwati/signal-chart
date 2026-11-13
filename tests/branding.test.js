@@ -14,6 +14,9 @@ test('site shell and admin dashboard use the official website wordmark',()=>{
  const js=fs.readFileSync(path.join(__dirname,'../signalchart-shell.js'),'utf8');
  const ops=fs.readFileSync(path.join(__dirname,'../ops.html'),'utf8');
  assert.ok(js.includes('/signalchart-wordmark.svg'));
- assert.ok(ops.includes('data-ops-tab="members"'));
- assert.ok(ops.includes('id="ops-grant-form"'));
+ assert.ok(ops.includes('/signalchart-wordmark.svg'));
+ assert.ok(ops.includes('data-op-view="members"'));
+ assert.ok(ops.includes('id="op-view-members"'));
+ assert.ok(ops.includes('id="op-member-count"'));
+ assert.doesNotMatch(ops,/id="ops-grant-form"/);
 });
