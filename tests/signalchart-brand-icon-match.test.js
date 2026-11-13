@@ -25,3 +25,12 @@ test('Brand source, resizer and sync action are documented as exact supplied art
  const workflow=fs.readFileSync(path.join(root,'.github/workflows/signalchart-icon-sync.yml'),'utf8');
  assert.match(workflow,/signalchart-cloudflare-free-migration/);
 });
+
+test('Android adaptive icon uses transparent mark-only foreground, no square frame',()=>{
+ const xml=fs.readFileSync(path.join(root,'mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'),'utf8');
+ assert.match(xml,/android:drawable="@android:color\/transparent"/);
+ assert.match(xml,/@drawable\/ic_launcher_foreground/);
+ const gradle=fs.readFileSync(path.join(root,'mobile/android/app/build.gradle'),'utf8');
+ assert.match(gradle,/versionCode 2/);
+ assert.match(gradle,/versionName '0\.2\.0'/);
+});

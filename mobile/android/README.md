@@ -74,3 +74,13 @@ The Android super-admin flavor opens the dedicated `/admin/login` portal. It use
 - **Complimentary access:** the administrator can issue or revoke short-lived, reason-logged grants to existing registered members on staging. These are distinct from paid subscriptions, do not overwrite trials, and do not bypass disabled premium signal publishing.
 - **Release testing:** build and lint both debug flavors, verify the separate admin login, test mobile screen layouts and service worker scope, then run an authorized staging session on a real Android device before signing for Play distribution.
 
+
+## SignalChart original icon / administration preview v0.2.0
+
+The Android launcher, app manifest icons, web PWA install icons and favicons now use the recovered original two-bar orange SignalChart mark (no old Candriva-style app icon, text, or added frame). The adaptive icon layer has a transparent background; launcher appearance is controlled by each Android device.
+
+The private super-admin app exposes distinct operational modules for Overview, Inbox, Payment Review, Members, Trials & Risk, Research Monitoring, Audit History, Platform Controls and System Status. All privileges require verified single-owner server access and are recorded when changes are made.
+
+Current staging rights allow customer inbox actions, time-bounded complimentary grants, trial revocation, research-scan pause/resume, support-intake pause/resume and immutable payment hold/reject events. Paid transaction approval, unsupervised publishing, legacy payment import and remote push remain locked until separately verified. Staging must not be advertised as a fully commissioned production platform.
+
+Debug APKs are independently signed by temporary GitHub Actions environments. Depending on signature continuity, an existing debug APK may require removal before installing the new build. This is only for test devices; do not distribute a debug APK as the production release.
