@@ -38,7 +38,17 @@
         <input id="admin-password" name="password" type="password" autocomplete="current-password" minlength="1" placeholder="Your account password" required>
         <button id="admin-submit" type="submit">Access administration <span aria-hidden="true">↗</span></button>
       </form>
-      <button id="admin-email-link" class="gate-text-button" type="button">Send a sign-in email instead</button>
+      <div class="gate-helper-actions">
+        <button id="admin-email-link" class="gate-text-button" type="button">Send a sign-in email instead</button>
+        <button id="admin-password-reset" class="gate-text-button" type="button">Reset administrator password</button>
+      </div>
+      <form id="admin-recovery-form" hidden>
+        <label for="admin-new-password">Choose a new administrator password</label>
+        <input id="admin-new-password" type="password" autocomplete="new-password" minlength="12" required placeholder="At least 12 characters">
+        <label for="admin-confirm-password">Confirm password</label>
+        <input id="admin-confirm-password" type="password" autocomplete="new-password" minlength="12" required placeholder="Confirm your password">
+        <button type="submit" id="admin-recovery-submit">Save new password securely <span aria-hidden="true">↗</span></button>
+      </form>
       <p class="gate-disclaimer">No new administrator accounts are created here. Sign-in and access are verified by the server.</p>
     </section>
   </div>
