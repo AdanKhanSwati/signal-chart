@@ -10,7 +10,7 @@ test('Standalone superadmin console uses isolated auth and never links to custom
  assert.match(js,/\/api\/admin-session/);
  assert.match(js,/auth\.getSession\(\)/);
  assert.match(js,/auth\.signOut\(\)/);
- assert.match(js,/location\.replace\('\/admin-login\.html'\)/);
+ assert.match(js,/location\.replace\('\/admin\/login'\)/);
  assert.match(js,/adminToken\(\)/);
 });
 test('Operations view shows real statistics and honest locked billing states',()=>{

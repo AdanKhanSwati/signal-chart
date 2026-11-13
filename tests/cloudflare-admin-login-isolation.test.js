@@ -26,7 +26,7 @@ test('Only configured server UID passes admin session gate; client metadata cann
  assert.equal(response.headers.get('Cache-Control'),'private, no-store, max-age=0');
 });
 test('Administrator sign in has no signup, trial or customer session reuse',()=>{
- const html=root('admin-login.html'),js=root('admin-auth.js'),ops=root('site-app.js');
+ const html=root('admin-login.html'),js=root('admin-auth.js'),ops=root('ops-console.js');
  assert.match(html,/id="admin-form"/);
  assert.doesNotMatch(html,/create account|sign up|free trial/i);
  assert.match(js,/signInWithPassword/);
@@ -34,17 +34,17 @@ test('Administrator sign in has no signup, trial or customer session reuse',()=>
  assert.match(js,/storageKey:adminStorageKey/);
  assert.match(js,/\/api\/admin-session/);
  assert.match(js,/auth\.signOut\(\)/);
- assert.match(ops,/storageKey:'signalchart-superadmin-auth-v1'/);
+ assert.match(ops,/storageKey='signalchart-superadmin-auth-v1'/);
  assert.match(ops,/\/api\/admin-session/);
- assert.match(ops,/location\.replace\('\/admin-login\.html'\)/);
+ assert.match(ops,/location\.replace\('\/admin\/login'\)/);
  assert.doesNotMatch(root('ops.html'),/href="\/account.html\?mode=signin"/);
  assert.doesNotMatch(root('account.html'),/href="\/admin\.html"/);
 });
 test('Customer app navigation has no admin access while admin APK has its own login',()=>{
  const policy=root('mobile/android/app/src/main/java/pro/signalchart/app/UrlPolicy.java');
  const gradle=root('mobile/android/app/build.gradle');
- assert.match(policy,/"\/admin-login.html", "\/ops.html"/);
- assert.doesNotMatch(policy,/"\/ops.html", "\/admin.html", "\/account.html"/);
+ assert.match(policy,/"\/admin-login.html", "\/admin\/console"/);
+ assert.doesNotMatch(policy,/"\/admin\/console", "\/admin.html", "\/account.html"/);
  assert.match(gradle,/entryPath: '\/admin-login.html'/);
  assert.match(gradle,/START_PATH', '"\/admin-login.html"'/);
  assert.match(root('admin.html'),/url=\/admin-login.html/);

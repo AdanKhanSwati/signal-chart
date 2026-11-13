@@ -40,8 +40,15 @@ test('referenced root JS/CSS/svg/icon files on published HTML are included',()=>
   const refs=[...src.matchAll(/(?:src|href)=["'](\/[^"'?#]+)["']/g)];
   for(const m of refs){
    const name=m[1].slice(1);
-   if(/\.(?:css|js|svg|png|webmanifest|ico)$/.test(name))
-    assert.ok(files.has(name),page+' references unlisted '+name);
+   if(/\.(?:css|js|svg|png|webmanifest|ico)$/.test(name)){
+    if(name==='admin/manifest.webmanifest'){
+     assert.ok(['admin-login.html','ops.html'].includes(page),page+' must not use admin manifest');
+     assert.ok(files.has('ops.webmanifest'));
+     const worker=fs.readFileSync(path.join(root,'cloudflare/worker.mjs'),'utf8');
+     assert.match(worker,/\/admin\/manifest\.webmanifest/);
+     assert.match(worker,/\/ops\.webmanifest/);
+    }else assert.ok(files.has(name),page+' references unlisted '+name);
+   }
   }
  }
 });
