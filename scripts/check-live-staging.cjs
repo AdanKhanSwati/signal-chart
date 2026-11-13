@@ -8,6 +8,8 @@ const endpoints=Object.freeze([
  {id:'rootLanding',path:'/',expected:200,type:'landing'},
  {id:'landingAsset',path:'/launch.html',expected:200,type:'landing'},
  {id:'mobileApp',path:'/app.html',expected:200,type:'app'},
+ {id:'adminLoginPage',path:'/admin-login.html',expected:200,type:'adminLogin'},
+ {id:'adminAuthGuard',path:'/api/admin-session',expected:401,type:'adminGuard'},
  {id:'marketingMarkets',path:'/markets.html',expected:200,type:'marketing'},
  {id:'marketingPlatform',path:'/platform.html',expected:200,type:'marketing'},
  {id:'marketingResearch',path:'/research.html',expected:200,type:'marketing'},
@@ -20,18 +22,20 @@ const endpoints=Object.freeze([
 async function probe(item,fetchFn){
  try{
   const res=await fetchFn(ORIGIN+item.path,{
-   method:'GET',headers:{Accept:item.type==='landing'||item.type==='app'||item.type==='marketing'?'text/html':'application/json'},
+   method:'GET',headers:{Accept:item.type==='landing'||item.type==='app'||item.type==='marketing'||item.type==='adminLogin'?'text/html':'application/json'},
    redirect:'error',signal:AbortSignal.timeout(11000),cache:'no-store'
   });
   if(res.status!==item.expected)return {id:item.id,status:res.status,result:'UNEXPECTED_HTTP'};
-  if(item.type==='landing'||item.type==='app'||item.type==='marketing'){
+  if(item.type==='landing'||item.type==='app'||item.type==='marketing'||item.type==='adminLogin'){
    const html=(await res.text()).slice(0,250000);
    if(!html.includes('SignalChart'))return {id:item.id,status:res.status,result:'UNEXPECTED_CONTENT'};
+   if(item.type==='adminLogin')return {id:item.id,status:res.status,result:html.includes('id="admin-form"')&&html.includes('src="/admin-auth.js"')&&html.includes('noindex,nofollow')?'PASS':'INCOMPLETE_ADMIN_LOGIN'};
    if(item.type==='marketing')return {id:item.id,status:res.status,result:html.includes('<main id="main">')&&html.includes('aria-current="page"')?'PASS':'INCOMPLETE_PAGE'};
    const isNew=html.includes('Trade with<br><span>market context.');
    return {id:item.id,status:res.status,result:item.type==='landing'&&!isNew?'OLD_DEPLOYMENT':'PASS'};
   }
   const data=await res.json();
+  if(item.type==='adminGuard')return {id:item.id,status:res.status,result:typeof data.error==='string'&&/sign in required/i.test(data.error)?'PASS':'UNSAFE_ADMIN_GATE'};
   if(item.type==='health')return {id:item.id,status:res.status,result:data.ok===true?'PASS':'UNEXPECTED_CONTENT'};
   if(item.type==='readiness')return {id:item.id,status:res.status,result:data.productionReady===false?'PASS':'UNSAFE_READINESS'};
   if(item.type==='markets')return {id:item.id,status:res.status,result:Array.isArray(data.markets)&&data.markets.length>=30?'PASS':'CATALOG_INCOMPLETE',
