@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),path=requir
 const {pathToFileURL}=require('node:url');
 const mod=import(pathToFileURL(path.resolve(__dirname,'../cloudflare/worker.mjs')).href);
 const ADMIN='b1111111-1111-4111-8111-111111111111',OTHER='c1111111-1111-4111-8111-111111111111',TOKEN='jwt.owner.token.valid-12345678901234567890';
-const env={SUPABASE_URL:'https://admin-controls.test.supabase.co',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456',SUPABASE_SECRET_KEY:'sb_secret_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456',SC_ADMIN_OPS_READ_ENABLED:'true',SC_ADMIN_OWNER_DB_ENABLED:'true'};
+const env={SUPABASE_URL:'https://admin-controls-test.supabase.co',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456',SUPABASE_SECRET_KEY:'sb_secret_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456',SC_ADMIN_OPS_READ_ENABLED:'true',SC_ADMIN_OWNER_DB_ENABLED:'true'};
 const ok=v=>Response.json(v);
 const stub=({user=ADMIN,owner=ADMIN,calls=[],result}={})=>async(u,o)=>{
  const p=new URL(u).pathname;calls.push({p,method:o.method,body:o.body});

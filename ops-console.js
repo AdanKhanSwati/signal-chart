@@ -5,7 +5,7 @@ let paymentRecords=[],paymentCapabilities={},selectedPayment=null,selectedMember
 let deferredInstall=null;
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstall=event;const btn=$('op-install');if(btn&&!$('op-app').hidden)btn.hidden=false});
 window.addEventListener('appinstalled',()=>{deferredInstall=null;const btn=$('op-install');if(btn)btn.hidden=true});
-const VIEWS=['overview','inbox','payments','members','system'];
+const VIEWS=['overview','inbox','payments','members','trials','signals','audit','settings','system'];
 const date=v=>{if(!v)return 'None recorded';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString():'Unavailable'};
 const text=(id,value)=>{const node=$(id);if(node)node.textContent=String(value??'—')};
 function notice(value,error=false){const node=$('op-notice');node.hidden=!value;node.classList.toggle('error',error);node.textContent=value||''}
@@ -56,6 +56,10 @@ function showView(name){
  VIEWS.forEach(view=>{$('op-view-'+view).hidden=view!==name});
  if(name==='inbox'&&!inboxBusy)loadInbox().catch(err=>notice(errorMessage(err),true));
  if(name==='payments')loadPaymentRecords().catch(err=>notice(errorMessage(err),true));
+ if(name==='trials')loadTrialRegister().catch(err=>notice(errorMessage(err),true));
+ if(name==='signals')loadResearchCenter().catch(err=>notice(errorMessage(err),true));
+ if(name==='audit')loadAuditHistory().catch(err=>notice(errorMessage(err),true));
+ if(name==='settings')loadAdminSwitches().catch(err=>notice(errorMessage(err),true));
  if(name==='system')refreshSystem().catch(err=>notice(errorMessage(err),true));
  if(name==='overview'||name==='members')refreshOverview().catch(err=>notice(errorMessage(err),true));
 }
@@ -353,6 +357,143 @@ async function revokeGrant(grant){
  }catch(error){notice(errorMessage(error),true)}
 }
 
+
+let controlSnapshot=null,controlBusy=false,trialBusy=false;
+function renderStats(stats){
+ const ids=[['op-trial-count','trialActivations'],['op-trial-risk','riskEventsLast30Days'],
+  ['op-trial-grants','complimentaryActive'],['op-research-proposals','pendingProposals'],
+  ['op-research-published','publishedSignalRecords'],['op-research-revoked','revokedSignals']];
+ for(const [id,key] of ids)if($(id))text(id,Number.isSafeInteger(stats[key])?stats[key].toLocaleString('en-US'):'—');
+}
+async function controlOverview(){
+ const data=await request('/api/admin-control?action=overview');
+ if(!data.controls||!data.stats||!Array.isArray(data.scans))throw Error('Invalid platform control state');
+ controlSnapshot=data.controls;
+ renderStats(data.stats);
+ const scans=$('op-scans-list');scans.replaceChildren();
+ if(!data.scans.length)scans.append(element('p','op-empty','No recorded scanner runs. An enabled scheduler does not guarantee provider readiness.'));
+ for(const item of data.scans){
+  const card=element('div','op-record');
+  card.append(element('strong','',String(item.status)+' · '+date(item.ranAt)),
+   element('small','','Scanned: '+item.scanned+' · Qualified: '+item.qualified+
+    ' · Published: '+item.published+' · Errors: '+item.errors));
+  scans.append(card);
+ }
+ for(const [key,statusId,btnId,on,off] of [
+  ['researchScans','op-research-switch-status','op-research-switch','Pause research scans','Resume research scans'],
+  ['supportIntake','op-support-switch-status','op-support-switch','Pause new tickets','Resume new tickets']
+ ]){
+  text(statusId,data.controls[key]?'ENABLED':'PAUSED');
+  const btn=$(btnId);btn.disabled=false;btn.textContent=data.controls[key]?on:off;
+ }
+ return data;
+}
+async function loadAdminSwitches(){
+ if(controlBusy)return;controlBusy=true;
+ for(const id of ['op-research-switch','op-support-switch'])$(id).disabled=true;
+ try{await controlOverview()}
+ catch(error){
+  controlSnapshot=null;
+  for(const id of ['op-research-switch-status','op-support-switch-status'])text(id,'UNAVAILABLE');
+  throw error;
+ }finally{controlBusy=false}
+}
+async function changeControl(key){
+ if(controlBusy||!controlSnapshot)return;
+ const stateKey=key==='research_scans'?'researchScans':key==='support_intake'?'supportIntake':null;
+ if(!stateKey)return;
+ const newValue=!controlSnapshot[stateKey];
+ const readable=key==='research_scans'?'unattended research scanning':'new customer support tickets';
+ const verb=newValue?'resume':'pause';
+ if(!confirm('Do you want to '+verb+' '+readable+'? This change affects the live staging service.'))return;
+ const reason=prompt('Provide an audit reason (5–500 characters):');
+ if(reason===null)return;
+ if(reason.trim().length<5||reason.trim().length>500)return notice('Enter a reason between 5 and 500 characters.',true);
+ controlBusy=true;
+ for(const id of ['op-research-switch','op-support-switch'])$(id).disabled=true;
+ try{
+  const result=await request('/api/admin-control?action=toggle',{method:'POST',
+   data:{key,enabled:newValue,reason:reason.trim()}});
+  if(result.recorded!==true||result.enabled!==newValue)throw Error('Switch change was not confirmed');
+  notice('Operational control recorded: '+readable+' '+(newValue?'resumed':'paused')+'.');
+  await controlOverview();
+ }catch(error){notice(errorMessage(error),true)}
+ finally{controlBusy=false;for(const id of ['op-research-switch','op-support-switch'])$(id).disabled=false}
+}
+async function loadTrialRegister(event){
+ if(event)event.preventDefault();
+ if(trialBusy)return;trialBusy=true;
+ const list=$('op-trial-list');list.replaceChildren(element('p','op-muted','Loading registered trials…'));
+ try{
+  await controlOverview();
+  const q=$('op-trial-search').value.trim();
+  const payload=await request('/api/admin-control?action=trials&q='+encodeURIComponent(q));
+  if(!Array.isArray(payload.trials))throw Error('Trial register not available');
+  list.replaceChildren();
+  if(!payload.trials.length)list.append(element('p','op-empty','No matching trial activations.'));
+  for(const trial of payload.trials){
+   const card=element('div','op-grant-record');
+   card.append(element('strong','',String(trial.status).toUpperCase()+' · '+trial.userId),
+    element('small','',date(trial.activatedAt)+' → '+date(trial.expiresAt)),
+    element('small','',trial.signalsUsed+'/3 signals · '+(trial.riskFlag?'RISK REVIEW FLAG':'No current risk flag')));
+   if(['active','exhausted'].includes(trial.status)){
+    const revoke=element('button','op-outline op-revoke','Revoke trial');revoke.type='button';
+    revoke.onclick=()=>revokeTrial(trial);
+    card.append(revoke);
+   }
+   list.append(card);
+  }
+ }catch(error){list.replaceChildren(element('p','op-empty','Trial database is unavailable.'));throw error}
+ finally{trialBusy=false}
+}
+async function revokeTrial(trial){
+ if(!confirm('Revoke access for trial '+trial.userId+'? This preserves abuse history and cannot be undone through this console.'))return;
+ const reason=prompt('Reason for revoking the trial (5–500 characters):');
+ if(reason===null)return;
+ if(reason.trim().length<5||reason.trim().length>500)return notice('A 5–500 character reason is required.',true);
+ try{
+  const data=await request('/api/admin-control?action=revoke_trial',{method:'POST',
+   data:{userId:trial.userId,reason:reason.trim()}});
+  if(!['revoked','not_active'].includes(data.result))throw Error('Trial operation was not recorded');
+  notice(data.result==='revoked'?'Trial revoked and audited.':'The trial was already inactive.');
+  await loadTrialRegister();
+ }catch(error){notice(errorMessage(error),true)}
+}
+async function loadResearchCenter(){
+ await controlOverview();
+ const target=$('op-proposals-list');target.replaceChildren(element('p','op-muted','Loading pending proposal metadata…'));
+ try{
+  const data=await request('/api/admin-control?action=proposals');
+  if(!Array.isArray(data.proposals))throw Error('Research queue unavailable');
+  target.replaceChildren();
+  if(!data.proposals.length)target.append(element('p','op-empty','No pending source-verified research proposals.'));
+  for(const item of data.proposals){
+   const card=element('div','op-record');
+   card.append(element('strong','',item.asset+' · '+item.market.toUpperCase()),
+    element('small','',String(item.signalKey)),
+    element('small','',String(item.source)+' · '+date(item.proposedAt)));
+   target.append(card);
+  }
+ }catch(error){target.replaceChildren(element('p','op-empty','Proposal queue could not be verified.'));throw error}
+}
+async function loadAuditHistory(){
+ const target=$('op-audit-list');target.replaceChildren(element('p','op-muted','Loading private audit trail…'));
+ try{
+  const data=await request('/api/admin-control?action=audit');
+  if(!Array.isArray(data.events))throw Error('Audit list invalid');
+  target.replaceChildren();
+  if(!data.events.length)target.append(element('p','op-empty','No administrative modifications recorded.'));
+  for(const e of data.events){
+   const card=element('div','op-grant-record');
+   card.append(element('strong','',e.action+' · '+date(e.at)),
+    element('small','',e.source+' · Actor: '+e.actorId),
+    element('small','',e.subjectId?'Account: '+e.subjectId:e.reason),
+    ...(e.subjectId?[element('small','',e.reason)]:[]));
+   target.append(card);
+  }
+ }catch(error){target.replaceChildren(element('p','op-empty','Private audit history is unavailable.'));throw error}
+}
+
 async function boot(){
  try{
   const config=await request('/api/config',{privateApi:false});
@@ -396,6 +537,13 @@ async function boot(){
   $('op-next').onclick=()=>{const next=Number($('op-next').dataset.nextOffset);if(Number.isSafeInteger(next)&&next>offset){offset=next;clearThread();loadInbox().catch(err=>notice(errorMessage(err),true))}};
   $('op-reply-form').onsubmit=reply;$('op-close-thread').onclick=closeThread;
   $('op-refresh-system').onclick=()=>refreshSystem();
+  $('op-refresh-trials').onclick=()=>loadTrialRegister().catch(e=>notice(errorMessage(e),true));
+  $('op-trial-search-form').onsubmit=e=>loadTrialRegister(e).catch(err=>notice(errorMessage(err),true));
+  $('op-refresh-signals').onclick=()=>loadResearchCenter().catch(e=>notice(errorMessage(e),true));
+  $('op-refresh-audit').onclick=()=>loadAuditHistory().catch(e=>notice(errorMessage(e),true));
+  $('op-refresh-settings').onclick=()=>loadAdminSwitches().catch(e=>notice(errorMessage(e),true));
+  $('op-research-switch').onclick=()=>changeControl('research_scans');
+  $('op-support-switch').onclick=()=>changeControl('support_intake');
   $('op-refresh-payments').onclick=()=>loadPaymentRecords().catch(e=>notice(errorMessage(e),true));
   $('op-payment-review-form').onsubmit=recordPaymentReview;
   $('op-member-search-form').onsubmit=searchMembers;

@@ -29,8 +29,12 @@
   <nav class="op-nav" aria-label="Console modules">
    <button type="button" class="active" data-op-view="overview" aria-current="page"><span class="op-nav-icon" aria-hidden="true">◫</span>Overview</button>
    <button type="button" data-op-view="inbox"><span class="op-nav-icon" aria-hidden="true">▤</span>Customer inbox</button>
-   <button type="button" data-op-view="payments"><span class="op-nav-icon" aria-hidden="true">◈</span>Payments <small>Pending</small></button>
-   <button type="button" data-op-view="members"><span class="op-nav-icon" aria-hidden="true">◎</span>Members <small>Read-only</small></button>
+   <button type="button" data-op-view="payments"><span class="op-nav-icon" aria-hidden="true">◈</span>Payments <small>Review</small></button>
+   <button type="button" data-op-view="members"><span class="op-nav-icon" aria-hidden="true">◎</span>Members <small>Manage</small></button>
+   <button type="button" data-op-view="trials"><span class="op-nav-icon" aria-hidden="true">◉</span>Trials & risk</button>
+   <button type="button" data-op-view="signals"><span class="op-nav-icon" aria-hidden="true">⌁</span>Signal research</button>
+   <button type="button" data-op-view="audit"><span class="op-nav-icon" aria-hidden="true">▥</span>Audit history</button>
+   <button type="button" data-op-view="settings"><span class="op-nav-icon" aria-hidden="true">⚙</span>Platform controls</button>
    <button type="button" data-op-view="system"><span class="op-nav-icon" aria-hidden="true">⌁</span>System status</button>
   </nav>
   <div class="op-sidebar-foot">
@@ -139,8 +143,97 @@
    </div>
   </section>
 
+  <section class="op-view" id="op-view-trials" aria-labelledby="op-trials-heading" hidden>
+   <div class="op-view-head">
+    <div><span class="op-eyebrow">05 / TRIAL OPERATIONS</span><h1 id="op-trials-heading">Trials & risk<span>.</span></h1>
+     <p>Inspect registered trial history, investigate risk indicators and revoke access when necessary. A revoked trial is never silently reset.</p></div>
+    <button type="button" class="op-outline" id="op-refresh-trials">Refresh trials</button>
+   </div>
+   <div class="op-kpis three">
+    <article class="op-glass"><span>Trial activations</span><strong id="op-trial-count">—</strong><small>Verified SQL records only</small></article>
+    <article class="op-glass"><span>Risk events / 30 days</span><strong id="op-trial-risk">—</strong><small>Review and restriction flags</small></article>
+    <article class="op-glass"><span>Complimentary grants active</span><strong id="op-trial-grants">—</strong><small>Separate from paid access</small></article>
+   </div>
+   <div class="op-panel">
+    <div class="op-panel-head"><strong>Member trial register</strong><span class="op-dim">OWNER-VERIFIED</span></div>
+    <form id="op-trial-search-form" class="op-search-form">
+     <label for="op-trial-search">Search by account UUID</label>
+     <div class="op-inline-input"><input id="op-trial-search" type="search" placeholder="Account ID (optional)" maxlength="100" autocomplete="off">
+      <button class="op-outline" type="submit">Filter</button></div>
+    </form>
+    <div id="op-trial-list" class="op-review-list"><p class="op-muted">Open this section to load verified trial records.</p></div>
+    <div class="op-footnote">Trial abuse is reviewed using server-side risk controls; no device identifiers or IP addresses are revealed in this table.</div>
+   </div>
+  </section>
+
+  <section class="op-view" id="op-view-signals" aria-labelledby="op-signals-heading" hidden>
+   <div class="op-view-head"><div><span class="op-eyebrow">06 / RESEARCH OPERATIONS</span>
+    <h1 id="op-signals-heading">Signal intelligence<span>.</span></h1>
+    <p>Monitor the hourly research scanner, verified source coverage and pending proposal metadata without exposing or fabricating premium signals.</p></div>
+    <button type="button" class="op-outline" id="op-refresh-signals">Refresh research</button>
+   </div>
+   <div class="op-kpis three">
+    <article class="op-glass"><span>Unpublished proposals</span><strong id="op-research-proposals">—</strong><small>Pending SQL records</small></article>
+    <article class="op-glass"><span>Published signal records</span><strong id="op-research-published">—</strong><small>Not a claim of profitability</small></article>
+    <article class="op-glass"><span>Revoked signals</span><strong id="op-research-revoked">—</strong><small>Historical restriction count</small></article>
+   </div>
+   <div class="op-columns op-review-grid">
+    <article class="op-panel">
+     <div class="op-panel-head"><strong>Recent hourly research runs</strong><span class="op-dim">DRY RUN</span></div>
+     <div id="op-scans-list" class="op-review-list"><p class="op-muted">Loading real scanner records…</p></div>
+    </article>
+    <article class="op-panel">
+     <div class="op-panel-head"><strong>Pending research proposals</strong><span class="op-dim">SOURCE-ATTRIBUTED</span></div>
+     <div id="op-proposals-list" class="op-review-list"><p class="op-muted">Loading source records…</p></div>
+    </article>
+   </div>
+   <article class="op-panel op-limit-panel"><span class="op-eyebrow">LIVE-PUBLISHING SAFETY</span>
+    <h2>Automatic paid signal publication remains disabled.</h2>
+    <p>Research monitoring is available. Enabling publication requires verified forex and perpetual feeds, economic-calendar coverage, backtesting and end-to-end release checks. This console does not manufacture signals or bypass those requirements.</p>
+   </article>
+  </section>
+
+  <section class="op-view" id="op-view-audit" aria-labelledby="op-audit-heading" hidden>
+   <div class="op-view-head"><div><span class="op-eyebrow">07 / ADMINISTRATOR ACCOUNTABILITY</span>
+    <h1 id="op-audit-heading">Audit history<span>.</span></h1>
+    <p>A permanent, source-backed record of administrator changes to payments, membership, trials and operational settings.</p></div>
+    <button type="button" class="op-outline" id="op-refresh-audit">Refresh history</button>
+   </div>
+   <div class="op-panel">
+    <div class="op-panel-head"><strong>Recent verified activity</strong><span class="op-dim">APPEND-ONLY</span></div>
+    <div id="op-audit-list" class="op-review-list"><p class="op-muted">Open this section to view the latest administrator events.</p></div>
+   </div>
+  </section>
+
+  <section class="op-view" id="op-view-settings" aria-labelledby="op-settings-heading" hidden>
+   <div class="op-view-head"><div><span class="op-eyebrow">08 / PLATFORM CONTROL CENTER</span>
+    <h1 id="op-settings-heading">Operational controls<span>.</span></h1>
+    <p>Emergency switches are stored in the private database and enforced by the Cloudflare worker; every change is attributed to your account.</p></div>
+    <button type="button" class="op-outline" id="op-refresh-settings">Refresh controls</button>
+   </div>
+   <div class="op-columns op-review-grid">
+    <article class="op-panel">
+     <div class="op-panel-head"><strong>Research scheduler</strong><span class="op-state" id="op-research-switch-status">CHECKING</span></div>
+     <p class="op-muted">Pause or resume unattended hourly research scans. This does not permit paid signal publication.</p>
+     <button class="op-outline" type="button" id="op-research-switch" disabled>Checking control</button>
+    </article>
+    <article class="op-panel">
+     <div class="op-panel-head"><strong>Customer support intake</strong><span class="op-state" id="op-support-switch-status">CHECKING</span></div>
+     <p class="op-muted">Pause or resume new support ticket submissions. Existing messages and administrator replies remain accessible.</p>
+     <button class="op-outline" type="button" id="op-support-switch" disabled>Checking control</button>
+    </article>
+   </div>
+   <article class="op-panel op-limit-panel">
+    <span class="op-eyebrow">PROTECTED RELEASE POLICIES</span><h2>High-risk switches cannot bypass launch requirements.</h2>
+    <div class="op-capability"><span>Crypto payment approval</span><strong>LOCKED · ON-CHAIN VERIFICATION REQUIRED</strong></div>
+    <div class="op-capability"><span>Premium signal publishing</span><strong>LOCKED · DATA & BACKTEST VALIDATION REQUIRED</strong></div>
+    <div class="op-capability"><span>Trial reset for existing devices</span><strong>LOCKED · ANTI-ABUSE ENFORCED</strong></div>
+    <p class="op-muted">Additional payment and signal controls will become available here as their verified server workflows are completed.</p>
+   </article>
+  </section>
+
   <section class="op-view" id="op-view-system" aria-labelledby="op-system-heading" hidden>
-   <div class="op-view-head"><div><span class="op-eyebrow">05 / OPERATIONS HEALTH</span><h1 id="op-system-heading">System status<span>.</span></h1><p>Source-aware reporting for staging integrations and release safeguards.</p></div><button class="op-outline" type="button" id="op-refresh-system">Check services</button></div>
+   <div class="op-view-head"><div><span class="op-eyebrow">09 / OPERATIONS HEALTH</span><h1 id="op-system-heading">System status<span>.</span></h1><p>Source-aware reporting for staging integrations and release safeguards.</p></div><button class="op-outline" type="button" id="op-refresh-system">Check services</button></div>
    <div class="op-columns">
     <article class="op-panel"><div class="op-panel-head"><span>Research scheduler</span><span class="op-state" id="op-scheduler-state">CHECKING</span></div><p class="op-muted" id="op-scheduler-detail">Checking current scheduler configuration…</p></article>
     <article class="op-panel"><div class="op-panel-head"><span>Economic calendar</span><span class="op-state" id="op-calendar-state">CHECKING</span></div><p class="op-muted" id="op-calendar-detail">Checking event-source coverage…</p></article>
