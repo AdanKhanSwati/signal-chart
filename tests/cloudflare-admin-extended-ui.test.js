@@ -9,7 +9,7 @@ test('Expanded private console has separate working controls for trials, signals
   assert.ok(js.includes("'"+view+"'"),view);
  }
  for(const method of ['loadTrialRegister','revokeTrial','loadResearchCenter','loadAuditHistory','changeControl','loadAdminSwitches'])
-  assert.match(js,new RegExp('(?:async )?function '+method+'\('));
+  assert.ok(js.includes('function '+method+'('),method);
 });
 test('High-risk member and publication controls are not bypassable from admin UI',()=>{
  const html=read('ops.html'),js=read('ops-console.js');
